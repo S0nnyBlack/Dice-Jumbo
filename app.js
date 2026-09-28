@@ -4,7 +4,7 @@ import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries}from"./
 
 const state={
  mode:"setup",rolls:0,dice:[],selected:new Set(),columns:["down","free","up"],
- currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{}}],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null
+ currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null
 };
 const app=document.getElementById("app");
 const defs=()=>state.columns.map(id=>COLUMN_DEFS.find(c=>c.id===id)).filter(Boolean);
@@ -16,7 +16,7 @@ const isFilled=(p,col,row)=>p?.cells?.[cellKey(col,row)]!==undefined;
 const scoreRows=[...VALUE_ROWS.map(String),"MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"];
 
 function resetLocal(){
- state.mode="solo";state.rolls=0;state.dice=[];state.selected.clear();state.players=[{id:"local",name:"Igrač 1",cells:{}}];
+ state.mode="solo";state.rolls=0;state.dice=[];state.selected.clear();state.players=[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]}];
  state.currentPlayer=0;state.viewPlayer=0;state.pending=null;state.gameOver=false;state.soloActive=false;state.crossOutMode=false;state.announcedRow=null;state.contraTargetRow=null;
 }
 
@@ -125,7 +125,7 @@ function soloRoll(){
 function soloCandidates(){
  if(state.rolls===0||(!state.crossOutMode&&state.selected.size===0))return [];
  const restrictions=state.contraTargetRow?{contraRow:state.contraTargetRow}:state.announcedRow?{announcedRow:state.announcedRow}:{};
- return availableEntries(state.columns,current()?.cells||{},state.crossOutMode?[]:selectedValues(),{crossOut:state.crossOutMode,...restrictions});
+ return availableEntries(state.columns,current()?.cells||{},state.crossOutMode?[]:selectedValues(),{crossOut:state.crossOutMode,...restrictions,rolls:state.rolls});
 }
 function announceableRows(){
  if(!state.columns.includes("announced"))return [];
@@ -151,7 +151,7 @@ function renderAnnouncementUi(){
  if(state.contraTargetRow){box.textContent=(state.mode==="online"?"Protivnik je najavio ":"Prethodno si najavio ")+state.contraTargetRow+". Moraš odigrati to polje u koloni Kontra najava.";return;}
  if(state.announcedRow){box.textContent="Najavljeno polje: "+state.announcedRow+". Ovaj potez moraš završiti isključivo u toj ćeliji kolone Najava.";return;}
  let info="";
- if(state.columns.includes("contra"))info="Kontra najava prati polje koje je protivnik najavio u prethodnom potezu. Bez najave protivnika, ćeliju možeš precrtati.";
+ if(state.columns.includes("contra")){const cells=current()?.cells||{};const full=state.columns.includes("announced")&&scoreRows.every(row=>cells[cellKey("announced",row)]!==undefined);info=full?"Kolona Najava je popunjena, pa se Kontra najava može igrati slobodno.":"Kontra najava prati polje koje je protivnik najavio u prethodnom potezu. Bez najave protivnika, ćeliju možeš precrtati."; }
  if(!state.columns.includes("announced")){box.textContent=info;return;}
  if(state.rolls===0){box.textContent=(info?info+" ":"")+"Najavu možeš izabrati samo posle prvog bacanja; izbor te obavezuje na baš to polje.";return;}
  if(state.rolls>1){box.textContent=(info?info+" ":"")+"Prvo bacanje je prošlo, pa Najava više nije dostupna u ovom potezu.";return;}
@@ -221,7 +221,7 @@ function renderScoreSheet(player,isSelf=true){
  const sheet=app.querySelector("#sheet");if(!sheet)return;
  const columns=defs();
  const headers={down:"↓",free:"S",up:"↑",announced:"↕",contra:"↓↑",r:"R",n:"N",d:"D",o:"O",m:"M"};
- const titles={down:"Dole",free:"Slobodna",up:"Gore",announced:"Najava",contra:"Kontra najava",r:"R",n:"N",d:"D",o:"O",m:"M"};
+ const titles={down:"Dole",free:"Slobodna",up:"Gore",announced:"Najava",contra:"Kontra najava",r:"R · Max naviše, min naniže",n:"N · 1 naniže, Yamb naviše",d:"D · Ručna, samo posle prvog bacanja",o:"O · tek nakon prethodnih kolona",m:"M · maksimum iz prethodnih kolona"};
  const rows=[
   {id:"1",label:"1",type:"normal"},{id:"2",label:"2",type:"normal"},{id:"3",label:"3",type:"normal"},
   {id:"4",label:"4",type:"normal"},{id:"5",label:"5",type:"normal"},{id:"6",label:"6",type:"normal"},
@@ -246,7 +246,8 @@ function renderScoreSheet(player,isSelf=true){
      const v=player?.cells?.[cellKey(col.id,row.id)];
      const optionIndex=choices.findIndex(option=>option.colId===col.id&&option.row===row.id);
      const isAvailable=optionIndex>=0&&v===undefined&&!hiddenSum;
-     const shown=hiddenSum?"🔒":isAvailable?choices[optionIndex].value:(v===undefined?"":v);
+     const crossed=player?.crossedCells?.includes(cellKey(col.id,row.id));
+     const shown=hiddenSum?"🔒":crossed?"X":isAvailable?choices[optionIndex].value:(v===undefined?"":v);
      const classNames=["sheet-cell",hiddenSum?"locked-total":isAvailable?"available-entry":(v===undefined?"empty":"filled"),col.id==="o"?"o-column":"",col.id==="r"?"group-start":""].filter(Boolean).join(" ");
      const choiceAttrs=isAvailable?` data-choice="${optionIndex}" role="button" tabindex="0" aria-label="Dostupno polje: ${escapeHtml(col.name)}, ${row.label}, ${choices[optionIndex].value} poena"`:"";
      html+=`<td class="${classNames}" data-cell="${cellKey(col.id,row.id)}"${choiceAttrs}>${shown}</td>`;
@@ -280,7 +281,7 @@ function renderServerState(s){
  if(!s)return;
  state.mode="online";state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
  const idx=s.players.findIndex(p=>p.id===s.currentPlayerId);if(idx>=0)state.currentPlayer=idx;
- state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{}}));
+ state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{},crossedCells:p.crossedCells||[]}));
  state.columns=s.config?.columns||state.columns;
  if(s.started){game();renderOnline();}
  else renderLobbyState(s);
