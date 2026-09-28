@@ -1,6 +1,6 @@
-# Jumbo Dice
+# jamb.arena
 
-Jumbo Dice je veb aplikacija za Jamb sa lokalnom solo partijom i online partijama za 2–4 igrača. Interfejs je na srpskom, prilagođen je telefonu, tabletu i desktopu, a rezultat se unosi direktno u tabelu.
+jamb.arena je veb aplikacija za Jamb sa lokalnom solo partijom i online partijama za 2–4 igrača. Interfejs je na srpskom, prilagođen je telefonu, tabletu i desktopu, a rezultat se unosi direktno u tabelu. Tamni izgled i raspored oslanjaju se na brif Jamb Arena; postojeća pravila, šest kockica i online režim ostaju dostupni.
 
 ## Mogućnosti
 
@@ -92,3 +92,4 @@ npm test
 - `render.yaml` sadrži podešavanja za Render.
 
 Online sobe i njihove partije čuvaju se samo u memoriji servera. Pri gašenju server briše sve sobe i sesije, a novi Render build dobija jedinstven identifikator koji pregledač koristi da obriše sačuvane partije i nevažeće online tokene. Partije se ne obnavljaju posle deploya.
+

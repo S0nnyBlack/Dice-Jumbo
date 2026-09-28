@@ -9,15 +9,17 @@ const state={
 const app=document.getElementById("app");
 function appNavMarkup(mode){
  return `<header class="site-nav"><div class="site-nav-inner">
-  <button type="button" class="site-brand" data-nav="play" aria-label="Jumbo Dice početna strana"><span class="brand-mark" aria-hidden="true">JD</span><span class="brand-words"><strong>Jumbo Dice</strong><small>JAMB STO</small></span></button>
-  <nav class="main-nav" aria-label="Glavna navigacija"><button type="button" data-nav="play">Igraj</button><button type="button" data-nav="online" ${mode==="ONLINE"?'aria-current="page"':""}>Online sto</button><button type="button" id="rulesHelp" data-nav="rules">Pravila</button></nav>
-  <span class="nav-context"><i aria-hidden="true"></i>${escapeHtml(mode)}</span>
+  <button type="button" class="site-brand" data-nav="play" aria-label="jamb.arena početna strana"><span class="brand-mark" aria-hidden="true">⚄</span><span class="brand-words"><strong>jamb<span>.arena</span></strong><small>JAMB STO</small></span></button>
+  <span class="nav-caption">IGRA</span><nav class="main-nav" aria-label="Glavna navigacija"><button type="button" data-nav="play" ${["POČETNA","SOLO","KOLONE"].includes(mode)?'aria-current="page"':""}><span aria-hidden="true">⚄</span> Igraj jamb</button><button type="button" data-nav="online" ${mode.startsWith("ONLINE")?'aria-current="page"':""}><span aria-hidden="true">◎</span> Online sto</button><button type="button" id="rulesHelp" data-nav="rules"><span aria-hidden="true">?</span> Pravila igre</button></nav>
+  <div class="site-nav-tip"><span>SAVET ZA IGRU</span><strong>Igraj strateški.</strong><p>Sačuvaj jaka bacanja za najavu, a slobodnu kolonu koristi mudro.</p></div><span class="nav-context"><i aria-hidden="true"></i>${escapeHtml(mode)}</span>
  </div></header>`;
 }
 function diceButtonMarkup(value,index,held,disabled){
  const stateLabel=held?"Sačuvana":"Sačuvaj";
  const accessibleState=held?"sačuvana":"nije sačuvana";
- return '<button type="button" class="die '+(held?"selected":"")+(state.diceRollAnimation?" die-arrive":"")+'" data-i="'+index+'" aria-pressed="'+String(held)+'" aria-label="Kockica '+(index+1)+", "+value+"; "+accessibleState+'" title="'+(held?"Vrati u bacanje":"Sačuvaj") + '" '+(disabled?"disabled":"")+'><span class="die-value">'+value+'</span><span class="die-state">'+stateLabel+'</span></button>';
+  const pips={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
+  const empty=!value;
+  return '<button type="button" class="die '+(held?"selected":"")+(empty?" die-placeholder":"")+(state.diceRollAnimation?" die-arrive":"")+'" data-i="'+index+'" aria-pressed="'+String(held)+'" aria-label="Kockica '+(index+1)+(empty?", još nije bačena":", "+value+"; "+accessibleState)+'" title="'+(empty?"Baci kockice":held?"Vrati u bacanje":"Sačuvaj") + '" '+(disabled?"disabled":"")+'><span class="die-face" aria-hidden="true">'+(pips[value]||[]).map(pos=>'<i class="pip pip-'+pos+'"></i>').join("")+'</span><span class="die-state">'+(empty?"Spremna":stateLabel)+'</span></button>';
 }
 app.addEventListener("click",event=>{
  const button=event.target.closest("[data-nav]");
@@ -115,13 +117,13 @@ window.addEventListener("beforeunload",event=>{
 function setup(){
  state.mode="setup";
  app.innerHTML=`${appNavMarkup("POČETNA")}<section class="panel setup">
- <div class="brand"><h1>Jumbo Dice</h1><p>Izaberi način igre</p></div>
+  <div class="brand"><h1>Vreme je za jamb.</h1><p>Izaberi način igre</p></div>
  <div class="setup-card home-mode-card"><h2>Odaberi način igre</h2><div class="toolbar">
    <button class="btn primary" id="solo">Solo igra</button>
    <button class="btn" id="online">Online multiplayer</button>
  </div><p class="status">Solo mod je namenjen igranju jednog igrača bez protivničkog AI-ja. Online partija podržava 2–4 igrača.</p></div>
  <section class="home-guide" aria-labelledby="guideTitle">
-  <div class="home-guide-heading"><span class="guide-kicker">PRE PRVOG BACANJA</span><h2 id="guideTitle">Kako se igra Jumbo Dice?</h2><p>Cilj je da kroz bacanja popuniš što više polja i osvojiš što više poena. Konačan zbir se otkriva tek kada se partija završi.</p></div>
+  <div class="home-guide-heading"><span class="guide-kicker">PRE PRVOG BACANJA</span><h2 id="guideTitle">Kako se igra jamb?</h2><p>Cilj je da kroz bacanja popuniš što više polja i osvojiš što više poena. Konačan zbir se otkriva tek kada se partija završi.</p></div>
   <div class="guide-grid">
    <article class="guide-card"><h3>Tok poteza</h3><ol><li>Baci svih 6 kockica. Imaš do 3 bacanja po potezu.</li><li>Posle bacanja označi kockice koje želiš da zadržiš, pa ponovo baci ostale.</li><li>Izaberi dostupno polje u tabeli i potvrdi upis. Možeš izabrati od 1 do 5 kockica; Triling traži najmanje 3 iste, Poker najmanje 4 iste, a za Kentu, Ful i Jamb treba svih 5. Upis sa manje od 5 traži potvrdu.</li><li>Umesto rezultata možeš precrtati dostupno polje. Svaki potez popunjava jedno polje.</li></ol><p class="guide-note">Ako je ostalo samo jedno polje za bodovanje, dobijaš do 5 bacanja.</p></article>
    <article class="guide-card"><h3>Kolone</h3><ul><li><b>Dole:</b> popunjavaj redove od 1 naniže.</li><li><b>Slobodna:</b> izaberi bilo koje dostupno polje.</li><li><b>Gore:</b> popunjavaj od Jamba naviše.</li><li><b>Najava (N):</b> samo posle prvog bacanja; obavezuje te na izabrani red.</li><li><b>Dirigovano (D):</b> igraš u redu koji je prethodni igrač najavio.</li><li><b>R:</b> ručna kolona; može se igrati samo posle prvog bacanja, a Kenta vredi 66. <b>N (↓↑):</b> jedinice naniže, Jamb naviše.</li><li><b>O:</b> otključava se kada su prethodne uključene kolone popunjene. <b>M:</b> automatski uzima najveći rezultat iz prethodnih uključenih kolona.</li></ul><p class="guide-note">U solo igri su uključene osnovne kolone Dole, Slobodna i Gore; dodatne možeš izabrati pre početka.</p></article>
@@ -135,7 +137,7 @@ function setup(){
 
 function columnSetup(title,buttonText,onStart,locked=false){
  app.innerHTML=`${appNavMarkup("KOLONE")}<section class="panel setup">
- <div class="brand"><h1>Jumbo Dice</h1><p>${title}</p></div>
+  <div class="brand"><h1>Vreme je za jamb.</h1><p>${title}</p></div>
  <div class="setup-card"><h2>Kolone</h2><p class="status">${locked?"Podešavanja su zaključana do kraja tekuće partije.":"Početno su uključene samo obavezne kolone: Gore, Dole i Slobodna. Možete uključiti ostale kolone ili izabrati sve."}</p>
  <div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("")}</div>${locked?'<button class="btn" id="newSolo" type="button">Nova partija</button>':'<button class="btn" id="selectAll" type="button">Izaberi sve</button>'}</div>
  <button class="btn primary" id="start">${buttonText}</button><button class="btn" id="back">Nazad</button>
@@ -160,7 +162,7 @@ function onlineSetup(){
  state.mode="setup-online";
  state.columns=["down","free","up"];
  app.innerHTML=`${appNavMarkup("ONLINE STO")}<section class="panel setup">
- <div class="brand"><h1>Jumbo Dice</h1><p>Online multiplayer</p></div>
+  <div class="brand"><h1>Vreme je za jamb.</h1><p>Online multiplayer</p></div>
  <div id="network" class="status">Online: povezivanje sa serverom…</div>
  <div class="setup-card"><h2>Soba</h2><div class="toolbar">
    <input id="playerName" aria-label="Ime domaćina" placeholder="Ime igrača" value="Igrač 1">
@@ -217,17 +219,17 @@ function bindRulesGuide(){
 
 function soloGame(){
  state.mode="solo";
- app.innerHTML=`${appNavMarkup("SOLO")}<section class="match-heading"><div class="match-title"><span class="eyebrow">PARTIJA UŽIVO</span><h1>Jamb sto</h1><p>Baci kockice. Sačuvaj kombinaciju. Upiši rezultat.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></section>
+  app.innerHTML=`${appNavMarkup("SOLO")}<section class="match-heading"><div class="match-title"><span class="eyebrow">DOBRO DOŠAO U ARENU</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></section>
  <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill mode-status">Solo</span></div>
  <div class="layout">
   <div class="game-main">
-   <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Zeleno označena polja su dostupna za upis. Izaberi rezultat u listiću ili desno.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
+    <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">TVOJA TABELA</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
 
   </div>
   <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
-   <section class="panel game-controls">
-    <div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">6 kockica · do 3 bacanja</span></div>
-    <div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div>
+    <section class="panel game-controls">
+     <div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div>
+     <div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label">TVOJE KOCKICE</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div>
     <div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div>
    </section>
    <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
@@ -369,9 +371,15 @@ function updateTurnStatus(isMyTurn=true){
  if(state.rolls>=maxRolls){status.textContent="Izaberi dostupno polje za upis";status.dataset.state="ready";return;}
  status.textContent="Izaberi kockice ili polje za upis";status.dataset.state="ready";
 }
+function renderDiceSummary(maxRolls){
+  const meter=app.querySelector("#rollMeter");
+  if(meter)meter.innerHTML=Array.from({length:maxRolls},(_,i)=>'<i class="'+(i<state.rolls?'on':'')+'"></i>').join("");
+  const holdLine=app.querySelector("#holdLine");
+  if(holdLine)holdLine.textContent=state.rolls===0?"Baci kockice za početak poteza":state.selected.size?`Sačuvano ${state.selected.size} od 6 kockica`:"Klikni kockice koje želiš da zadržiš";
+}
 function renderSolo(){
  const dice=app.querySelector("#dice");if(!dice)return;
- dice.innerHTML=state.dice.map((v,i)=>diceButtonMarkup(v,i,state.selected.has(i),!state.rolls||state.gameOver)).join("");
+  dice.innerHTML=(state.dice.length?state.dice:Array(6).fill(0)).map((v,i)=>diceButtonMarkup(v,i,state.selected.has(i),!state.rolls||state.gameOver)).join("");
  dice.querySelectorAll(".die").forEach(b=>b.onclick=()=>{
    if(!state.rolls||state.gameOver)return;
    state.crossOutMode=false;
@@ -381,6 +389,7 @@ function renderSolo(){
    renderSolo();
  });
  const count=app.querySelector("#count");if(count)count.textContent=`${state.rolls} od ${maxRollsForLocal()}`;
+  renderDiceSummary(maxRollsForLocal());
  updateTurnStatus();
  const roll=app.querySelector("#roll");
  if(roll){roll.disabled=state.gameOver||state.rolls>=maxRollsForLocal();roll.textContent=state.rolls>=maxRollsForLocal()?"Bacanja iskorišćena":state.rolls===0?"Baci kockice":"Baci ponovo";}
@@ -412,22 +421,22 @@ function renderScoreSheet(player,isSelf=true){
  const sheet=app.querySelector("#sheet");if(!sheet)return;
  const columns=defs();
  const rows=[
-  {id:"1",label:"1",type:"normal"},{id:"2",label:"2",type:"normal"},{id:"3",label:"3",type:"normal"},
-  {id:"4",label:"4",type:"normal"},{id:"5",label:"5",type:"normal"},{id:"6",label:"6",type:"normal"},
-  {id:"SUM_TOP",label:"Σ",type:"sum"},{id:"MAX",label:"max",type:"normal"},{id:"MIN",label:"min",type:"normal"},
-  {id:"SUM_MID",label:"Σ",type:"sum"},
+   {id:"1",label:"Jedinice",type:"normal"},{id:"2",label:"Dvojke",type:"normal"},{id:"3",label:"Trojke",type:"normal"},
+   {id:"4",label:"Četvorke",type:"normal"},{id:"5",label:"Petice",type:"normal"},{id:"6",label:"Šestice",type:"normal"},
+   {id:"SUM_TOP",label:"Zbir 1–6",type:"sum"},{id:"MAX",label:"Maksimum",type:"normal"},{id:"MIN",label:"Minimum",type:"normal"},
+   {id:"SUM_MID",label:"Razlika × 1",type:"sum"},
   {id:"KENTA",label:"KENTA",sub:"66, 56, 46",type:"combo"},
   {id:"TRILING",label:"TRILING",sub:"+20",type:"combo"},
   {id:"FUL",label:"FUL",sub:"+30",type:"combo"},
   {id:"POKER",label:"POKER",sub:"+40",type:"combo"},
-  {id:"YAMB",label:"YAMB",sub:"+50",type:"combo"},
-  {id:"SUM_TOTAL",label:"Σ",type:"sum"}
+   {id:"YAMB",label:"JAMB",sub:"+50",type:"combo"},
+   {id:"SUM_TOTAL",label:"Kombinacije",type:"sum"}
  ];
  const canChoose=isSelf&&!state.gameOver&&state.rolls>0&&(state.crossOutMode||state.selected.size>0)&&(state.mode!=="online"||(current()?.id===net.playerId&&net.connected&&net.synced));
  const choices=canChoose?soloCandidates():[];
  const hideRow=!state.gameOver&&!isSelf;
  let html=`<table class="sheet premium-sheet" style="--sheet-min-width:${64+52*columns.length}px"><colgroup><col class="label-col">${columns.map(c=>`<col class="data-col col-${c.id}">`).join("")}</colgroup>
- <thead><tr><th class="corner-hatch" aria-label="Kategorija"></th>${columns.map(c=>`<th class="sheet-head ${c.id==="r"?"group-start":""}" title="${c.headerTitle}"><span class="head-symbol">${c.headerSymbol}</span><span class="head-name">${c.headerLabel}</span><span class="head-detail">${c.headerTitle===c.headerLabel?"":c.headerTitle}</span></th>`).join("")}</tr></thead><tbody>`;
+  <thead><tr><th class="corner-hatch" aria-label="Kategorija">Kombinacija</th>${columns.map(c=>`<th class="sheet-head ${c.id==="r"?"group-start":""}" title="${c.headerTitle}"><span class="head-symbol">${c.headerSymbol}</span><span class="head-name">${c.headerLabel}</span><span class="head-detail">${c.headerTitle===c.headerLabel?"":c.headerTitle}</span></th>`).join("")}</tr></thead><tbody>`;
  for(const row of rows){
    const hiddenSum=hideRow&&["SUM_TOP","SUM_MID","SUM_TOTAL"].includes(row.id);
    html+=`<tr class="sheet-row ${row.type} ${hiddenSum?"hidden-total-row":""}"><th class="row-label">${row.label}${row.sub?`<small>${row.sub}</small>`:""}</th>`;
@@ -487,14 +496,14 @@ function renderLobbyState(s){
 }
 
 function game(){
- app.innerHTML=`${appNavMarkup("ONLINE")}<section class="match-heading"><div class="match-title"><span class="eyebrow">PARTIJA UŽIVO</span><h1>Jamb sto</h1><p>Baci kockice. Sačuvaj kombinaciju. Upiši rezultat.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button></div></section>
+  app.innerHTML=`${appNavMarkup("ONLINE")}<section class="match-heading"><div class="match-title"><span class="eyebrow">ONLINE ARENA</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button></div></section>
  <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill"><i aria-hidden="true"></i>Uživo</span></div>
  <div class="layout">
   <div class="game-main">
-   <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Zeleno označena polja su dostupna za upis. Izaberi rezultat u listiću ili desno.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
-   <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">6 kockica · do 3 bacanja</span></div><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div></section>
+    <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">TABELA PARTIJE</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
   </div>
   <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
+    <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div><div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label">TVOJE KOCKICE</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div></section>
    <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
    <section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
    <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div></section>
@@ -518,7 +527,7 @@ function renderOnline(){
   const viewingSelf=state.players[state.viewPlayer]?.id===net.playerId;
  const canAct=isMyTurn&&net.connected&&net.synced;
  updateNetworkStatus();
- d.innerHTML=state.dice.map((v,i)=>diceButtonMarkup(v,i,state.selected.has(i),!canAct||state.gameOver||state.rolls===0)).join("");
+  d.innerHTML=(state.dice.length?state.dice:Array(6).fill(0)).map((v,i)=>diceButtonMarkup(v,i,state.selected.has(i),!canAct||state.gameOver||state.rolls===0)).join("");
  d.querySelectorAll(".die").forEach(b=>b.onclick=()=>{
    if(!canAct||state.gameOver||state.rolls===0)return;
    state.crossOutMode=false;
@@ -527,6 +536,7 @@ function renderOnline(){
    socket?.emit("turn:select",{indices:[...state.selected]});
  });
  const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls} od ${state.maxRolls||3}`;
+  renderDiceSummary(state.maxRolls||3);
  updateTurnStatus(canAct);
  const roll=app.querySelector("#roll"),clear=app.querySelector("#clear"),crossout=app.querySelector("#crossout");
  const undo=app.querySelector("#undo");if(undo){undo.disabled=!net.connected||!net.synced||state.hostId!==net.playerId||!state.onlineUndoAvailable;undo.title=state.hostId===net.playerId?"Vrati poslednji potez cele sobe":"Samo domaćin može da vrati potez";}

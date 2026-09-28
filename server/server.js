@@ -24,6 +24,7 @@ app.get("/", (_, res) => res.sendFile(path.join(publicRoot, "index.html")));
 app.get("/app.js", (_, res) => res.sendFile(path.join(publicRoot, "app.js")));
 app.get("/game.js", (_, res) => res.sendFile(path.join(publicRoot, "game.js")));
 app.get("/styles.css", (_, res) => res.sendFile(path.join(publicRoot, "styles.css")));
+app.get("/arena.css", (_, res) => res.sendFile(path.join(publicRoot, "arena.css")));
 
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*", methods: ["GET", "POST"] } });

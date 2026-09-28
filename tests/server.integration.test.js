@@ -67,6 +67,9 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     const health = await healthResponse.json();
     assert.equal(health.ok, true);
     assert.equal(health.service, "jumbo-dice-server");
+    const arenaStyles = await fetch(`${baseUrl}/arena.css`);
+    assert.equal(arenaStyles.status, 200);
+    assert.match(await arenaStyles.text(), /--green: #81b64c/);
 
     const host = await connect(baseUrl);
     sockets.push(host);

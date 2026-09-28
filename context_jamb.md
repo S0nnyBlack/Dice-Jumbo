@@ -68,7 +68,9 @@ Ispod su svi dostupni commitovi na `main`, hronološki. Git istorija beleži com
 | 56 | 2026-09-28 14:34:03 | [`b6e25df3`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/b6e25df3515326db1b1639d69eaaae111f4dfde4) | Polish dice and score header layout |
 | 57 | 2026-09-28 14:38:51 | [`c769a465`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/c769a4652a16297949536ddd9796bf16989e8f5a) | Fix setup layout and guide contrast |
 
-## Verzija 58 — trenutni paket ispravki
+## Verzija 58 — online ispravke
+
+Commit na `main`: [`f6f272e7`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/f6f272e74f94e518e934cff39537fc3365314853).
 
 - Online listić: biranje kartice igrača i nezavisan prikaz njegove tabele; sopstveni listić je početni izbor.
 - Online sobe: jedan socket ne može da kreira, pridruži se ili obnovi drugu sobu dok je već vezan za jednu.
@@ -77,4 +79,16 @@ Ispod su svi dostupni commitovi na `main`, hronološki. Git istorija beleži com
 - Integracioni testovi pokrivaju ponovljene zahteve, nepovezanog igrača i neispravan izbor kockica.
 
 Provera: `node --test --test-isolation=none tests/game.test.js tests/ui.test.js tests/server.integration.test.js` — 25 od 25 testova prolazi lokalno.
+
+## Verzija 59 — redizajn po brifu Jamb Arena
+
+- Vizuelna referenca: `briefing-za-produkciju-jamb-arena.md` i njegov HTML prototip.
+- Naziv u interfejsu je `jamb.arena`; primenjeni su tamna pozadina, bočna navigacija, svetla tabela i zeleni primarni taster.
+- Solo i online ekran koriste isti raspored: tabela levo, panel kockica desno na desktopu; panel kockica iznad tabele na telefonu.
+- Kockice imaju tačkice, jasna stanja čuvanja i prikaz pre prvog bacanja. Dodati su vizuelni pokazatelji broja bacanja.
+- Redovi tabele imaju puna imena, a dostupna polja ostaju istaknuta i dostupna tastaturom.
+- Zadržano je postojeće ponašanje igre: šest kockica, online partije, sve kolone i postojeća pravila bodovanja.
+- Server služi novi `arena.css`; integracioni test proverava da se stilovi uspešno učitavaju.
+
+Provera: 25 od 25 testova prolazi lokalno. Pregledani su solo prikazi na desktopu (1440 px), tabletu (820 px) i telefonu (390 px), kao i online prikaz na desktopu. Na telefonu širina stranice ostaje 390 px, a tabela se pomera unutar sopstvenog okvira.
 
