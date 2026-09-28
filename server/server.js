@@ -132,19 +132,30 @@ function sumVisibleCells(player, col, group) {
   const rows = group === "top" ? TOP_ROWS : COMBO_ROWS;
   return rows.reduce((acc, row) => acc + Number(player.cells[key(col, row)] || 0), 0);
 }
-function buildPublicCells(player, viewerId) {
+function isGameOver(room) {
+  return room.started && room.players.length > 0 && room.players.every(player =>
+    room.config.columns.every(col => columnRows(col)
+      .filter(row => !["SUM_TOP", "SUM_MID", "SUM_TOTAL"].includes(row))
+      .every(row => !emptyCell(player, col, row)))
+  );
+}
+function buildPublicCells(player, viewerId, gameOver) {
   const isSelf = player.id === viewerId;
   const result = {};
   for (const [k, v] of Object.entries(player.cells)) {
-    if (isSelf || (!k.includes("SUM_TOP") && !k.includes("SUM_MID") && !k.includes("SUM_TOTAL"))) result[k] = v;
+    if (gameOver) result[k] = v;
+    else if (k.includes("SUM_TOTAL")) continue;
+    else if (isSelf || (!k.includes("SUM_TOP") && !k.includes("SUM_MID"))) result[k] = v;
   }
   return result;
 }
 function publicState(room, viewerId) {
   const viewer = room.players.find(p => p.id === viewerId);
+  const gameOver = isGameOver(room);
   return {
     roomCode: room.code,
     started: room.started,
+    gameOver,
     hostId: room.hostId,
     currentPlayerId: room.currentPlayerId,
     rolls: room.currentPlayerId === viewerId ? room.rolls : 0,
@@ -156,7 +167,7 @@ function publicState(room, viewerId) {
       name: p.name,
       connected: p.connected,
       ready: p.ready,
-      cells: buildPublicCells(p, viewerId)
+      cells: buildPublicCells(p, viewerId, gameOver)
     }))
   };
 }
@@ -248,6 +259,7 @@ io.on("connection", socket => {
     const room = getRoomBySocket(socket.id);
     const player = getPlayer(room, socket.id);
     if (!room || !player || !room.started) return;
+    if (isGameOver(room)) return emitError(socket, "Partija je završena.");
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
     if (room.rolls >= 3) return emitError(socket, "Maksimalno 3 bacanja.");
 
@@ -275,6 +287,7 @@ io.on("connection", socket => {
     const room = getRoomBySocket(socket.id);
     const player = getPlayer(room, socket.id);
     if (!room || !player || !room.started) return;
+    if (isGameOver(room)) return emitError(socket, "Partija je završena.");
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
     if (room.rolls === 0) return emitError(socket, "Potez još nije bačen.");
     if (room.selection.length !== 5) return emitError(socket, "Morate izabrati tačno 5 kockica.");
