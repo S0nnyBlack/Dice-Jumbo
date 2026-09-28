@@ -501,3 +501,29 @@ body {
   .dice-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .die { min-height: 48px; }
 }
+
+
+.rules-dialog {
+  width: min(92vw, 640px);
+  max-width: 640px;
+  max-height: min(88dvh, 760px);
+  overflow: auto;
+  margin: auto;
+  padding: clamp(16px, 4vw, 26px);
+  border: 1px solid rgba(246, 198, 78, .55);
+  border-radius: 18px;
+  background: linear-gradient(155deg, #132b3c, #081723 72%);
+  color: #eef3f5;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .6);
+}
+.rules-dialog::backdrop { background: rgba(2, 8, 14, .76); backdrop-filter: blur(3px); }
+.rules-dialog-head { position: sticky; top: -1px; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -4px 0 14px; padding: 4px 0 10px; background: #102536; }
+.rules-dialog h2, .rules-dialog h3 { margin: 0; color: #ffe39a; }
+.rules-dialog h3 { margin-top: 18px; font-size: 1rem; }
+.rules-dialog p, .rules-dialog li { color: #c7d5d9; line-height: 1.5; }
+.rules-dialog ul { display: grid; gap: 7px; padding-left: 22px; }
+.rules-dialog li b { color: #fff0c4; }
+@media (max-width: 700px) {
+  .rules-dialog { width: calc(100vw - 20px); max-height: 88dvh; border-radius: 16px; }
+  .rules-dialog-head .btn { min-height: 44px; }
+}
