@@ -186,35 +186,36 @@ function renderScoreSheet(player,isSelf=true){
   {id:"YAMB",label:"YAMB",sub:"+50",type:"combo"},
   {id:"SUM_TOTAL",label:"Σ",type:"sum"}
  ];
- const hideRow=!isSelf;
+ const hideRow=!state.gameOver&&!isSelf;
  let html=`<table class="sheet premium-sheet"><colgroup><col class="label-col">${columns.map(c=>`<col class="data-col col-${c.id}">`).join("")}</colgroup>
  <thead><tr><th class="corner-hatch" aria-label="Kategorija"></th>${columns.map(c=>`<th class="sheet-head ${c.id==="r"?"group-start":""}" title="${titles[c.id]}"><span class="head-symbol">${headers[c.id]}</span><span class="head-name">${titles[c.id]}</span></th>`).join("")}</tr></thead><tbody>`;
  for(const row of rows){
-   const hiddenSum=hideRow&&["SUM_TOP","SUM_MID","SUM_TOTAL"].includes(row.id);
+   const hiddenSum=(hideRow&&["SUM_TOP","SUM_MID","SUM_TOTAL"].includes(row.id))||(!state.gameOver&&row.id==="SUM_TOTAL");
    html+=`<tr class="sheet-row ${row.type} ${hiddenSum?"hidden-total-row":""}"><th class="row-label">${row.label}${row.sub?`<small>${row.sub}</small>`:""}</th>`;
    for(const col of columns){
      const v=player?.cells?.[cellKey(col.id,row.id)];
-     const shown=hiddenSum?(v===undefined?"":"🔒"):(v===undefined?"":v);
-     const classNames=["sheet-cell",v===undefined?"empty":"filled",col.id==="o"?"o-column":"",col.id==="r"?"group-start":""].filter(Boolean).join(" ");
+     const shown=hiddenSum?"🔒":(v===undefined?"":v);
+     const classNames=["sheet-cell",hiddenSum?"locked-total":(v===undefined?"empty":"filled"),col.id==="o"?"o-column":"",col.id==="r"?"group-start":""].filter(Boolean).join(" ");
      html+=`<td class="${classNames}" data-cell="${cellKey(col.id,row.id)}">${shown}</td>`;
    }
    html+="</tr>";
  }
- if(isSelf){
+ if(isSelf||state.gameOver){
    const total=Object.entries(player?.cells||{}).reduce((acc,[k,v])=>k.includes("::SUM_")?acc:acc+Number(v||0)*(k.endsWith("::MIN")?-1:1),0);
-   html+=`<tr class="final-total"><th class="row-label">UKUPNO</th><td colspan="${columns.length}" class="final-total-value">${total}</td></tr>`;
+   html+=`<tr class="final-total"><th class="row-label">UKUPNO</th><td colspan="${columns.length}" class="final-total-value">${state.gameOver?total:"🔒"}</td></tr>`;
  }
  html+="</tbody></table>";
  sheet.innerHTML=html;
 }
 
 function renderSoloSheet(){
- renderScoreSheet(current(),true);
+ const isSelf=state.mode!=="online"||current()?.id===net.playerId;
+ renderScoreSheet(current(),isSelf);
 }
 
 function renderServerState(s){
  if(!s)return;
- state.mode="online";state.rolls=s.rolls;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);
+ state.mode="online";state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);
  const idx=s.players.findIndex(p=>p.id===s.currentPlayerId);if(idx>=0)state.currentPlayer=idx;
  state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{}}));
  state.columns=s.config?.columns||state.columns;
@@ -235,13 +236,18 @@ function game(){
 
 function renderOnline(){
  const d=app.querySelector("#dice");if(!d)return;
- d.innerHTML=state.dice.map((v,i)=>`<button class="die ${state.selected.has(i)?"selected":""}" data-i="${i}">${v}</button>`).join("");
- d.querySelectorAll(".die").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;state.selected.has(i)?state.selected.delete(i):state.selected.size<5&&state.selected.add(i);socket?.emit("turn:select",{indices:[...state.selected]})});
+ const isMyTurn=state.players[state.currentPlayer]?.id===net.playerId;
+ d.innerHTML=state.dice.map((v,i)=>'<button class="die '+(state.selected.has(i)?"selected":"")+'" data-i="'+i+'" '+(!isMyTurn||state.gameOver?"disabled":"")+'>'+v+'</button>').join("");
+ d.querySelectorAll(".die").forEach(b=>b.onclick=()=>{if(!isMyTurn||state.gameOver)return;const i=+b.dataset.i;state.selected.has(i)?state.selected.delete(i):state.selected.size<5&&state.selected.add(i);socket?.emit("turn:select",{indices:[...state.selected]})});
+ const roll=app.querySelector("#roll"),clear=app.querySelector("#clear");
+ if(roll)roll.disabled=!isMyTurn||state.gameOver;
+ if(clear)clear.disabled=!isMyTurn||state.gameOver;
  const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls}/3`;
  const tabs=app.querySelector("#tabs");tabs.innerHTML=state.players.map((p,i)=>'<button class="player-tab '+(i===state.currentPlayer?'active':'')+'">'+escapeHtml(p.name)+'</button>').join("");
  const box=app.querySelector("#options");
  if(box){
-   if(state.players[state.currentPlayer]?.id!==net.playerId) box.innerHTML='<span class="status">Sačekaj svoj potez.</span>';
+   if(state.gameOver) box.innerHTML='<span class="status game-over-status">Partija je završena. Konačan rezultat je prikazan na tabeli.</span>';
+   else if(state.players[state.currentPlayer]?.id!==net.playerId) box.innerHTML='<span class="status">Sačekaj svoj potez.</span>';
    else if(state.rolls===0) box.innerHTML='<span class="status">Baci kockice da započneš potez.</span>';
    else if(state.selected.size!==5) box.innerHTML='<span class="status">Izaberi tačno 5 kockica.</span>';
    else{
