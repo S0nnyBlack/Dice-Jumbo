@@ -204,7 +204,8 @@ function publicState(room, viewerId) {
       name: p.name,
       connected: p.connected,
       ready: p.ready,
-      cells: buildPublicCells(p, viewerId, gameOver)
+      cells: buildPublicCells(p, viewerId, gameOver),
+      crossedCells: p.crossedCells || []
     }))
   };
 }
@@ -235,6 +236,7 @@ io.on("connection", socket => {
       connected: true,
       ready: true,
       cells: {},
+      crossedCells: [],
       announcedRow: null,
       token: sessionToken()
     };
@@ -270,6 +272,7 @@ io.on("connection", socket => {
       connected: true,
       ready: true,
       cells: {},
+      crossedCells: [],
       announcedRow: null,
       token: sessionToken()
     };
@@ -361,11 +364,17 @@ io.on("connection", socket => {
     if (!isCrossOut && (room.selection.length < 1 || room.selection.length > 5)) return emitError(socket, "Izaberite od 1 do 5 kockica ili precrtajte polje.");
 
     const selectedValues = room.selection.map(i => room.dice[i]);
+    if (columnId === "o" && !requiredColumnReady(room, player)) return emitError(socket, "Kolona O se otključava kada se popune prethodne kolone.");
+    if (columnId === "d" && room.rolls !== 1) return emitError(socket, "Ručna kolona se popunjava posle prvog bacanja.");
+    if (columnId === "m") return emitError(socket, "Kolona M se izračunava iz prethodnih kolona.");
+    if (["r", "n"].includes(columnId) && !frontierRows(columnId, player).includes(row)) return emitError(socket, "Kolona mora pratiti otvoreni redosled.");
     const result = calculateEntry(room, player, columnId, row, selectedValues, isCrossOut);
     if (!result.ok) return emitError(socket, result.error);
 
     player.cells[key(columnId, row)] = result.value;
+    if (isCrossOut) player.crossedCells.push(key(columnId, row));
     updateSequence(player, columnId, row);
+    updateMaximumColumn(room, player);
 
     const totals = {};
     for (const col of room.config.columns) {
