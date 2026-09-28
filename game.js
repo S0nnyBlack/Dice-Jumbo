@@ -1,29 +1,46 @@
-export const MANDATORY_COLUMNS=["Gore","Dole","Slobodna"];
-export const OPTIONAL_COLUMNS=["Najava","Kontra najava","R","N","D","O","M"];
+export const COLUMN_DEFS=[
+ {id:"down",name:"Dole",mandatory:true,direction:"down"},
+ {id:"free",name:"Slobodna",mandatory:true,direction:"free"},
+ {id:"up",name:"Gore",mandatory:true,direction:"up"},
+ {id:"announced",name:"Najava",mandatory:false,direction:"announce"},
+ {id:"contra",name:"Kontra najava",mandatory:false,direction:"contra"},
+ {id:"r",name:"R",mandatory:false,direction:"normal"},
+ {id:"n",name:"N",mandatory:false,direction:"normal"},
+ {id:"d",name:"D",mandatory:false,direction:"normal"},
+ {id:"o",name:"O",mandatory:false,direction:"normal"},
+ {id:"m",name:"M",mandatory:false,direction:"normal"},
+];
+export const VALUE_ROWS=[1,2,3,4,5,6];
+export const COMBINATION_ROWS=["KENTA","TRILING","FUL","POKER","YAMB"];
 export const rollDie=()=>Math.floor(Math.random()*6)+1;
 export const rollDice=(n=6)=>Array.from({length:n},rollDie);
-export const sum=values=>values.reduce((a,b)=>a+b,0);
-export function counts(values){return values.reduce((m,v)=>(m[v]=(m[v]||0)+1,m),{})}
-export function evaluate(values){
- if(!Array.isArray(values)||values.length!==5)return {valid:false,categories:[]};
- const c=counts(values), freq=Object.values(c), total=sum(values), uniq=[...new Set(values)].sort((a,b)=>a-b).join(",");
- const categories=["Slobodna","Gore","Dole"];
- if(uniq==="1,2,3,4,5"||uniq==="2,3,4,5,6")categories.push("Kenta");
- if(freq.includes(3))categories.push("Triling");
- if(freq.includes(3)&&freq.includes(2))categories.push("Ful");
- if(freq.includes(4))categories.push("Poker");
- if(freq.includes(5))categories.push("Yamb");
- return {valid:true,total,categories};
+export const sum=v=>v.reduce((a,b)=>a+b,0);
+export function counts(v){return v.reduce((m,x)=>(m[x]=(m[x]||0)+1,m),{})}
+export function upperScore(v,face){return v.filter(x=>x===face).reduce((a,b)=>a+b,0)}
+export function analyse(v){
+ if(!Array.isArray(v)||v.length!==5)return {valid:false};
+ const c=counts(v),freq=Object.values(c),u=[...new Set(v)].sort((a,b)=>a-b);
+ return {
+  valid:true,total:sum(v),counts:c,upper:[1,2,3,4,5,6].reduce((m,f)=>(m[f]=upperScore(v,f),m),{}),
+  kenta:u.join(",")==="1,2,3,4,5"||u.join(",")==="2,3,4,5,6",
+  kentaScore:u.join(",")==="1,2,3,4,5"?66:u.join(",")==="2,3,4,5,6"?56:null,
+  triling:freq.includes(3),ful:freq.includes(3)&&freq.includes(2),poker:freq.includes(4),yamb:freq.includes(5)
+ };
 }
-export function score(category,values){
- if(values.length!==5)return null;
- const total=sum(values),c=counts(values),uniq=[...new Set(values)].sort((a,b)=>a-b).join(",");
- switch(category){
- case"Slobodna":case"Gore":case"Dole":case"MAXIMUM":case"MINIMUM":return total;
- case"Triling":return total+20;
- case"Ful":return total+30;
- case"Poker":return total+40;
- case"Yamb":return total+50;
- case"Kenta":return uniq==="1,2,3,4,5"?66:56;
- default:return null;
- }}
+export function combinationScore(row,v){
+ const a=analyse(v);if(!a.valid)return null;
+ if(row==="KENTA")return a.kenta?a.kentaScore:null;
+ if(row==="TRILING")return a.triling?a.total+20:null;
+ if(row==="FUL")return a.ful?a.total+30:null;
+ if(row==="POKER")return a.poker?a.total+40:null;
+ if(row==="YAMB")return a.yamb?a.total+50:null;
+ return null;
+}
+export function directionOrder(colId,cells){
+ const open=row=>cells[row]===undefined||cells[row]===null;
+ const sequence=[];
+ const rows=["1","2","3","4","5","6","SUM_TOP","MAX","MIN","SUM_MID","KENTA","TRILING","FUL","POKER","YAMB","SUM_TOTAL"];
+ if(colId==="down"){for(const r of rows)if(open(r))return r}
+ if(colId==="up"){for(let i=rows.length-1;i>=0;i--)if(open(rows[i]))return rows[i]}
+ return null;
+}
