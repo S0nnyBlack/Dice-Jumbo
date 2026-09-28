@@ -1,4 +1,4 @@
-const socket=window.io ? window.io() : null;
+const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:!!socket,roomCode:null,playerId:null,sessionToken:null,server:null};
 import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,analyse,combinationScore}from"./game.js";
 
