@@ -253,8 +253,6 @@ function renderSolo(){
 function renderScoreSheet(player,isSelf=true){
  const sheet=app.querySelector("#sheet");if(!sheet)return;
  const columns=defs();
- const headers={down:"↓",free:"S",up:"↑",announced:"↕",contra:"↓↑",r:"R",n:"N",d:"D",o:"O",m:"M"};
- const titles={down:"Dole",free:"Slobodna",up:"Gore",announced:"Najava",contra:"Kontra najava",r:"R · Max naviše, min naniže",n:"N · 1 naniže, Yamb naviše",d:"D · Ručna, samo posle prvog bacanja",o:"O · tek nakon prethodnih kolona",m:"M · maksimum iz prethodnih kolona"};
  const rows=[
   {id:"1",label:"1",type:"normal"},{id:"2",label:"2",type:"normal"},{id:"3",label:"3",type:"normal"},
   {id:"4",label:"4",type:"normal"},{id:"5",label:"5",type:"normal"},{id:"6",label:"6",type:"normal"},
@@ -271,7 +269,7 @@ function renderScoreSheet(player,isSelf=true){
  const choices=canChoose?soloCandidates():[];
  const hideRow=!state.gameOver&&!isSelf;
  let html=`<table class="sheet premium-sheet"><colgroup><col class="label-col">${columns.map(c=>`<col class="data-col col-${c.id}">`).join("")}</colgroup>
- <thead><tr><th class="corner-hatch" aria-label="Kategorija"></th>${columns.map(c=>`<th class="sheet-head ${c.id==="r"?"group-start":""}" title="${titles[c.id]}"><span class="head-symbol">${headers[c.id]}</span><span class="head-name">${titles[c.id]}</span></th>`).join("")}</tr></thead><tbody>`;
+ <thead><tr><th class="corner-hatch" aria-label="Kategorija"></th>${columns.map(c=>`<th class="sheet-head ${c.id==="r"?"group-start":""}" title="${c.headerTitle}"><span class="head-symbol">${c.headerSymbol}</span><span class="head-name">${c.headerTitle}</span></th>`).join("")}</tr></thead><tbody>`;
  for(const row of rows){
    const hiddenSum=(hideRow&&["SUM_TOP","SUM_MID","SUM_TOTAL"].includes(row.id))||(!state.gameOver&&row.id==="SUM_TOTAL");
    html+=`<tr class="sheet-row ${row.type} ${hiddenSum?"hidden-total-row":""}"><th class="row-label">${row.label}${row.sub?`<small>${row.sub}</small>`:""}</th>`;
