@@ -61,7 +61,10 @@ Kolone se prikazuju u standardnom redosledu bez obzira na redosled kojim su uklj
 - **Poker** — najmanje četiri iste među izabranim kockicama: vrednost četiri iste +40. Može se upisati sa 4 ili 5 kockica.
 - **Jamb** — pet istih: zbir +50.
 - **Bonus gornjeg dela** — 30 poena kada je zbir redova 1–6 najmanje 60.
-- **Zbir kolone** — gornji deo sa bonusom, kombinacije, MAX i MIN.
+- **Prva suma (Σ)** — zbir rezultata redova 1–6, uz bonus od 30 poena kada zbir dostigne 60.
+- **Druga suma (Σ)** — (MAX − MIN) × broj jedinica upisanih u redu 1 te kolone.
+- **Treća suma (Σ)** — zbir rezultata od Kente do Jamba.
+- **UKUPNO** — zbir prve, druge i treće sume kroz sve aktivne kolone.
 
 ## Pokretanje lokalno
 

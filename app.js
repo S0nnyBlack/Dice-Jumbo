@@ -1,6 +1,6 @@
 const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:false,synced:false,roomCode:null,playerId:null,sessionToken:null,server:null};
-import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBonus,normalizeColumnIds}from"./game.js";
+import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums}from"./game.js";
 
 const state={
  mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),undoHistory:[],columns:["down","free","up"],
@@ -288,12 +288,8 @@ function refreshLocalDerived(player){
    }
  }
  for(const col of columns){
-   const upper=VALUE_ROWS.map(face=>Number(player.cells[cellKey(col,String(face))]||0)).reduce((a,b)=>a+b,0);
-   const top=upper+upperBonus(upper);
-   const middle=COMBINATION_ROWS.reduce((total,row)=>total+Number(player.cells[cellKey(col,row)]||0),0);
-   player.cells[cellKey(col,"SUM_TOP")]=top;
-   player.cells[cellKey(col,"SUM_MID")]=middle;
-   player.cells[cellKey(col,"SUM_TOTAL")]=top+middle+Number(player.cells[cellKey(col,"MAX")]||0)-Number(player.cells[cellKey(col,"MIN")]||0);
+   const sums=calculateColumnSums(player.cells,col);
+   for(const [row,value] of Object.entries(sums))player.cells[cellKey(col,row)]=value;
  }
 }
 function captureSoloSnapshot(){
@@ -393,7 +389,7 @@ function renderScoreSheet(player,isSelf=true){
  let html=`<table class="sheet premium-sheet" style="--sheet-min-width:${64+52*columns.length}px"><colgroup><col class="label-col">${columns.map(c=>`<col class="data-col col-${c.id}">`).join("")}</colgroup>
  <thead><tr><th class="corner-hatch" aria-label="Kategorija"></th>${columns.map(c=>`<th class="sheet-head ${c.id==="r"?"group-start":""}" title="${c.headerTitle}"><span class="head-symbol">${c.headerSymbol}</span><span class="head-name">${c.headerLabel}</span><span class="head-detail">${c.headerTitle===c.headerLabel?"":c.headerTitle}</span></th>`).join("")}</tr></thead><tbody>`;
  for(const row of rows){
-   const hiddenSum=(hideRow&&["SUM_TOP","SUM_MID","SUM_TOTAL"].includes(row.id))||(!state.gameOver&&row.id==="SUM_TOTAL");
+   const hiddenSum=hideRow&&["SUM_TOP","SUM_MID","SUM_TOTAL"].includes(row.id);
    html+=`<tr class="sheet-row ${row.type} ${hiddenSum?"hidden-total-row":""}"><th class="row-label">${row.label}${row.sub?`<small>${row.sub}</small>`:""}</th>`;
    for(const col of columns){
      const v=player?.cells?.[cellKey(col.id,row.id)];
@@ -408,7 +404,7 @@ function renderScoreSheet(player,isSelf=true){
    html+="</tr>";
  }
  if(isSelf||state.gameOver){
-   const total=columns.reduce((acc,col)=>acc+Number(player?.cells?.[cellKey(col.id,"SUM_TOTAL")]||0),0);
+   const total=columns.reduce((acc,col)=>acc+Number(player?.cells?.[cellKey(col.id,"SUM_TOP")]||0)+Number(player?.cells?.[cellKey(col.id,"SUM_MID")]||0)+Number(player?.cells?.[cellKey(col.id,"SUM_TOTAL")]||0),0);
    html+=`<tr class="final-total"><th class="row-label">UKUPNO</th><td colspan="${columns.length}" class="final-total-value">${state.gameOver?total:"🔒"}</td></tr>`;
  }
  html+="</tbody></table>";

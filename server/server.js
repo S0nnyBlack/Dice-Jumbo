@@ -6,7 +6,7 @@ import { randomInt } from "crypto";
 import path from "path";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
-import { normalizeColumnIds } from "../game.js";
+import { normalizeColumnIds, calculateColumnSums, visibleCellsForPlayer } from "../game.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -193,11 +193,6 @@ function updateMaximumColumn(room, player) {
     if (isCrossed) player.crossedCells.push(key("m", row));
   }
 }
-function sumVisibleCells(player, col, group) {
-  const rows = group === "top" ? TOP_ROWS : COMBO_ROWS;
-  const total = rows.reduce((acc, row) => acc + Number(player.cells[key(col, row)] || 0), 0);
-  return group === "top" && total >= 60 ? total + 30 : total;
-}
 function maxRollsForTurn(room, player) {
   let remaining = 0;
   for (const col of room.config.columns) {
@@ -215,13 +210,7 @@ function isGameOver(room) {
 }
 function buildPublicCells(player, viewerId, gameOver) {
   const isSelf = player.id === viewerId;
-  const result = {};
-  for (const [k, v] of Object.entries(player.cells)) {
-    if (gameOver) result[k] = v;
-    else if (k.includes("SUM_TOTAL")) continue;
-    else if (isSelf || (!k.includes("SUM_TOP") && !k.includes("SUM_MID"))) result[k] = v;
-  }
-  return result;
+  return visibleCellsForPlayer(player.cells, { isSelf, gameOver });
 }
 function publicState(room, viewerId) {
   const viewer = room.players.find(p => p.id === viewerId);
@@ -420,9 +409,8 @@ io.on("connection", socket => {
 
     const totals = {};
     for (const col of room.config.columns) {
-      totals[key(col, "SUM_TOP")] = sumVisibleCells(player, col, "top");
-      totals[key(col, "SUM_MID")] = sumVisibleCells(player, col, "combo");
-      totals[key(col, "SUM_TOTAL")] = totals[key(col, "SUM_TOP")] + totals[key(col, "SUM_MID")] + Number(player.cells[key(col, "MAX")] || 0) - Number(player.cells[key(col, "MIN")] || 0);
+      const sums = calculateColumnSums(player.cells, col);
+      for (const [row, value] of Object.entries(sums)) totals[key(col, row)] = value;
     }
     for (const [k, v] of Object.entries(totals)) player.cells[k] = v;
 
