@@ -287,7 +287,7 @@ function renderLobbyState(s){
 
 function game(){
  app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja</p></div></header>
- <div class="layout"><section class="panel"><div class="meta"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span></div><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button></div><div class="options" id="options"></div></section><section class="panel"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>`;
+ <div class="layout"><section class="panel"><div class="meta"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span></div><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>`;
  app.querySelector("#roll").onclick=()=>{state.crossOutMode=false;socket?.emit("turn:roll")};
  app.querySelector("#clear").onclick=()=>{state.selected.clear();state.crossOutMode=false;socket?.emit("turn:select",{indices:[]})};
  app.querySelector("#crossout").onclick=()=>{state.crossOutMode=!state.crossOutMode;if(state.crossOutMode){state.selected.clear();socket?.emit("turn:select",{indices:[]})}renderOnline()};
@@ -326,6 +326,7 @@ function renderOnline(){
    box.innerHTML='<span class="status">'+hint+'</span>'+(cards||(empty?'<span class="status options-empty">'+empty+'</span>':""));
    box.querySelectorAll("[data-op]").forEach(b=>b.onclick=()=>commitOnlineCandidate(ops[+b.dataset.op]));
  }
+ renderAnnouncementUi();
  renderSoloSheet();
 }
 
