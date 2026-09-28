@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds, COLUMN_DEFS } from "../game.js";
+import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds, COLUMN_DEFS, calculateColumnSums } from "../game.js";
 
 test("rollDice returns the requested number of valid die values",()=>{
  const dice=rollDice(6);assert.equal(dice.length,6);
@@ -121,4 +121,13 @@ test("column symbols match their gameplay labels",()=>{
  assert.equal(columns.r.direction,"manual");assert.equal(columns.r.headerTitle,"R · Ručna, samo posle prvog bacanja");
  assert.equal(columns.n.headerSymbol,"↓↑");
  assert.equal(columns.d,undefined);
+});
+
+test("column sums separate upper, max-min weighted by ones, and combinations",()=>{
+ const cells={
+  "free::1":6,"free::2":8,"free::3":9,"free::4":10,"free::5":10,"free::6":18,
+  "free::MAX":25,"free::MIN":5,
+  "free::KENTA":66,"free::TRILING":42,"free::FUL":0,"free::POKER":56,"free::YAMB":80
+ };
+ assert.deepEqual(calculateColumnSums(cells,"free"),{SUM_TOP:91,SUM_MID:120,SUM_TOTAL:244});
 });
