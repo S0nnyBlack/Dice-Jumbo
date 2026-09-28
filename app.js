@@ -42,6 +42,15 @@ function saveSoloGame(){
  const snapshot={version:1,columns:state.columns,player:{name:player?.name||"Igrač 1",cells:player?.cells||{},crossedCells:player?.crossedCells||[]},rolls:state.rolls,dice:state.dice,selected:[...state.selected],crossOutMode:state.crossOutMode,announcedRow:state.announcedRow,contraTargetRow:state.contraTargetRow,gameOver:state.gameOver,undoHistory:state.undoHistory};
  try{localStorage.setItem(SOLO_SAVE_KEY,JSON.stringify(snapshot));}catch(error){console.warn("Solo partija nije mogla da se sačuva.",error);}
 }
+function isValidSoloSnapshot(snapshot){
+ if(!snapshot||typeof snapshot!=="object"||!snapshot.player||typeof snapshot.player!=="object")return false;
+ const cells=snapshot.player.cells;
+ if(!cells||typeof cells!=="object"||Array.isArray(cells)||!Array.isArray(snapshot.player.crossedCells))return false;
+ if(!Number.isInteger(snapshot.rolls)||snapshot.rolls<0||snapshot.rolls>5)return false;
+ if(!Array.isArray(snapshot.dice)||snapshot.dice.length>6||snapshot.dice.some(value=>!Number.isInteger(value)||value<1||value>6))return false;
+ if(!Array.isArray(snapshot.selected)||snapshot.selected.length>5||snapshot.selected.some(index=>!Number.isInteger(index)||index<0||index>=snapshot.dice.length))return false;
+ return true;
+}
 function restoreSoloGame(){
  try{
   const saved=JSON.parse(localStorage.getItem(SOLO_SAVE_KEY)||"null");
@@ -50,7 +59,7 @@ function restoreSoloGame(){
   state.currentPlayer=0;state.viewPlayer=0;state.rolls=Number.isInteger(saved.rolls)?Math.max(0,Math.min(5,saved.rolls)):0;state.dice=saved.dice.slice(0,6);
   state.selected=new Set(Array.isArray(saved.selected)?saved.selected.filter(i=>Number.isInteger(i)&&i>=0&&i<state.dice.length).slice(0,5):[]);
   state.crossOutMode=saved.crossOutMode===true;state.announcedRow=typeof saved.announcedRow==="string"?saved.announcedRow:null;state.contraTargetRow=typeof saved.contraTargetRow==="string"?saved.contraTargetRow:null;state.gameOver=saved.gameOver===true;
-  state.undoHistory=Array.isArray(saved.undoHistory)?saved.undoHistory.slice(-50):[];state.soloActive=true;return true;
+  state.undoHistory=Array.isArray(saved.undoHistory)?saved.undoHistory.filter(isValidSoloSnapshot).slice(-50):[];state.soloActive=true;return true;
  }catch(error){console.warn("Sačuvana solo partija nije mogla da se učita.",error);return false;}
 }
 
