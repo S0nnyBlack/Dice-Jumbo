@@ -52,12 +52,12 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
 .nav-context { align-self: stretch; justify-content: flex-start; margin: 0 6px; border: 0; color: #bbb7ad; }
 .nav-context i { background: var(--green); }
 
-.match-heading, .game-status, .layout { width: min(100%, 1390px); }
+.match-heading, .game-status, .layout { width: min(100%, 1100px); }
 .match-heading { margin: 28px auto 15px; padding: 0 clamp(18px,3vw,40px); }
 .match-title h1 { margin: 6px 0 5px; color: var(--ink); font-size: clamp(31px,3vw,44px); letter-spacing: -1.8px; }
 .match-title p { color: var(--muted-ink); }
 .eyebrow, .guide-kicker { color: var(--green); letter-spacing: 1.8px; }
-.game-status { width: min(calc(100% - 48px), 1310px); margin: 0 auto 16px; border-color: var(--line); background: var(--paper); color: var(--muted-ink); box-shadow: none; }
+.game-status { width: min(calc(100% - 48px), 1100px); margin: 0 auto 16px; border-color: var(--line); background: var(--paper); color: var(--muted-ink); box-shadow: none; }
 .game-status b { color: var(--ink); }
 .live-pill { border-color: #626b50; background: #394333; color: #d5efbd; }
 .live-pill.mode-status { border-color: #626b50; background: #394333; color: #d5efbd; }
@@ -118,7 +118,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
 
 /* Cream score sheet is the central light surface. */
 .sheet-wrap { max-height: min(76vh,850px); margin: 0 -18px; border: 0; border-radius: 0; background: #eeece5; scrollbar-color: #8c9480 #eeece5; }
-.premium-sheet.sheet { width: max(100%,var(--sheet-min-width)); min-width: 760px; background: #eeece5; color: #353631; }
+.premium-sheet.sheet { width: max(100%,var(--sheet-min-width)); min-width: var(--sheet-min-width); background: #eeece5; color: #353631; }
 .premium-sheet .label-col { width: 22%; }
 .premium-sheet .data-col { width: auto; }
 .premium-sheet th, .premium-sheet td { height: 34px; }
@@ -131,7 +131,8 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
 .premium-sheet .head-name { color: #56574e; }
 .premium-sheet .row-label { padding: 3px 10px 3px 15px; background: #e5e3da; color: #4d4d45; text-align: left; font-size: 12px; white-space: nowrap; }
 .premium-sheet .row-label small { display: block; color: #76766c; font-size: 9px; }
-.premium-sheet .sheet-cell { background: #eeece5; color: #353631; }
+.premium-sheet .sheet-cell { padding-inline: 4px; background: #eeece5; color: #353631; text-align: center; vertical-align: middle; }
+.premium-sheet .final-total-value { text-align: center; vertical-align: middle; }
 .premium-sheet tbody tr:hover .sheet-cell:not(.locked-total) { background: #e6ebdd; }
 .premium-sheet .sum .row-label, .premium-sheet .sum .sheet-cell { background: #d6dec9; color: #526c38; }
 .premium-sheet .locked-total { background: #deddd5; color: #66665c; }
@@ -162,7 +163,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
 .rules-dialog p, .rules-dialog li { color: #d2cec6; }
 .rules-dialog li b { color: var(--ink); }
 
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
   #app { padding-left: 72px; }
   .site-nav { width: 72px; padding: 22px 10px; }
   .site-brand { padding: 0 6px; }
@@ -171,11 +172,11 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
   .main-nav button span { font-size: 20px; }
   .layout { grid-template-columns: minmax(0,1fr) 300px; grid-template-areas: "main sidebar"; gap: 14px; }
 }
-@media (max-width: 870px) {
+@media (max-width: 1000px) {
   .layout { display: flex; flex-direction: column; }
   .game-sidebar { display: contents; }
   .game-sidebar > .game-controls { order: 0; width: 100%; }
-  .game-main { order: 1; width: 100%; }
+  .game-main { order: 1; width: 100%; max-width: 740px; margin-inline: auto; }
   .game-sidebar > .sidebar-card { order: 2; width: 100%; }
   .dice-grid, .game-sidebar > .game-controls .dice-grid { grid-template-columns: repeat(6,64px); gap: 8px; }
   .die, .game-sidebar > .game-controls .die { width: 64px; height: 64px; min-width: 64px; min-height: 64px; }

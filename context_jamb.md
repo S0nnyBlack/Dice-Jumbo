@@ -92,3 +92,12 @@ Provera: `node --test --test-isolation=none tests/game.test.js tests/ui.test.js 
 
 Provera: 25 od 25 testova prolazi lokalno. Pregledani su solo prikazi na desktopu (1440 px), tabletu (820 px) i telefonu (390 px), kao i online prikaz na desktopu. Na telefonu širina stranice ostaje 390 px, a tabela se pomera unutar sopstvenog okvira.
 
+## Verzija 60 — uža tabela, centrirani rezultati i prilagodljiv raspored
+
+- Desktop sadržaj je sužen tako da kolone za upis zauzimaju manje prostora, uz istu širinu panela kockica.
+- Minimalna širina tabele zavisi od broja uključenih kolona; kada ih je mnogo, pomera se samo tabela.
+- Vrednosti i predloženi rezultati su vodoravno i uspravno centrirani u svakom polju.
+- Bočna navigacija prelazi u uski prikaz do 1280 px, a paneli se slažu jedan ispod drugog do 1000 px. Tako tabela dobija dovoljno prostora između telefonskog i desktop prikaza.
+- U složenom prikazu širina panela tabele je ograničena na 740 px i centrirana, dok panel kockica koristi raspoloživ prostor. Na telefonu tabela ima sopstveno vodoravno pomeranje.
+- Provera: 25 od 25 lokalnih testova prolazi; pregledane su širine od 320 do 1920 px, uključujući granice preloma. Stranica nema vodoravno pomeranje.
+
