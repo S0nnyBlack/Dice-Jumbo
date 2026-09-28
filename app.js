@@ -221,14 +221,15 @@ function soloGame(){
  <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill mode-status">Solo</span></div>
  <div class="layout">
   <div class="game-main">
-   <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Izaberi označeno polje za upis.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
+   <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Zeleno označena polja su dostupna za upis. Izaberi rezultat u listiću ili desno.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
+
+  </div>
+  <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
    <section class="panel game-controls">
     <div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">6 kockica · do 3 bacanja</span></div>
     <div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div>
     <div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div>
    </section>
-  </div>
-  <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
    <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
    <section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
    <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div></section>
@@ -486,7 +487,7 @@ function game(){
  <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill"><i aria-hidden="true"></i>Uživo</span></div>
  <div class="layout">
   <div class="game-main">
-   <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Izaberi označeno polje za upis.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
+   <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Zeleno označena polja su dostupna za upis. Izaberi rezultat u listiću ili desno.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
    <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">6 kockica · do 3 bacanja</span></div><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div></section>
   </div>
   <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
