@@ -1029,3 +1029,5 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
   .die-arrive { animation: none !important; }
   *, *::before, *::after { transition-duration: .01ms !important; }
 }
+
+.live-pill.mode-status { border-color: var(--line); background: #f6f2e9; color: var(--muted-ink); }
