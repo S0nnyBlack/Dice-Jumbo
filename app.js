@@ -139,7 +139,7 @@ function bindRulesGuide(){
 function soloGame(){
  state.mode="solo";
  app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">SOLO</span></h1><p>6 kockica · do 3 bacanja (5 u završnom potezu)</p></div><div class="toolbar"><button class="btn" id="rulesHelp">Pravila</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></header>
- <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0/3</b></span></div>
+ <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div>
  <div class="layout">
  <section class="panel game-controls">
   <div class="dice-grid" id="dice"></div>
@@ -270,6 +270,16 @@ function commitSolo(candidate){
  newTurn();renderSolo();
 }
 
+function updateTurnStatus(isMyTurn=true){
+ const status=app.querySelector("#turnStatus");if(!status)return;
+ if(state.gameOver){status.textContent="Partija završena";status.dataset.state="done";return;}
+ if(state.contraTargetRow){status.textContent="Obavezna kontranajava: "+state.contraTargetRow;status.dataset.state="required";return;}
+ if(state.announcedRow){status.textContent="Obavezna najava: "+state.announcedRow;status.dataset.state="required";return;}
+ if(!isMyTurn){status.textContent="Čeka se potez protivnika";status.dataset.state="waiting";return;}
+ if(state.rolls===0){status.textContent="Baci kockice da započneš potez";status.dataset.state="ready";return;}
+ if(state.rolls>=(state.maxRolls||maxRollsForLocal())){status.textContent="Izaberi dostupno polje za upis";status.dataset.state="ready";return;}
+ status.textContent="Izaberi kockice ili polje za upis";status.dataset.state="ready";
+}
 function renderSolo(){
  const dice=app.querySelector("#dice");if(!dice)return;
  dice.innerHTML=state.dice.map((v,i)=>'<button class="die '+(state.selected.has(i)?"selected":"")+'" data-i="'+i+'" '+(!state.rolls||state.gameOver?"disabled":"")+'>'+v+'</button>').join("");
@@ -282,6 +292,7 @@ function renderSolo(){
    renderSolo();
  });
  const count=app.querySelector("#count");if(count)count.textContent=`${state.rolls}/${maxRollsForLocal()}`;
+ updateTurnStatus();
  const roll=app.querySelector("#roll");
  if(roll){roll.disabled=state.gameOver||state.rolls>=maxRollsForLocal();roll.textContent=state.rolls>=maxRollsForLocal()?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
  const undo=app.querySelector("#undo");if(undo)undo.disabled=state.undoHistory.length===0;
@@ -403,6 +414,7 @@ function renderOnline(){
    socket?.emit("turn:select",{indices:[...state.selected]});
  });
  const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls}/${state.maxRolls||3}`;
+ updateTurnStatus(isMyTurn);
  const roll=app.querySelector("#roll"),clear=app.querySelector("#clear"),crossout=app.querySelector("#crossout");
  if(roll){roll.disabled=!isMyTurn||state.gameOver||state.rolls>=(state.maxRolls||3);roll.textContent=state.rolls>=(state.maxRolls||3)?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
  if(clear)clear.disabled=!isMyTurn||state.gameOver||state.rolls===0;
