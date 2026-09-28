@@ -156,7 +156,7 @@ function updateMaximumColumn(room, player) {
   for (const row of SCORE_ROWS) {
     if (!emptyCell(player, "m", row)) continue;
     if (!sources.length || !sources.every(col => !emptyCell(player, col, row))) continue;
-    const isCrossed = TOP_ROWS.includes(row) && firstSix.some(col => (player.crossedCells || []).includes(key(col, row)));
+    const isCrossed = firstSix.some(col => (player.crossedCells || []).includes(key(col, row)));
     const value = isCrossed ? 0 : Math.max(...sources.map(col => Number(player.cells[key(col, row)] || 0)));
     player.cells[key("m", row)] = value;
     if (isCrossed) player.crossedCells.push(key("m", row));
