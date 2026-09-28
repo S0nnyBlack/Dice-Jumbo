@@ -1,10 +1,10 @@
 const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:false,roomCode:null,playerId:null,sessionToken:null,server:null};
-import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries}from"./game.js";
+import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBonus}from"./game.js";
 
 const state={
- mode:"setup",rolls:0,dice:[],selected:new Set(),columns:["down","free","up"],
- currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{}}],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null
+ mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),columns:["down","free","up"],
+ currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null
 };
 const app=document.getElementById("app");
 const defs=()=>state.columns.map(id=>COLUMN_DEFS.find(c=>c.id===id)).filter(Boolean);
@@ -16,7 +16,7 @@ const isFilled=(p,col,row)=>p?.cells?.[cellKey(col,row)]!==undefined;
 const scoreRows=[...VALUE_ROWS.map(String),"MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"];
 
 function resetLocal(){
- state.mode="solo";state.rolls=0;state.dice=[];state.selected.clear();state.players=[{id:"local",name:"Igrač 1",cells:{}}];
+ state.mode="solo";state.rolls=0;state.maxRolls=3;state.dice=[];state.selected.clear();state.players=[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]}];
  state.currentPlayer=0;state.viewPlayer=0;state.pending=null;state.gameOver=false;state.soloActive=false;state.crossOutMode=false;state.announcedRow=null;state.contraTargetRow=null;
 }
 
@@ -95,7 +95,7 @@ function newTurn(){state.rolls=0;state.dice=[];state.selected.clear();state.pend
 
 function soloGame(){
  state.mode="solo";
- app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">SOLO</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja</p></div><div class="toolbar"><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></header>
+ app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">SOLO</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja (5 u poslednjem potezu) (5 u poslednjem potezu)</p></div><div class="toolbar"><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></header>
  <div class="layout">
  <section class="panel">
   <div class="meta"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0/3</b></span></div>
@@ -113,8 +113,13 @@ function soloGame(){
  renderSolo();
 }
 
+function maxRollsForLocal(){
+ const player=current();
+ const remaining=defs().filter(col=>col.id!=="m").reduce((total,col)=>total+scoreRows.filter(row=>!isFilled(player,col.id,row)).length,0);
+ return remaining===1?5:3;
+}
 function soloRoll(){
- if(state.gameOver||state.rolls>=3)return;
+ if(state.gameOver||state.rolls>=maxRollsForLocal())return;
  state.crossOutMode=false;
  const fresh=rollDice(6);
  if(state.rolls===0)state.dice=fresh;
@@ -125,7 +130,7 @@ function soloRoll(){
 function soloCandidates(){
  if(state.rolls===0||(!state.crossOutMode&&state.selected.size===0))return [];
  const restrictions=state.contraTargetRow?{contraRow:state.contraTargetRow}:state.announcedRow?{announcedRow:state.announcedRow}:{};
- return availableEntries(state.columns,current()?.cells||{},state.crossOutMode?[]:selectedValues(),{crossOut:state.crossOutMode,...restrictions});
+ return availableEntries(state.columns,current()?.cells||{},state.crossOutMode?[]:selectedValues(),{crossOut:state.crossOutMode,...restrictions,rolls:state.rolls});
 }
 function announceableRows(){
  if(!state.columns.includes("announced"))return [];
@@ -151,7 +156,12 @@ function renderAnnouncementUi(){
  if(state.contraTargetRow){box.textContent=(state.mode==="online"?"Protivnik je najavio ":"Prethodno si najavio ")+state.contraTargetRow+". Moraš odigrati to polje u koloni Kontra najava.";return;}
  if(state.announcedRow){box.textContent="Najavljeno polje: "+state.announcedRow+". Ovaj potez moraš završiti isključivo u toj ćeliji kolone Najava.";return;}
  let info="";
- if(state.columns.includes("contra"))info="Kontra najava prati polje koje je protivnik najavio u prethodnom potezu. Bez najave protivnika, ćeliju možeš precrtati.";
+ const cells=current()?.cells||{};
+ if(state.columns.includes("d"))info="D (Ručna) se popunjava posle prvog bacanja; ručna Kenta vredi 66. ";
+ const oIndex=state.columns.indexOf("o");
+ if(oIndex>=0){const earlier=state.columns.slice(0,oIndex);const ready=earlier.every(col=>scoreRows.every(row=>cells[cellKey(col,row)]!==undefined));if(!ready)info+="Kolona O se otključava tek kada su prethodne uključene kolone popunjene. ";}
+ if(state.columns.includes("m"))info+="Kolona M se automatski popunjava maksimumom iz prethodnih uključenih kolona; precrtanje se prenosi kao X. ";
+ if(state.columns.includes("contra")){const full=state.columns.includes("announced")&&scoreRows.every(row=>cells[cellKey("announced",row)]!==undefined);info+=(full?"Kolona Najava je popunjena, pa se Kontra najava može igrati slobodno. ":"Kontra najava prati polje koje je protivnik najavio u prethodnom potezu. Bez najave protivnika, ćeliju možeš precrtati. "); }
  if(!state.columns.includes("announced")){box.textContent=info;return;}
  if(state.rolls===0){box.textContent=(info?info+" ":"")+"Najavu možeš izabrati samo posle prvog bacanja; izbor te obavezuje na baš to polje.";return;}
  if(state.rolls>1){box.textContent=(info?info+" ":"")+"Prvo bacanje je prošlo, pa Najava više nije dostupna u ovom potezu.";return;}
@@ -170,11 +180,34 @@ function commitOnlineCandidate(candidate){
 }
 
 
+function refreshLocalDerived(player){
+ const columns=state.columns;
+ const maxIndex=columns.indexOf("m");
+ if(maxIndex>=0){
+   const sources=columns.slice(0,maxIndex),firstSix=sources.slice(0,6);
+   for(const row of scoreRows){
+     if(isFilled(player,"m",row)||!sources.length||!sources.every(col=>isFilled(player,col,row)))continue;
+     const crossed=firstSix.some(col=>player.crossedCells.includes(cellKey(col,row)));
+     player.cells[cellKey("m",row)]=crossed?0:Math.max(...sources.map(col=>Number(player.cells[cellKey(col,row)]||0)));
+     if(crossed)player.crossedCells.push(cellKey("m",row));
+   }
+ }
+ for(const col of columns){
+   const upper=VALUE_ROWS.map(face=>Number(player.cells[cellKey(col,String(face))]||0)).reduce((a,b)=>a+b,0);
+   const top=upper+upperBonus(upper);
+   const middle=COMBINATION_ROWS.reduce((total,row)=>total+Number(player.cells[cellKey(col,row)]||0),0);
+   player.cells[cellKey(col,"SUM_TOP")]=top;
+   player.cells[cellKey(col,"SUM_MID")]=middle;
+   player.cells[cellKey(col,"SUM_TOTAL")]=top+middle+Number(player.cells[cellKey(col,"MAX")]||0)-Number(player.cells[cellKey(col,"MIN")]||0);
+ }
+}
 function commitSolo(candidate){
  const p=current();
  if(isFilled(p,candidate.colId,candidate.row))return;
  p.cells[cellKey(candidate.colId,candidate.row)]=candidate.value;
+ if(candidate.crossOut){p.crossedCells=p.crossedCells||[];p.crossedCells.push(cellKey(candidate.colId,candidate.row));}
  state.contraTargetRow=state.columns.includes("contra")?(state.announcedRow||null):null;
+ refreshLocalDerived(p);
  state.pending=null;
  const filled=defs().every(col=>scoreRows.every(row=>isFilled(p,col.id,row)));
  if(filled){state.gameOver=true;newTurn();renderSolo();return;}
@@ -192,9 +225,9 @@ function renderSolo(){
    else if(state.selected.size<5)state.selected.add(i);
    renderSolo();
  });
- const count=app.querySelector("#count");if(count)count.textContent=`${state.rolls}/3`;
+ const count=app.querySelector("#count");if(count)count.textContent=`${state.rolls}/${maxRollsForLocal()}`;
  const roll=app.querySelector("#roll");
- if(roll){roll.disabled=state.gameOver||state.rolls>=3;roll.textContent=state.rolls>=3?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
+ if(roll){roll.disabled=state.gameOver||state.rolls>=maxRollsForLocal();roll.textContent=state.rolls>=maxRollsForLocal()?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
  const crossout=app.querySelector("#crossout");
  if(crossout){crossout.disabled=state.gameOver||state.rolls===0;crossout.classList.toggle("crossout-active",state.crossOutMode);crossout.textContent=state.crossOutMode?"Otkaži precrtavanje":"Precrtaj polje (0)";}
  const box=app.querySelector("#options");if(box){
@@ -221,7 +254,7 @@ function renderScoreSheet(player,isSelf=true){
  const sheet=app.querySelector("#sheet");if(!sheet)return;
  const columns=defs();
  const headers={down:"↓",free:"S",up:"↑",announced:"↕",contra:"↓↑",r:"R",n:"N",d:"D",o:"O",m:"M"};
- const titles={down:"Dole",free:"Slobodna",up:"Gore",announced:"Najava",contra:"Kontra najava",r:"R",n:"N",d:"D",o:"O",m:"M"};
+ const titles={down:"Dole",free:"Slobodna",up:"Gore",announced:"Najava",contra:"Kontra najava",r:"R · Max naviše, min naniže",n:"N · 1 naniže, Yamb naviše",d:"D · Ručna, samo posle prvog bacanja",o:"O · tek nakon prethodnih kolona",m:"M · maksimum iz prethodnih kolona"};
  const rows=[
   {id:"1",label:"1",type:"normal"},{id:"2",label:"2",type:"normal"},{id:"3",label:"3",type:"normal"},
   {id:"4",label:"4",type:"normal"},{id:"5",label:"5",type:"normal"},{id:"6",label:"6",type:"normal"},
@@ -246,7 +279,8 @@ function renderScoreSheet(player,isSelf=true){
      const v=player?.cells?.[cellKey(col.id,row.id)];
      const optionIndex=choices.findIndex(option=>option.colId===col.id&&option.row===row.id);
      const isAvailable=optionIndex>=0&&v===undefined&&!hiddenSum;
-     const shown=hiddenSum?"🔒":isAvailable?choices[optionIndex].value:(v===undefined?"":v);
+     const crossed=player?.crossedCells?.includes(cellKey(col.id,row.id));
+     const shown=hiddenSum?"🔒":crossed?"X":isAvailable?choices[optionIndex].value:(v===undefined?"":v);
      const classNames=["sheet-cell",hiddenSum?"locked-total":isAvailable?"available-entry":(v===undefined?"empty":"filled"),col.id==="o"?"o-column":"",col.id==="r"?"group-start":""].filter(Boolean).join(" ");
      const choiceAttrs=isAvailable?` data-choice="${optionIndex}" role="button" tabindex="0" aria-label="Dostupno polje: ${escapeHtml(col.name)}, ${row.label}, ${choices[optionIndex].value} poena"`:"";
      html+=`<td class="${classNames}" data-cell="${cellKey(col.id,row.id)}"${choiceAttrs}>${shown}</td>`;
@@ -254,7 +288,7 @@ function renderScoreSheet(player,isSelf=true){
    html+="</tr>";
  }
  if(isSelf||state.gameOver){
-   const total=Object.entries(player?.cells||{}).reduce((acc,[k,v])=>k.includes("::SUM_")?acc:acc+Number(v||0)*(k.endsWith("::MIN")?-1:1),0);
+   const total=columns.reduce((acc,col)=>acc+Number(player?.cells?.[cellKey(col.id,"SUM_TOTAL")]||0),0);
    html+=`<tr class="final-total"><th class="row-label">UKUPNO</th><td colspan="${columns.length}" class="final-total-value">${state.gameOver?total:"🔒"}</td></tr>`;
  }
  html+="</tbody></table>";
@@ -278,9 +312,9 @@ function renderSoloSheet(){
 
 function renderServerState(s){
  if(!s)return;
- state.mode="online";state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
+ state.mode="online";state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
  const idx=s.players.findIndex(p=>p.id===s.currentPlayerId);if(idx>=0)state.currentPlayer=idx;
- state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{}}));
+ state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{},crossedCells:p.crossedCells||[]}));
  state.columns=s.config?.columns||state.columns;
  if(s.started){game();renderOnline();}
  else renderLobbyState(s);
@@ -311,9 +345,9 @@ function renderOnline(){
    state.selected.has(i)?state.selected.delete(i):state.selected.size<5&&state.selected.add(i);
    socket?.emit("turn:select",{indices:[...state.selected]});
  });
- const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls}/3`;
+ const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls}/${state.maxRolls||3}`;
  const roll=app.querySelector("#roll"),clear=app.querySelector("#clear"),crossout=app.querySelector("#crossout");
- if(roll){roll.disabled=!isMyTurn||state.gameOver||state.rolls>=3;roll.textContent=state.rolls>=3?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
+ if(roll){roll.disabled=!isMyTurn||state.gameOver||state.rolls>=(state.maxRolls||3);roll.textContent=state.rolls>=(state.maxRolls||3)?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
  if(clear)clear.disabled=!isMyTurn||state.gameOver||state.rolls===0;
  if(crossout){crossout.disabled=!isMyTurn||state.gameOver||state.rolls===0;crossout.classList.toggle("crossout-active",state.crossOutMode);crossout.textContent=state.crossOutMode?"Otkaži precrtavanje":"Precrtaj polje (0)";}
  const tabs=app.querySelector("#tabs");tabs.innerHTML=state.players.map((p,i)=>'<button class="player-tab '+(i===state.currentPlayer?'active':'')+'">'+escapeHtml(p.name)+'</button>').join("");

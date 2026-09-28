@@ -52,6 +52,7 @@ function key(col, row) { return col + "::" + row; }
 function sum(v) { return v.reduce((a, b) => a + b, 0); }
 function counts(v) { return v.reduce((m, x) => (m[x] = (m[x] || 0) + 1, m), {}); }
 
+const SCORE_ROWS = [...TOP_ROWS, "MAX", "MIN", ...COMBO_ROWS];
 function analyse(values) {
   if (!Array.isArray(values) || values.length !== 5) return null;
   const c = counts(values);
@@ -60,44 +61,72 @@ function analyse(values) {
   const total = sum(values);
   return {
     total,
+    counts: c,
     kenta: sorted === "1,2,3,4,5" || sorted === "2,3,4,5,6",
-    kentaScore: sorted === "1,2,3,4,5" ? 66 : sorted === "2,3,4,5,6" ? 56 : null,
     triling: freq.includes(3),
     ful: freq.includes(3) && freq.includes(2),
     poker: freq.includes(4),
     yamb: freq.includes(5)
   };
 }
-function combinationScore(row, values) {
+function combinationScore(row, values, { rolls = 3, manual = false } = {}) {
   const a = analyse(values);
   if (!a) return null;
-  if (row === "KENTA") return a.kenta ? a.kentaScore : null;
+  if (row === "KENTA") return a.kenta ? (manual ? 66 : rolls === 1 ? 66 : rolls === 2 ? 56 : 46) : null;
   if (row === "TRILING") return a.triling ? a.total + 20 : null;
   if (row === "FUL") return a.ful ? a.total + 30 : null;
-  if (row === "POKER") return a.poker ? a.total + 40 : null;
+  if (row === "POKER") {
+    if (!a.poker) return null;
+    const fourCount = Object.values(a.counts).find(count => count >= 4);
+    const face = Number(Object.keys(a.counts).find(value => a.counts[value] === fourCount));
+    return face * 4 + 40;
+  }
   if (row === "YAMB") return a.yamb ? a.total + 50 : null;
   return null;
 }
 function upperScore(values, face) { return values.filter(x => x === face).reduce((a, b) => a + b, 0); }
-
 function columnRows(colId) {
-  if (colId === "up" || colId === "down") return [...TOP_ROWS, "SUM_TOP", "MAX", "MIN", "SUM_MID", ...COMBO_ROWS, "SUM_TOTAL"];
-  if (colId === "free" || colId === "announced" || colId === "contra" || ["r", "n", "d", "o", "m"].includes(colId)) {
+  if (colId === "up" || colId === "down" || colId === "r" || colId === "n") {
+    return [...TOP_ROWS, "SUM_TOP", "MAX", "MIN", "SUM_MID", ...COMBO_ROWS, "SUM_TOTAL"];
+  }
+  if (["free", "announced", "contra", "r", "n", "d", "o", "m"].includes(colId)) {
     return [...TOP_ROWS, "SUM_TOP", "MAX", "MIN", "SUM_MID", ...COMBO_ROWS, "SUM_TOTAL"];
   }
   return [];
 }
 function emptyCell(player, col, row) { return player.cells[key(col, row)] === undefined; }
 function validColumn(config, id) { return config.columns.includes(id); }
-
+function frontierRows(col, player) {
+  if (col === "down") return SCORE_ROWS.find(row => emptyCell(player, col, row)) ? [SCORE_ROWS.find(row => emptyCell(player, col, row))] : [];
+  if (col === "up") {
+    const row = [...SCORE_ROWS].reverse().find(item => emptyCell(player, col, item));
+    return row ? [row] : [];
+  }
+  const directions = {
+    r: [["MAX", "6", "5", "4", "3", "2", "1"], ["MIN", "KENTA", "TRILING", "FUL", "POKER", "YAMB"]],
+    n: [SCORE_ROWS, [...SCORE_ROWS].reverse()]
+  }[col];
+  if (!directions) return [];
+  return [...new Set(directions.map(rows => rows.find(row => emptyCell(player, col, row))).filter(Boolean))];
+}
+function requiredColumnReady(room, player) {
+  const stop = room.config.columns.indexOf("o");
+  if (stop < 0) return true;
+  return room.config.columns.slice(0, stop).every(col =>
+    SCORE_ROWS.every(row => !emptyCell(player, col, row))
+  );
+}
 function calculateEntry(room, player, col, row, selected, crossOut = false) {
   if (!validColumn(room.config, col)) return { ok: false, error: "Kolona nije aktivna." };
   if (!columnRows(col).includes(row)) return { ok: false, error: "Red nije dozvoljen." };
   if (!emptyCell(player, col, row)) return { ok: false, error: "Polje je već iskorišćeno." };
 
-  const sequenceRows = columnRows(col).filter(r => !["SUM_TOP", "SUM_MID", "SUM_TOTAL"].includes(r));
-  if (col === "up" && row !== (player.nextUpRow ?? sequenceRows[sequenceRows.length - 1])) return { ok: false, error: "Gore kolona mora pratiti redosled." };
-  if (col === "down" && row !== (player.nextDownRow ?? sequenceRows[0])) return { ok: false, error: "Dole kolona mora pratiti redosled." };
+  if (col === "up" && row !== frontierRows("up", player)[0]) return { ok: false, error: "Gore kolona mora pratiti redosled." };
+  if (col === "down" && row !== frontierRows("down", player)[0]) return { ok: false, error: "Dole kolona mora pratiti redosled." };
+  if (["r", "n"].includes(col) && !frontierRows(col, player).includes(row)) return { ok: false, error: "Kolona mora pratiti otvoreni redosled." };
+  if (col === "o" && !requiredColumnReady(room, player)) return { ok: false, error: "Kolona O se otključava kada se popune prethodne kolone." };
+  if (col === "d" && room.rolls !== 1) return { ok: false, error: "Ručna kolona se popunjava posle prvog bacanja." };
+  if (col === "m") return { ok: false, error: "Kolona M se izračunava iz prethodnih kolona." };
 
   const scoreable = TOP_ROWS.includes(row) || row === "MAX" || row === "MIN" || COMBO_ROWS.includes(row);
   if (crossOut) return scoreable ? { ok: true, value: 0 } : { ok: false, error: "Zbirna polja ne mogu da se precrtaju." };
@@ -106,30 +135,45 @@ function calculateEntry(room, player, col, row, selected, crossOut = false) {
   }
 
   let value = null;
-  if (TOP_ROWS.includes(row)) {
-    value = upperScore(selected, Number(row));
-  } else if (row === "MAX" || row === "MIN") {
-    value = sum(selected);
-  } else if (COMBO_ROWS.includes(row)) {
-    value = combinationScore(row, selected);
+  if (TOP_ROWS.includes(row)) value = upperScore(selected, Number(row));
+  else if (row === "MAX" || row === "MIN") value = sum(selected);
+  else if (COMBO_ROWS.includes(row)) {
+    value = combinationScore(row, selected, { rolls: room.rolls, manual: col === "d" });
     if (value === null) return { ok: false, error: "Kombinacija zahteva 5 odgovarajućih kockica." };
   }
   return { ok: true, value };
 }
-
 function updateSequence(player, col, row) {
   const rows = columnRows(col).filter(r => !["SUM_TOP", "SUM_MID", "SUM_TOTAL"].includes(r));
-  if (col === "up") {
-    player.nextUpRow = rows[rows.indexOf(row) - 1];
-  }
-  if (col === "down") {
-    const next = rows[rows.indexOf(row) + 1];
-    player.nextDownRow = next;
+  if (col === "up") player.nextUpRow = rows[rows.indexOf(row) - 1];
+  if (col === "down") player.nextDownRow = rows[rows.indexOf(row) + 1];
+}
+function updateMaximumColumn(room, player) {
+  const maxIndex = room.config.columns.indexOf("m");
+  if (maxIndex < 0) return;
+  const sources = room.config.columns.slice(0, maxIndex);
+  const firstSix = sources.slice(0, 6);
+  for (const row of SCORE_ROWS) {
+    if (!emptyCell(player, "m", row)) continue;
+    if (!sources.length || !sources.every(col => !emptyCell(player, col, row))) continue;
+    const isCrossed = firstSix.some(col => (player.crossedCells || []).includes(key(col, row)));
+    const value = isCrossed ? 0 : Math.max(...sources.map(col => Number(player.cells[key(col, row)] || 0)));
+    player.cells[key("m", row)] = value;
+    if (isCrossed) player.crossedCells.push(key("m", row));
   }
 }
 function sumVisibleCells(player, col, group) {
   const rows = group === "top" ? TOP_ROWS : COMBO_ROWS;
-  return rows.reduce((acc, row) => acc + Number(player.cells[key(col, row)] || 0), 0);
+  const total = rows.reduce((acc, row) => acc + Number(player.cells[key(col, row)] || 0), 0);
+  return group === "top" && total >= 60 ? total + 30 : total;
+}
+function maxRollsForTurn(room, player) {
+  let remaining = 0;
+  for (const col of room.config.columns) {
+    if (col === "m") continue;
+    for (const row of SCORE_ROWS) if (emptyCell(player, col, row)) remaining++;
+  }
+  return remaining === 1 ? 5 : 3;
 }
 function isGameOver(room) {
   return room.started && room.players.length > 0 && room.players.every(player =>
@@ -158,6 +202,7 @@ function publicState(room, viewerId) {
     hostId: room.hostId,
     currentPlayerId: room.currentPlayerId,
     rolls: room.currentPlayerId === viewerId ? room.rolls : 0,
+    maxRolls: room.currentPlayerId === viewerId && viewer ? maxRollsForTurn(room, viewer) : 3,
     dice: room.currentPlayerId === viewerId ? room.dice : [],
     selection: room.currentPlayerId === viewerId ? room.selection : [],
     announcedRow: viewer?.announcedRow || null,
@@ -168,7 +213,8 @@ function publicState(room, viewerId) {
       name: p.name,
       connected: p.connected,
       ready: p.ready,
-      cells: buildPublicCells(p, viewerId, gameOver)
+      cells: buildPublicCells(p, viewerId, gameOver),
+      crossedCells: p.crossedCells || []
     }))
   };
 }
@@ -199,6 +245,7 @@ io.on("connection", socket => {
       connected: true,
       ready: true,
       cells: {},
+      crossedCells: [],
       announcedRow: null,
       token: sessionToken()
     };
@@ -234,6 +281,7 @@ io.on("connection", socket => {
       connected: true,
       ready: true,
       cells: {},
+      crossedCells: [],
       announcedRow: null,
       token: sessionToken()
     };
@@ -267,7 +315,7 @@ io.on("connection", socket => {
     if (!room || !player || !room.started) return;
     if (isGameOver(room)) return emitError(socket, "Partija je završena.");
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
-    if (room.rolls >= 3) return emitError(socket, "Maksimalno 3 bacanja.");
+    if (room.rolls >= maxRollsForTurn(room, player)) return emitError(socket, "Dostignut je maksimalan broj bacanja za ovaj potez.");
 
     const fresh = makeDice();
     if (room.rolls === 0) room.dice = fresh;
@@ -318,17 +366,24 @@ io.on("connection", socket => {
     if (room.rolls === 0) return emitError(socket, "Potez još nije bačen.");
     const isCrossOut = crossOut === true;
     if (room.contraTargetRow && room.config.columns.includes("contra") && (columnId !== "contra" || row !== room.contraTargetRow)) return emitError(socket, "Morate odigrati protivnikovo najavljeno polje u koloni Kontra najava.");
-    if (!room.contraTargetRow && columnId === "contra" && room.config.columns.includes("contra") && !isCrossOut) return emitError(socket, "Nema najave protivnika za Kontra najavu.");
+    const announcedFull = room.config.columns.includes("announced") && SCORE_ROWS.every(scoreRow => !emptyCell(player, "announced", scoreRow));
+    if (!room.contraTargetRow && columnId === "contra" && room.config.columns.includes("contra") && !announcedFull && !isCrossOut) return emitError(socket, "Nema najave protivnika za Kontra najavu.");
     if (player.announcedRow && (columnId !== "announced" || row !== player.announcedRow)) return emitError(socket, "Morate odigrati najavljeno polje.");
     if (!player.announcedRow && columnId === "announced" && room.config.columns.includes("announced") && !isCrossOut) return emitError(socket, "Najavu možete odigrati samo ako ste je postavili posle prvog bacanja.");
     if (!isCrossOut && (room.selection.length < 1 || room.selection.length > 5)) return emitError(socket, "Izaberite od 1 do 5 kockica ili precrtajte polje.");
 
     const selectedValues = room.selection.map(i => room.dice[i]);
+    if (columnId === "o" && !requiredColumnReady(room, player)) return emitError(socket, "Kolona O se otključava kada se popune prethodne kolone.");
+    if (columnId === "d" && room.rolls !== 1) return emitError(socket, "Ručna kolona se popunjava posle prvog bacanja.");
+    if (columnId === "m") return emitError(socket, "Kolona M se izračunava iz prethodnih kolona.");
+    if (["r", "n"].includes(columnId) && !frontierRows(columnId, player).includes(row)) return emitError(socket, "Kolona mora pratiti otvoreni redosled.");
     const result = calculateEntry(room, player, columnId, row, selectedValues, isCrossOut);
     if (!result.ok) return emitError(socket, result.error);
 
     player.cells[key(columnId, row)] = result.value;
+    if (isCrossOut) player.crossedCells.push(key(columnId, row));
     updateSequence(player, columnId, row);
+    updateMaximumColumn(room, player);
 
     const totals = {};
     for (const col of room.config.columns) {
