@@ -128,6 +128,7 @@ function calculateEntry(room, player, col, row, selected, crossOut = false) {
     value = combinationScore(row, selected, { rolls: room.rolls, manual: col === "r" });
     if (value === null) return { ok: false, error: "Izabrane kockice ne ispunjavaju uslov za ovu kombinaciju." };
   }
+  if (value === 0) return { ok: false, error: "Rezultat 0 se ne upisuje; izaberite precrtavanje polja." };
   return { ok: true, value };
 }
 function updateSequence(player, col, row) {
