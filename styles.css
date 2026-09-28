@@ -986,7 +986,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
   .brand-words strong { font-size: 15px; }
   .nav-context { margin-left: 0; padding: 5px 8px; font-size: 10px; }
   .main-nav { order: 3; flex: 1 1 100%; justify-content: space-between; gap: 2px; margin: 0; }
-  .main-nav button { min-width: 0; min-height: 42px; flex: 1 1 0; padding: 7px 5px; font-size: 12px; }
+  .main-nav button { min-width: 0; min-height: 44px; flex: 1 1 0; padding: 7px 5px; font-size: 12px; }
   .match-heading { align-items: flex-start; flex-wrap: wrap; gap: 10px; margin: 17px auto 12px; padding: 0 12px; }
   .match-title h1 { font-size: 27px; }
   .match-title p { max-width: 35ch; font-size: 12px; }
