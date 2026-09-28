@@ -54,7 +54,7 @@ Kolone se prikazuju u standardnom redosledu bez obzira na redosled kojim su uklj
 ## Bodovanje
 
 - **1–6** — zbir izabranih kockica odgovarajuće vrednosti.
-- **MAX / MIN** — zbir izabranih kockica.
+- **MAX / MIN** — zbir svih pet izabranih kockica; polja su dostupna samo kada je izabrano tačno pet.
 - **Kenta** — niz 1–5 ili 2–6: 66 posle prvog bacanja, 56 posle drugog i 46 posle trećeg. U koloni R vredi 66.
 - **Triling** — najmanje tri iste među izabranim kockicama: njihov zbir +20. Može se upisati sa 3, 4 ili 5 kockica.
 - **Ful** — tri iste i par u pet izabranih kockica: zbir +30.
