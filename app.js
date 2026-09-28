@@ -83,10 +83,18 @@ function setup(){
  state.mode="setup";
  app.innerHTML=`<section class="panel setup">
  <div class="brand"><h1>Jumbo Dice</h1><p>Izaberi način igre</p></div>
- <div class="setup-card"><h2>Način igre</h2><div class="toolbar">
+ <div class="setup-card home-mode-card"><h2>Odaberi način igre</h2><div class="toolbar">
    <button class="btn primary" id="solo">Solo igra</button>
    <button class="btn" id="online">Online multiplayer</button>
- </div><p class="status">Solo mod je namenjen igranju jednog igrača bez protivničkog AI-ja.</p></div>
+ </div><p class="status">Solo mod je namenjen igranju jednog igrača bez protivničkog AI-ja. Online partija podržava 2–4 igrača.</p></div>
+ <section class="home-guide" aria-labelledby="guideTitle">
+  <div class="home-guide-heading"><span class="guide-kicker">PRE PRVOG BACANJA</span><h2 id="guideTitle">Kako se igra Jumbo Dice?</h2><p>Cilj je da kroz bacanja popuniš što više polja i osvojiš što više poena. Konačan zbir se otkriva tek kada se partija završi.</p></div>
+  <div class="guide-grid">
+   <article class="guide-card"><h3>Tok poteza</h3><ol><li>Baci svih 6 kockica. Imaš do 3 bacanja po potezu.</li><li>Posle bacanja označi kockice koje želiš da zadržiš, pa ponovo baci ostale.</li><li>Izaberi dostupno polje u tabeli i potvrdi upis. Možeš izabrati od 1 do 5 kockica; za kombinacije je potrebno svih 5. Upis sa manje od 5 traži potvrdu.</li><li>Umesto rezultata možeš precrtati dostupno polje. Svaki potez popunjava jedno polje.</li></ol><p class="guide-note">Ako je ostalo samo jedno polje za bodovanje, dobijaš do 5 bacanja.</p></article>
+   <article class="guide-card"><h3>Kolone</h3><ul><li><b>Dole:</b> popunjavaj redove od 1 naniže.</li><li><b>Slobodna:</b> izaberi bilo koje dostupno polje.</li><li><b>Gore:</b> popunjavaj od Jamba naviše.</li><li><b>Najava:</b> samo posle prvog bacanja; obavezuje te na izabrani red.</li><li><b>Kontra najava:</b> igra se u redu koji je prethodni igrač najavio.</li><li><b>R:</b> MAX od vrha naniže, MIN od dna naviše. <b>N:</b> jedinice naniže, Jamb naviše. <b>D:</b> ručna kolona posle prvog bacanja.</li><li><b>O:</b> otključava se kada su prethodne uključene kolone popunjene. <b>M:</b> automatski uzima najveći rezultat iz prethodnih uključenih kolona.</li></ul><p class="guide-note">U solo igri su uključene osnovne kolone Dole, Slobodna i Gore; dodatne možeš izabrati pre početka.</p></article>
+   <article class="guide-card guide-scoring"><h3>Bodovanje ukratko</h3><ul class="scoring-list"><li><b>Redovi 1–6:</b> zbir kockica izabranog broja.</li><li><b>MAX / MIN:</b> zbir izabranih kockica.</li><li><b>Kenta:</b> niz 1–5 ili 2–6; vredi 66, 56 ili 46 u zavisnosti od bacanja. U D vredi 66.</li><li><b>Triling:</b> tri iste, zbir +20.</li><li><b>Ful:</b> tri iste i par, zbir +30.</li><li><b>Poker:</b> četiri iste, vrednost te četvorke +40.</li><li><b>Jamb:</b> pet istih, zbir +50.</li><li><b>Bonus:</b> +30 kada je zbir redova 1–6 najmanje 60.</li></ul></article>
+  </div>
+ </section>
  </section>`;
  app.querySelector("#solo").onclick=soloSetup;
  app.querySelector("#online").onclick=onlineSetup;
