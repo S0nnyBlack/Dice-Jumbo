@@ -113,9 +113,21 @@ if(socket){
 
 function newTurn(){state.rolls=0;state.dice=[];state.selected.clear();state.pending=null;state.crossOutMode=false;state.announcedRow=null}
 
+function rulesDialogMarkup(){
+ const rules={down:"Popunjava se od 1 naniže.",free:"Bira se bilo koje dostupno polje.",up:"Popunjava se od Jamba naviše.",announced:"Najavljuje se posle prvog bacanja i obavezuje na taj red.",contra:"Prati polje koje je protivnik najavio u prethodnom potezu.",r:"MAX se popunjava naniže, a MIN naviše.",n:"Kreće od 1 naniže i od Jamba naviše.",d:"Ručna kolona se igra posle prvog bacanja; Kenta vredi 66.",o:"Otključava se kada su prethodne uključene kolone popunjene.",m:"Automatski uzima maksimum iz prethodnih uključenih kolona."};
+ return `<dialog class="rules-dialog" id="rulesDialog" aria-labelledby="rulesTitle"><div class="rules-dialog-head"><h2 id="rulesTitle">Brza pravila</h2><button class="btn" id="closeRules" type="button" aria-label="Zatvori pravila">Zatvori</button></div><p>Izaberi od 1 do 5 kockica. Upis sa manje od 5 traži potvrdu; kombinacije zahtevaju svih 5.</p><h3>Kolone u ovoj partiji</h3><ul>${defs().map(column=>`<li><b>${escapeHtml(column.name)}:</b> ${rules[column.id]}</li>`).join("")}</ul><h3>Bodovanje</h3><ul><li><b>1–6:</b> zbir kockica odgovarajuće vrednosti.</li><li><b>MAX / MIN:</b> zbir izabranih kockica.</li><li><b>Kenta:</b> niz 1–5 ili 2–6; 66 posle prvog, 56 posle drugog i 46 posle trećeg bacanja.</li><li><b>Triling / Ful / Poker / Jamb:</b> zbir +20 / +30 / vrednost četiri iste +40 / zbir +50.</li><li><b>Bonus:</b> 30 poena kada je zbir redova 1–6 najmanje 60.</li></ul><p>Precrtavanje upisuje X. Konačan zbir se prikazuje po završetku partije.</p></dialog>`;
+}
+function bindRulesGuide(){
+ const dialog=app.querySelector("#rulesDialog"),open=app.querySelector("#rulesHelp"),close=app.querySelector("#closeRules");
+ if(!dialog||!open||!close)return;
+ open.onclick=()=>dialog.showModal();
+ close.onclick=()=>dialog.close();
+ dialog.onclick=event=>{if(event.target===dialog)dialog.close()};
+}
+
 function soloGame(){
  state.mode="solo";
- app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">SOLO</span></h1><p>6 kockica · do 3 bacanja (5 u završnom potezu)</p></div><div class="toolbar"><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></header>
+ app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">SOLO</span></h1><p>6 kockica · do 3 bacanja (5 u završnom potezu)</p></div><div class="toolbar"><button class="btn" id="rulesHelp">Pravila</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></header>
  <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0/3</b></span></div>
  <div class="layout">
  <section class="panel game-controls">
@@ -124,7 +136,8 @@ function soloGame(){
   <div class="options" id="options"></div><div class="options" id="announceOptions"></div>
  </section>
  <section class="panel game-score"><div class="tabs"><button class="player-tab active">Igrač 1</button></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
- </div>`;
+ </div>${rulesDialogMarkup()}`;
+ bindRulesGuide();
  app.querySelector("#setup").onclick=soloSetup;
  app.querySelector("#home").onclick=setup;
  app.querySelector("#roll").onclick=soloRoll;
@@ -358,8 +371,9 @@ function renderLobbyState(s){
 }
 
 function game(){
- app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja</p></div></header>
- <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span></div><div class="layout"><section class="panel game-controls"><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>`;
+ app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja</p></div><div class="toolbar"><button class="btn" id="rulesHelp">Pravila</button></div></header>
+ <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span></div><div class="layout"><section class="panel game-controls"><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
+ bindRulesGuide();
  app.querySelector("#roll").onclick=()=>{state.crossOutMode=false;socket?.emit("turn:roll")};
  app.querySelector("#clear").onclick=()=>{state.selected.clear();state.crossOutMode=false;socket?.emit("turn:select",{indices:[]})};
  app.querySelector("#crossout").onclick=()=>{state.crossOutMode=!state.crossOutMode;if(state.crossOutMode){state.selected.clear();socket?.emit("turn:select",{indices:[]})}renderOnline()};
