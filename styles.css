@@ -527,3 +527,25 @@ body {
   .rules-dialog { width: calc(100vw - 20px); max-height: 88dvh; border-radius: 16px; }
   .rules-dialog-head .btn { min-height: 44px; }
 }
+
+
+.game-status { align-items: center; flex-wrap: wrap; }
+.turn-status {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid rgba(133, 170, 185, .2);
+  border-radius: 999px;
+  background: rgba(11, 30, 43, .82);
+  color: #d8e5e6;
+  font-size: 12px;
+  font-weight: 700;
+}
+.turn-status[data-state="required"] { border-color: rgba(246, 198, 78, .65); background: rgba(214, 149, 24, .15); color: #ffe39a; }
+.turn-status[data-state="waiting"] { color: #a9bdc4; }
+.turn-status[data-state="done"] { border-color: rgba(93, 190, 130, .55); color: #a7edbd; }
+@media (max-width: 700px) {
+  .game-status { align-items: center; }
+  .turn-status { flex: 1 1 100%; justify-content: center; min-height: 34px; border-radius: 9px; text-align: center; }
+}
