@@ -26,6 +26,7 @@ app.addEventListener("click",event=>{
   if(state.mode==="solo"&&state.soloActive&&!state.gameOver&&!confirmLeaveGame())return;
   setup();
  }else if(button.dataset.nav==="online"){
+  if(state.mode==="online"&&state.onlineStarted)return;
   if(state.mode==="solo"&&state.soloActive&&!state.gameOver&&!confirmLeaveGame())return;
   onlineSetup();
  }else if(button.dataset.nav==="rules"){
@@ -217,7 +218,7 @@ function bindRulesGuide(){
 function soloGame(){
  state.mode="solo";
  app.innerHTML=`${appNavMarkup("SOLO")}<section class="match-heading"><div class="match-title"><span class="eyebrow">PARTIJA UŽIVO</span><h1>Jamb sto</h1><p>Baci kockice. Sačuvaj kombinaciju. Upiši rezultat.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></section>
- <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div>
+ <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill"><i aria-hidden="true"></i>Uživo</span><span class="turn-status" id="turnStatus" role="status"></span></div>
  <div class="layout">
  <section class="panel game-controls">
   <div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">6 kockica · do 3 bacanja</span></div>
