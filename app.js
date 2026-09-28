@@ -3,7 +3,7 @@ const net={connected:false,roomCode:null,playerId:null,sessionToken:null,server:
 import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBonus,normalizeColumnIds}from"./game.js";
 
 const state={
- mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),columns:["down","free","up"],
+ mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),undoHistory:[],columns:["down","free","up"],
  currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null
 };
 const app=document.getElementById("app");
@@ -16,7 +16,7 @@ const isFilled=(p,col,row)=>p?.cells?.[cellKey(col,row)]!==undefined;
 const scoreRows=[...VALUE_ROWS.map(String),"MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"];
 
 function resetLocal(){
- state.mode="solo";state.rolls=0;state.maxRolls=3;state.dice=[];state.selected.clear();state.players=[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]}];
+ state.mode="solo";state.rolls=0;state.maxRolls=3;state.dice=[];state.selected.clear();state.undoHistory=[];state.players=[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]}];
  state.currentPlayer=0;state.viewPlayer=0;state.pending=null;state.gameOver=false;state.soloActive=false;state.crossOutMode=false;state.announcedRow=null;state.contraTargetRow=null;
 }
 
@@ -101,16 +101,17 @@ function soloGame(){
  <div class="layout">
  <section class="panel game-controls">
   <div class="dice-grid" id="dice"></div>
-  <div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button></div>
+  <div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div>
   <div class="options" id="options"></div><div class="options" id="announceOptions"></div>
  </section>
  <section class="panel game-score"><div class="tabs"><button class="player-tab active">Igrač 1</button></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
  </div>`;
  app.querySelector("#setup").onclick=soloSetup;
- app.querySelector("#home").onclick=setup;
+ app.querySelector("#home").onclick=()=>{if(confirmUndoLeave())setup()};
  app.querySelector("#roll").onclick=soloRoll;
  app.querySelector("#clear").onclick=()=>{state.selected.clear();state.pending=null;state.crossOutMode=false;renderSolo()};
  app.querySelector("#crossout").onclick=()=>{state.crossOutMode=!state.crossOutMode;if(state.crossOutMode)state.selected.clear();renderSolo()};
+ app.querySelector("#undo").onclick=undoSoloTurn;
  renderSolo();
 }
 
@@ -202,7 +203,18 @@ function refreshLocalDerived(player){
    player.cells[cellKey(col,"SUM_TOTAL")]=top+middle+Number(player.cells[cellKey(col,"MAX")]||0)-Number(player.cells[cellKey(col,"MIN")]||0);
  }
 }
+function captureSoloSnapshot(){
+ const player=current();
+ return {player:{...player,cells:{...player.cells},crossedCells:[...(player.crossedCells||[])]},rolls:state.rolls,dice:[...state.dice],selected:[...state.selected],crossOutMode:state.crossOutMode,announcedRow:state.announcedRow,contraTargetRow:state.contraTargetRow,gameOver:state.gameOver};
+}
+function undoSoloTurn(){
+ const snapshot=state.undoHistory.pop();if(!snapshot)return;
+ if(state.rolls>0&&!window.confirm("Vraćanjem poteza odbaciće se trenutno započeto bacanje. Nastaviti?")){state.undoHistory.push(snapshot);return;}
+ state.players[state.currentPlayer]=snapshot.player;state.rolls=snapshot.rolls;state.dice=snapshot.dice;state.selected=new Set(snapshot.selected);state.crossOutMode=snapshot.crossOutMode;state.announcedRow=snapshot.announcedRow;state.contraTargetRow=snapshot.contraTargetRow;state.gameOver=snapshot.gameOver;renderSolo();
+}
 function commitSolo(candidate){
+ state.undoHistory.push(captureSoloSnapshot());
+ if(state.undoHistory.length>50)state.undoHistory.shift();
  const p=current();
  if(isFilled(p,candidate.colId,candidate.row))return;
  p.cells[cellKey(candidate.colId,candidate.row)]=candidate.value;
@@ -229,6 +241,7 @@ function renderSolo(){
  const count=app.querySelector("#count");if(count)count.textContent=`${state.rolls}/${maxRollsForLocal()}`;
  const roll=app.querySelector("#roll");
  if(roll){roll.disabled=state.gameOver||state.rolls>=maxRollsForLocal();roll.textContent=state.rolls>=maxRollsForLocal()?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
+ const undo=app.querySelector("#undo");if(undo)undo.disabled=state.undoHistory.length===0;
  const crossout=app.querySelector("#crossout");
  if(crossout){crossout.disabled=state.gameOver||state.rolls===0;crossout.classList.toggle("crossout-active",state.crossOutMode);crossout.textContent=state.crossOutMode?"Otkaži precrtavanje":"Precrtaj polje (0)";}
  const box=app.querySelector("#options");if(box){
