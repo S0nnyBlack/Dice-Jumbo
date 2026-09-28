@@ -359,7 +359,7 @@ io.on("connection", socket => {
     if (!room || !player || !room.started) return;
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
     if (!room.config.columns.includes("announced")) return emitError(socket, "Kolona Najava nije uključena.");
-    if (room.contraTargetRow && room.config.columns.includes("contra")) return emitError(socket, "Morate odigrati protivnikovu Dirigovano.");
+    if (room.contraTargetRow && room.config.columns.includes("contra")) return emitError(socket, "Morate odigrati polje u koloni Dirigovano.");
     if (room.rolls !== 1) return emitError(socket, "Najavu možete postaviti samo posle prvog bacanja.");
     if (player.announcedRow) return emitError(socket, "Najava za ovaj potez je već postavljena.");
     const scoreRows = [...TOP_ROWS, "MAX", "MIN", ...COMBO_ROWS];
@@ -367,7 +367,7 @@ io.on("connection", socket => {
     if (room.config.columns.includes("contra")) {
       const idx = room.players.findIndex(p => p.id === player.id);
       const next = room.players[(idx + 1) % room.players.length];
-      if (!emptyCell(next, "contra", row)) return emitError(socket, "Protivnik je već iskoristio to polje u Dirigovano.");
+      if (!emptyCell(next, "contra", row)) return emitError(socket, "Protivnik je već iskoristio to polje u koloni Dirigovano.");
     }
     player.announcedRow = row;
     broadcast(room);
