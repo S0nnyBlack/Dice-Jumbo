@@ -36,7 +36,7 @@ function setup(){
 function columnSetup(title,buttonText,onStart,locked=false){
  app.innerHTML=`<section class="panel setup">
  <div class="brand"><h1>Jumbo Dice</h1><p>${title}</p></div>
- <div class="setup-card"><h2>Kolone</h2><p class="status">${locked?"Podešavanja su zaključana do kraja tekuće partije.":"Gore, Dole i Slobodna su obavezne. Ostale kolone možete uključiti ili isključiti pre početka."}</p>
+ <div class="setup-card"><h2>Kolone</h2><p class="status">${locked?"Podešavanja su zaključana do kraja tekuće partije.":"Početno su uključene samo obavezne kolone: Gore, Dole i Slobodna. Možete uključiti ostale kolone ili izabrati sve."}</p>
  <div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("")}</div>${locked?"":'<button class="btn" id="selectAll" type="button">Izaberi sve</button>'}</div>
  <button class="btn primary" id="start">${buttonText}</button><button class="btn" id="back">Nazad</button>
  </section>`;
@@ -51,7 +51,7 @@ function soloSetup(){
    columnSetup("Solo igra u toku","Nastavi partiju",soloGame,true);
    return;
  }
- state.columns=[...COLUMN_DEFS.map(c=>c.id)];
+ state.columns=["down","free","up"];
  columnSetup("Solo igra","Pokreni solo igru",()=>{resetLocal();state.columns=[...new Set(["down","free","up",...state.columns])];state.mode="solo";state.soloActive=true;soloGame();});
 }
 
