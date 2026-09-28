@@ -107,7 +107,7 @@ function soloGame(){
  <section class="panel game-score"><div class="tabs"><button class="player-tab active">Igrač 1</button></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
  </div>`;
  app.querySelector("#setup").onclick=soloSetup;
- app.querySelector("#home").onclick=()=>{if(confirmUndoLeave())setup()};
+ app.querySelector("#home").onclick=setup;
  app.querySelector("#roll").onclick=soloRoll;
  app.querySelector("#clear").onclick=()=>{state.selected.clear();state.pending=null;state.crossOutMode=false;renderSolo()};
  app.querySelector("#crossout").onclick=()=>{state.crossOutMode=!state.crossOutMode;if(state.crossOutMode)state.selected.clear();renderSolo()};
