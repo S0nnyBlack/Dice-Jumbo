@@ -79,6 +79,7 @@ function updateNetworkStatus(){
 if(socket){
  socket.on("connect",()=>{net.connected=true;updateNetworkStatus();const token=localStorage.getItem("jumboDiceSession");if(token)socket.emit("room:resume",{sessionToken:token})});
  socket.on("disconnect",()=>{net.connected=false;updateNetworkStatus()});
+ socket.on("room:resumed",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken)});
  socket.on("room:created",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken);alert("Soba je kreirana: "+d.roomCode);});
  socket.on("room:joined",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken);alert("Pridružen si sobi "+d.roomCode);});
  socket.on("game:error",e=>alert(e.message));
