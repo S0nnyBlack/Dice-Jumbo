@@ -1,6 +1,6 @@
 const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:false,roomCode:null,playerId:null,sessionToken:null,server:null};
-import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries}from"./game.js";
+import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBonus}from"./game.js";
 
 const state={
  mode:"setup",rolls:0,dice:[],selected:new Set(),columns:["down","free","up"],
@@ -177,14 +177,14 @@ function refreshLocalDerived(player){
    const sources=columns.slice(0,maxIndex),firstSix=sources.slice(0,6);
    for(const row of scoreRows){
      if(isFilled(player,"m",row)||!sources.length||!sources.every(col=>isFilled(player,col,row)))continue;
-     const crossed=scoreRows.slice(0,6).includes(row)&&firstSix.some(col=>player.crossedCells.includes(cellKey(col,row)));
+     const crossed=firstSix.some(col=>player.crossedCells.includes(cellKey(col,row)));
      player.cells[cellKey("m",row)]=crossed?0:Math.max(...sources.map(col=>Number(player.cells[cellKey(col,row)]||0)));
      if(crossed)player.crossedCells.push(cellKey("m",row));
    }
  }
  for(const col of columns){
    const upper=VALUE_ROWS.map(face=>Number(player.cells[cellKey(col,String(face))]||0)).reduce((a,b)=>a+b,0);
-   const top=upper>=60?upper+30:upper;
+   const top=upper+upperBonus(upper);
    const middle=COMBINATION_ROWS.reduce((total,row)=>total+Number(player.cells[cellKey(col,row)]||0),0);
    player.cells[cellKey(col,"SUM_TOP")]=top;
    player.cells[cellKey(col,"SUM_MID")]=middle;
