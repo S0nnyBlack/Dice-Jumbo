@@ -146,14 +146,19 @@ function announceRow(row){
 }
 function renderAnnouncementUi(){
  const box=app.querySelector("#announceOptions");if(!box)return;
- if(state.contraTargetRow){box.innerHTML='<span class="status">Protivnik je najavio '+escapeHtml(state.contraTargetRow)+'. Moraš odigrati to polje u koloni Kontra najava.</span>';return;}
- if(state.columns.includes("contra")){box.textContent="Kontra najava je dostupna samo kada je protivnik prethodno najavio polje. Bez protivničke najave možeš precrtati ćeliju.";if(state.rolls!==1||!state.columns.includes("announced"))return;}
- if(state.announcedRow){box.innerHTML='<span class="status">Najavljeno polje: '+escapeHtml(state.announcedRow)+'. Ovaj potez moraš završiti isključivo u toj ćeliji kolone Najava.</span>';return;}
  const isMyTurn=state.mode!=="online"||state.players[state.currentPlayer]?.id===net.playerId;
- if(!isMyTurn||state.rolls!==1||!state.columns.includes("announced")){box.innerHTML="";return;}
+ if(!isMyTurn){box.innerHTML="";return;}
+ if(state.contraTargetRow){box.textContent="Protivnik je najavio "+state.contraTargetRow+". Moraš odigrati to polje u koloni Kontra najava.";return;}
+ if(state.announcedRow){box.textContent="Najavljeno polje: "+state.announcedRow+". Ovaj potez moraš završiti isključivo u toj ćeliji kolone Najava.";return;}
+ let info="";
+ if(state.columns.includes("contra"))info="Kontra najava prati polje koje je protivnik najavio u prethodnom potezu. Bez najave protivnika, ćeliju možeš precrtati.";
+ if(!state.columns.includes("announced")){box.textContent=info;return;}
+ if(state.rolls===0){box.textContent=(info?info+" ":"")+"Najavu možeš izabrati samo posle prvog bacanja; izbor te obavezuje na baš to polje.";return;}
+ if(state.rolls>1){box.textContent=(info?info+" ":"")+"Prvo bacanje je prošlo, pa Najava više nije dostupna u ovom potezu.";return;}
  const rows=announceableRows();
- box.innerHTML='<span class="status">Najava je moguća samo posle prvog bacanja. Izbor te obavezuje da odigraš označeno polje:</span>'+rows.map(row=>'<button class="option" data-announce="'+escapeHtml(row)+'">Najavi · '+escapeHtml(row)+'</button>').join("");
- box.querySelectorAll("[data-announce]").forEach(b=>b.onclick=()=>announceRow(b.dataset.announce));
+ box.textContent=(info?info+" ":"")+"Posle prvog bacanja izaberi polje koje ćeš morati da odigraš:";
+ if(!rows.length){const empty=document.createElement("span");empty.className="status options-empty";empty.textContent="Nema polja koja možeš da najaviš.";box.append(empty);return;}
+ for(const row of rows){const button=document.createElement("button");button.className="option";button.dataset.announce=row;button.textContent="Najavi · "+row;button.onclick=()=>announceRow(row);box.append(button);}
 }
 function confirmShortSelection(candidate){
  if(state.crossOutMode||state.selected.size===5)return true;
