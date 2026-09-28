@@ -10,7 +10,7 @@ Jumbo Dice je veb aplikacija za Jamb sa lokalnom solo partijom i online partijam
 - Upis sa manje od pet izabranih kockica je dozvoljen uz potvrdu. Triling traži najmanje tri iste, Poker najmanje četiri iste; Kenta, Ful i Jamb zahtevaju pet kockica.
 - Dostupna polja su istaknuta u tabeli. Polje se može precrtati.
 - Igrač vidi pravila i ograničenja kolona tokom partije.
-- Solo partija se automatski čuva u pregledaču i nastavlja posle osvežavanja; može se vratiti poslednji upis ili precrtavanje.
+- Solo partija se automatski čuva u pregledaču i nastavlja posle osvežavanja; može se vratiti poslednji upis ili precrtavanje. Sa svakim novim Render buildom briše se prethodna solo partija i stari online token, dok se podešavanja tabele čuvaju.
 - U online partiji domaćin može da vrati poslednji potez za celu sobu.
 - Status poteza, bacanja i obaveznih najava prikazuje se iznad table; aktivna pravila otvaraju se bez napuštanja igre.
 - Veličina tabele može se menjati tokom igre i pamti se u pregledaču.
@@ -88,4 +88,4 @@ npm test
 - `/health` endpoint vraća status servera.
 - `render.yaml` sadrži podešavanja za Render.
 
-Online sobe i njihove partije čuvaju se u memoriji servera. Ako se server ponovo pokrene, aktivne sobe se ne obnavljaju.
+Online sobe i njihove partije čuvaju se samo u memoriji servera. Pri gašenju server briše sve sobe i sesije, a novi Render build dobija jedinstven identifikator koji pregledač koristi da obriše sačuvane partije i nevažeće online tokene. Partije se ne obnavljaju posle deploya.
