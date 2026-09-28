@@ -37,9 +37,8 @@ export function combinationScore(row,v){
  return null;
 }
 export function directionOrder(colId,cells){
- const open=row=>cells[row]===undefined||cells[row]===null;
- const sequence=[];
- const rows=["1","2","3","4","5","6","SUM_TOP","MAX","MIN","SUM_MID","KENTA","TRILING","FUL","POKER","YAMB","SUM_TOTAL"];
+ const open=row=>cells[colId+"::"+row]===undefined||cells[colId+"::"+row]===null;
+ const rows=["1","2","3","4","5","6","MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"];
  if(colId==="down"){for(const r of rows)if(open(r))return r}
  if(colId==="up"){for(let i=rows.length-1;i>=0;i--)if(open(rows[i]))return rows[i]}
  return null;
