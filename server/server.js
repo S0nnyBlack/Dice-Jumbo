@@ -90,31 +90,30 @@ function columnRows(colId) {
 function emptyCell(player, col, row) { return player.cells[key(col, row)] === undefined; }
 function validColumn(config, id) { return config.columns.includes(id); }
 
-function calculateEntry(room, player, col, row, selected) {
+function calculateEntry(room, player, col, row, selected, crossOut = false) {
   if (!validColumn(room.config, col)) return { ok: false, error: "Kolona nije aktivna." };
   if (!columnRows(col).includes(row)) return { ok: false, error: "Red nije dozvoljen." };
   if (!emptyCell(player, col, row)) return { ok: false, error: "Polje je već iskorišćeno." };
-  if (!Array.isArray(selected) || selected.length !== 5) return { ok: false, error: "Potrebno je izabrati tačno 5 kockica." };
 
-  const a = analyse(selected);
-  if (!a) return { ok: false, error: "Nevažeća selekcija." };
+  const sequenceRows = columnRows(col).filter(r => !["SUM_TOP", "SUM_MID", "SUM_TOTAL"].includes(r));
+  if (col === "up" && row !== (player.nextUpRow ?? sequenceRows[sequenceRows.length - 1])) return { ok: false, error: "Gore kolona mora pratiti redosled." };
+  if (col === "down" && row !== (player.nextDownRow ?? sequenceRows[0])) return { ok: false, error: "Dole kolona mora pratiti redosled." };
+
+  const scoreable = TOP_ROWS.includes(row) || row === "MAX" || row === "MIN" || COMBO_ROWS.includes(row);
+  if (crossOut) return scoreable ? { ok: true, value: 0 } : { ok: false, error: "Zbirna polja ne mogu da se precrtaju." };
+  if (!Array.isArray(selected) || selected.length < 1 || selected.length > 5 || !selected.every(value => Number.isInteger(value) && value >= 1 && value <= 6)) {
+    return { ok: false, error: "Izaberite od 1 do 5 važećih kockica." };
+  }
 
   let value = null;
   if (TOP_ROWS.includes(row)) {
     value = upperScore(selected, Number(row));
   } else if (row === "MAX" || row === "MIN") {
     value = sum(selected);
-  } else if (row === "SUM_TOP" || row === "SUM_MID" || row === "SUM_TOTAL") {
-    return { ok: false, error: "Zbirna polja se ne upisuju ručno." };
-  } else if (row === "KENTA" || row === "TRILING" || row === "FUL" || row === "POKER" || row === "YAMB") {
+  } else if (COMBO_ROWS.includes(row)) {
     value = combinationScore(row, selected);
-    if (value === null) return { ok: false, error: "Kombinacija nije validna za ovaj upis." };
+    if (value === null) return { ok: false, error: "Kombinacija zahteva 5 odgovarajućih kockica." };
   }
-
-  const sequenceRows = columnRows(col).filter(r => !["SUM_TOP", "SUM_MID", "SUM_TOTAL"].includes(r));
-  if (col === "up" && row !== (player.nextUpRow ?? sequenceRows[sequenceRows.length - 1])) return { ok: false, error: "Gore kolona mora pratiti redosled." };
-  if (col === "down" && row !== (player.nextDownRow ?? sequenceRows[0])) return { ok: false, error: "Dole kolona mora pratiti redosled." };
-
   return { ok: true, value };
 }
 
@@ -283,16 +282,18 @@ io.on("connection", socket => {
     broadcast(room);
   });
 
-  socket.on("turn:commit", ({ columnId, row } = {}) => {
+  socket.on("turn:commit", ({ columnId, row, crossOut = false } = {}) => {
     const room = getRoomBySocket(socket.id);
     const player = getPlayer(room, socket.id);
     if (!room || !player || !room.started) return;
     if (isGameOver(room)) return emitError(socket, "Partija je završena.");
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
     if (room.rolls === 0) return emitError(socket, "Potez još nije bačen.");
-    if (room.selection.length !== 5) return emitError(socket, "Morate izabrati tačno 5 kockica.");
+    const isCrossOut = crossOut === true;
+    if (!isCrossOut && (room.selection.length < 1 || room.selection.length > 5)) return emitError(socket, "Izaberite od 1 do 5 kockica ili precrtajte polje.");
 
-    const result = calculateEntry(room, player, columnId, row, room.selection.map(i => room.dice[i]));
+    const selectedValues = room.selection.map(i => room.dice[i]);
+    const result = calculateEntry(room, player, columnId, row, selectedValues, isCrossOut);
     if (!result.ok) return emitError(socket, result.error);
 
     player.cells[key(columnId, row)] = result.value;
