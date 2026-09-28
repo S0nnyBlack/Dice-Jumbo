@@ -10,21 +10,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicRoot = path.resolve(__dirname, "..");
 
-
-
-
-
-
 const app = express();
 app.use(cors());
 app.get("/health", (_, res) => res.json({ ok: true, service: "jumbo-dice-server" }));
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const publicRoot = path.resolve(__dirname, "..");
-
 app.get("/", (_, res) => res.sendFile(path.join(publicRoot, "index.html")));
 app.get("/app.js", (_, res) => res.sendFile(path.join(publicRoot, "app.js")));
 app.get("/game.js", (_, res) => res.sendFile(path.join(publicRoot, "game.js")));
