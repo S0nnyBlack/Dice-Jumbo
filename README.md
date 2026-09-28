@@ -18,7 +18,7 @@ jamb.arena je veb aplikacija za Jamb sa lokalnom solo partijom i online partijam
 - Pre izlaska iz aktivne partije prikazuje se potvrda; pri prekidu veze online unos se zaključava do sinhronizacije i dostupan je ručni pokušaj povezivanja.
 - Konačan zbir se prikazuje tek po završetku partije.
 - Početni ekran nudi dva široka izbora za Solo igru i Online sto, sa kratkim opisom svakog režima.
-- Kada je uključeno svih devet kolona, listić koristi raspoloživu širinu desktop ekrana, a Brzi izbor i Aktivnost stoje levo od njega na širokim ekranima. Na telefonu se tabela pomera unutar svog okvira.
+- Na širokim desktop ekranima Brzi izbor i Aktivnost stoje levo od listića i kada je uključeno manje kolona. Širina listića prati broj kolona, a sve kolone ostaju vidljive bez pomeranja kada ima dovoljno mesta. Na telefonu se tabela pomera unutar svog okvira.
 - Mobilni prikaz stavlja kockice i kontrole iznad tabele, uz veće dodirne površine, podršku za bezbedne margine ekrana i landscape orijentaciju.
 
 ## Režimi igre

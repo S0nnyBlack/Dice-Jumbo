@@ -197,13 +197,20 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
   .sheet-expanded .game-info { order: 3; width: 100%; }
   .sheet-expanded .sidebar-result { order: 4; width: 100%; }
 }
-@media (min-width: 1580px) {
+@media (min-width: 1427px) {
   .layout.sheet-expanded { grid-template-columns: 210px minmax(780px,1000px) 300px; grid-template-areas: "info main controls" "info main turn" "info main result"; justify-content: center; }
   .sheet-expanded .game-sidebar { display: contents; }
   .sheet-expanded .game-info { grid-area: info; position: sticky; top: 18px; }
   .sheet-expanded .game-controls { grid-area: controls; }
   .sheet-expanded .sidebar-turn { grid-area: turn; }
   .sheet-expanded .sidebar-result { grid-area: result; }
+  .layout:not(.sheet-expanded) { width: 100%; max-width: none; grid-template-columns: 210px minmax(0,var(--score-panel-width)) 300px; grid-template-areas: "info main controls" "info main turn" "info main result"; gap: 12px; justify-content: space-between; padding: 0 12px 32px; }
+  .layout:not(.sheet-expanded) .game-sidebar { display: contents; }
+  .layout:not(.sheet-expanded) .game-info { grid-area: info; position: sticky; top: 18px; }
+  .layout:not(.sheet-expanded) .game-main { grid-area: main; min-width: 0; }
+  .layout:not(.sheet-expanded) .game-controls { grid-area: controls; }
+  .layout:not(.sheet-expanded) .sidebar-turn { grid-area: turn; }
+  .layout:not(.sheet-expanded) .sidebar-result { grid-area: result; }
 }
 
 /* Online waiting room. */
@@ -300,7 +307,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
   .rules-topic-panel { padding: 17px 14px; }
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1579px) {
   #app { padding-left: 72px; }
   .site-nav { width: 72px; padding: 22px 10px; }
   .site-brand { padding: 0 6px; }

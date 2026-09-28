@@ -252,7 +252,7 @@ function soloGame(){
  state.mode="solo";
   app.innerHTML=`${appNavMarkup("SOLO")}<section class="match-heading"><div class="match-title"><span class="eyebrow">DOBRO DOŠAO U ARENU</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></section>
  <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill mode-status">Solo</span></div>
- <div class="layout ${state.columns.length===COLUMN_DEFS.length?"sheet-expanded":""}">
+ <div class="layout ${state.columns.length===COLUMN_DEFS.length?"sheet-expanded":""}" style="--score-panel-width:${Math.min(805,Math.max(460,190+70*state.columns.length))}px">
   <div class="game-main">
     <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">TVOJA TABELA</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
 
@@ -555,7 +555,7 @@ function renderLobbyState(s){
 function game(){
   app.innerHTML=`${appNavMarkup("ONLINE")}<section class="match-heading"><div class="match-title"><span class="eyebrow">ONLINE ARENA</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="leaveRoom">Napusti partiju</button></div></section>
  <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill"><i aria-hidden="true"></i>Uživo</span></div>
- <div class="layout ${state.columns.length===COLUMN_DEFS.length?"sheet-expanded":""}">
+ <div class="layout ${state.columns.length===COLUMN_DEFS.length?"sheet-expanded":""}" style="--score-panel-width:${Math.min(805,Math.max(460,190+70*state.columns.length))}px">
   <div class="game-main">
     <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">TABELA PARTIJE</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
   </div>

@@ -164,3 +164,10 @@ Commit na `main`: [`cf13fe6e`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/c
 - Provera: 26 od 26 lokalnih testova prolazi. U pregledniku su provereni desktop 1440 px i telefon 390 px bez horizontalnog pomeranja stranice, promena teme i otvaranje pravila tokom solo partije.
 - Verzije 65, 66 i 67 šalju se zajedno na `main`, prema naknadnom zahtevu korisnika.
 
+## Verzija 68 — isti raspored i za manje partije
+
+- Izmena iz verzije 63 je ranije aktivirala kartice Brzi izbor i Aktivnost levo samo kada su izabrane sve kolone. Na širokom desktop ekranu isti raspored sada važi za svaki broj uključenih kolona.
+- Širina listića računa se prema broju kolona, tako da osnovna partija sa tri kolone ostaje pregledna, a partija sa devet kolona može da prikaže sva polja u jednom okviru.
+- Bočna navigacija se sažima na srednje širokim ekranima kako bi tri panela imala dovoljno mesta. Na užim ekranima ostaje postojeći složeni raspored.
+- Provera u pregledniku: 3, 5, 7, 8 i 9 kolona na širini 1605 px, kao i granične širine 1424–1580 px; stranica nema horizontalno pomeranje, a od 1427 px devet kolona staje bez unutrašnjeg pomeranja tabele.
+
