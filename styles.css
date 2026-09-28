@@ -549,3 +549,22 @@ body {
   .game-status { align-items: center; }
   .turn-status { flex: 1 1 100%; justify-content: center; min-height: 34px; border-radius: 9px; text-align: center; }
 }
+
+
+body[data-sheet-scale="compact"] .premium-sheet th,
+body[data-sheet-scale="compact"] .premium-sheet td { height: 40px; padding-top: 3px; padding-bottom: 3px; }
+body[data-sheet-scale="compact"] .premium-sheet .sheet-cell { font-size: 13px; }
+body[data-sheet-scale="large"] .premium-sheet th,
+body[data-sheet-scale="large"] .premium-sheet td { height: 58px; padding-top: 7px; padding-bottom: 7px; }
+body[data-sheet-scale="large"] .premium-sheet .sheet-cell { font-size: 18px; }
+body[data-sheet-scale="large"] .premium-sheet .row-label { font-size: 16px; }
+body[data-sheet-scale="large"] .premium-sheet .row-label small { font-size: 11px; }
+body[data-sheet-scale="large"] .premium-sheet .head-symbol { font-size: 24px; }
+body[data-sheet-scale="compact"] .premium-sheet .head-symbol { font-size: 18px; }
+@media (max-width: 700px) {
+  body[data-sheet-scale="compact"] .premium-sheet th,
+  body[data-sheet-scale="compact"] .premium-sheet td { height: 44px; }
+  body[data-sheet-scale="large"] .premium-sheet th,
+  body[data-sheet-scale="large"] .premium-sheet td { height: 60px; }
+  body[data-sheet-scale="large"] .premium-sheet .head-symbol { font-size: 21px; }
+}
