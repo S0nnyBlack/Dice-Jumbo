@@ -7,6 +7,35 @@ const state={
  currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false,hostId:null,onlineUndoAvailable:false
 };
 const app=document.getElementById("app");
+function appNavMarkup(mode){
+ return `<header class="site-nav"><div class="site-nav-inner">
+  <button type="button" class="site-brand" data-nav="play" aria-label="Jumbo Dice početna strana"><span class="brand-mark" aria-hidden="true">JD</span><span class="brand-words"><strong>Jumbo Dice</strong><small>JAMB STO</small></span></button>
+  <nav class="main-nav" aria-label="Glavna navigacija"><button type="button" data-nav="play">Igraj</button><button type="button" data-nav="online">Online sto</button><button type="button" id="rulesHelp" data-nav="rules">Pravila</button></nav>
+  <span class="nav-context"><i aria-hidden="true"></i>${escapeHtml(mode)}</span>
+ </div></header>`;
+}
+function diceButtonMarkup(value,index,held,disabled){
+ const stateLabel=held?"Sačuvana":"Sačuvaj";
+ const accessibleState=held?"sačuvana":"nije sačuvana";
+ return '<button type="button" class="die '+(held?"selected":"")+(state.diceRollAnimation?" die-arrive":"")+'" data-i="'+index+'" aria-pressed="'+String(held)+'" aria-label="Kockica '+(index+1)+", "+value+"; "+accessibleState+'" title="'+(held?"Vrati u bacanje":"Sačuvaj") + '" '+(disabled?"disabled":"")+'><span class="die-value">'+value+'</span><span class="die-state">'+stateLabel+'</span></button>';
+}
+app.addEventListener("click",event=>{
+ const button=event.target.closest("[data-nav]");
+ if(!button)return;
+ if(button.dataset.nav==="play"){
+  if(state.mode==="solo"&&state.soloActive&&!state.gameOver&&!confirmLeaveGame())return;
+  setup();
+ }else if(button.dataset.nav==="online"){
+  if(state.mode==="solo"&&state.soloActive&&!state.gameOver&&!confirmLeaveGame())return;
+  onlineSetup();
+ }else if(button.dataset.nav==="rules"){
+  if(app.querySelector("#rulesDialog"))return;
+  const guide=app.querySelector("#guideTitle");
+  if(guide)guide.scrollIntoView({behavior:"smooth",block:"start"});
+  else{setup();requestAnimationFrame(()=>app.querySelector("#guideTitle")?.scrollIntoView({behavior:"smooth",block:"start"}));}
+ }
+});
+
 const defs=()=>state.columns.map(id=>COLUMN_DEFS.find(c=>c.id===id)).filter(Boolean);
 const escapeHtml=value=>String(value).replace(/[&<>"\']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","\'":"&#39;"}[ch]));
 const current=()=>state.players[state.currentPlayer];
@@ -84,7 +113,7 @@ window.addEventListener("beforeunload",event=>{
 
 function setup(){
  state.mode="setup";
- app.innerHTML=`<section class="panel setup">
+ app.innerHTML=`${appNavMarkup("POČETNA")}<section class="panel setup">
  <div class="brand"><h1>Jumbo Dice</h1><p>Izaberi način igre</p></div>
  <div class="setup-card home-mode-card"><h2>Odaberi način igre</h2><div class="toolbar">
    <button class="btn primary" id="solo">Solo igra</button>
@@ -187,15 +216,16 @@ function bindRulesGuide(){
 
 function soloGame(){
  state.mode="solo";
- app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">SOLO</span></h1><p>6 kockica · do 3 bacanja (5 u završnom potezu)</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="rulesHelp">Pravila</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></header>
+ app.innerHTML=`${appNavMarkup("SOLO")}<section class="match-heading"><div class="match-title"><span class="eyebrow">PARTIJA UŽIVO</span><h1>Jamb sto</h1><p>Baci kockice. Sačuvaj kombinaciju. Upiši rezultat.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></section>
  <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div>
  <div class="layout">
  <section class="panel game-controls">
-  <div class="dice-grid" id="dice"></div>
+  <div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">Bacanje <b id="count">0 od 3</b></span></div>
+  <div class="dice-grid" id="dice" aria-label="Kockice"></div>
   <div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div>
   <div class="options" id="options"></div><div class="options" id="announceOptions"></div>
  </section>
- <section class="panel game-score"><div class="tabs"><button class="player-tab active">Igrač 1</button></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
+ <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Izaberi označeno polje za upis.</p></div><div class="tabs"><button class="player-tab active">Igrač 1</button></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
  </div>${rulesDialogMarkup()}`;
  bindRulesGuide();
  bindTableScale();
@@ -219,7 +249,7 @@ function soloRoll(){
  const fresh=rollDice(6);
  if(state.rolls===0)state.dice=fresh;
  else state.dice=state.dice.map((v,i)=>state.selected.has(i)?v:fresh[i]);
- state.rolls++;state.selected.clear();state.pending=null;renderSolo();
+ state.rolls++;state.selected.clear();state.pending=null;state.diceRollAnimation=true;setTimeout(()=>{state.diceRollAnimation=false},240);renderSolo();
 }
 
 function soloCandidates(){
@@ -340,10 +370,10 @@ function renderSolo(){
    else if(state.selected.size<5)state.selected.add(i);
    renderSolo();
  });
- const count=app.querySelector("#count");if(count)count.textContent=`${state.rolls}/${maxRollsForLocal()}`;
+ const count=app.querySelector("#count");if(count)count.textContent=`${state.rolls} od ${maxRollsForLocal()}`;
  updateTurnStatus();
  const roll=app.querySelector("#roll");
- if(roll){roll.disabled=state.gameOver||state.rolls>=maxRollsForLocal();roll.textContent=state.rolls>=maxRollsForLocal()?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
+ if(roll){roll.disabled=state.gameOver||state.rolls>=maxRollsForLocal();roll.textContent=state.rolls>=maxRollsForLocal()?"Bacanja iskorišćena":state.rolls===0?"Baci kockice":"Baci ponovo";}
  const undo=app.querySelector("#undo");if(undo)undo.disabled=state.undoHistory.length===0;
  const crossout=app.querySelector("#crossout");
  if(crossout){crossout.disabled=state.gameOver||state.rolls===0;crossout.classList.toggle("crossout-active",state.crossOutMode);crossout.textContent=state.crossOutMode?"Otkaži precrtavanje":"Precrtaj polje (0)";}
@@ -436,14 +466,14 @@ function renderServerState(s){
  else renderLobbyState(s);
 }
 function renderLobbyState(s){
- app.innerHTML='<section class="panel setup"><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>Soba '+s.roomCode+'</p></div><div class="setup-card"><h2>Igrači ('+s.players.length+'/4)</h2><div class="status">'+s.players.map(p=>escapeHtml(p.name)+(p.id===s.hostId?' · host':'')+(p.connected?'':' · offline')).join('<br>')+'</div><p class="status">'+(s.players.length<2?'Čeka se još jedan igrač.':'Soba je spremna za početak.')+'</p>'+(s.hostId===net.playerId?'<button class="btn primary" id="startOnline" '+(s.players.length<2?'disabled':'')+'>Pokreni partiju</button>':'<p class="status">Čeka se da host pokrene partiju.</p>')+'</div><button class="btn" id="back">Početni ekran</button></section>';
+ app.innerHTML=appNavMarkup("ONLINE SOBA")+'<section class="panel setup"><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>Soba '+s.roomCode+'</p></div><div class="setup-card"><h2>Igrači ('+s.players.length+'/4)</h2><div class="status">'+s.players.map(p=>escapeHtml(p.name)+(p.id===s.hostId?' · host':'')+(p.connected?'':' · offline')).join('<br>')+'</div><p class="status">'+(s.players.length<2?'Čeka se još jedan igrač.':'Soba je spremna za početak.')+'</p>'+(s.hostId===net.playerId?'<button class="btn primary" id="startOnline" '+(s.players.length<2?'disabled':'')+'>Pokreni partiju</button>':'<p class="status">Čeka se da host pokrene partiju.</p>')+'</div><button class="btn" id="back">Početni ekran</button></section>';
  app.querySelector("#back").onclick=setup;
  const start=app.querySelector("#startOnline");if(start)start.onclick=()=>socket?.emit("room:start");
 }
 
 function game(){
- app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="rulesHelp">Pravila</button></div></header>
- <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div><div class="layout"><section class="panel game-controls"><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
+ app.innerHTML=`${appNavMarkup("ONLINE")}<section class="match-heading"><div class="match-title"><span class="eyebrow">PARTIJA UŽIVO</span><h1>Jamb sto</h1><p>Baci kockice. Sačuvaj kombinaciju. Upiši rezultat.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="rulesHelp">Pravila</button></div></header>
+ <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div><div class="layout"><section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">Bacanje <b id="count">0 od 3</b></span></div><div class="dice-grid" id="dice" aria-label="Kockice"><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Izaberi označeno polje za upis.</p></div><div class="tabs" id="tabs"></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
  bindRulesGuide();
  bindTableScale();
  const reconnect=app.querySelector("#reconnect");if(reconnect)reconnect.onclick=()=>{reconnect.disabled=true;reconnect.textContent="Povezivanje…";socket?.connect()};
@@ -468,11 +498,11 @@ function renderOnline(){
    state.selected.has(i)?state.selected.delete(i):state.selected.size<5&&state.selected.add(i);
    socket?.emit("turn:select",{indices:[...state.selected]});
  });
- const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls}/${state.maxRolls||3}`;
+ const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls} od ${state.maxRolls||3}`;
  updateTurnStatus(canAct);
  const roll=app.querySelector("#roll"),clear=app.querySelector("#clear"),crossout=app.querySelector("#crossout");
  const undo=app.querySelector("#undo");if(undo){undo.disabled=!net.connected||!net.synced||state.hostId!==net.playerId||!state.onlineUndoAvailable;undo.title=state.hostId===net.playerId?"Vrati poslednji potez cele sobe":"Samo domaćin može da vrati potez";}
- if(roll){roll.disabled=!canAct||state.gameOver||state.rolls>=(state.maxRolls||3);roll.textContent=state.rolls>=(state.maxRolls||3)?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
+ if(roll){roll.disabled=!canAct||state.gameOver||state.rolls>=(state.maxRolls||3);roll.textContent=state.rolls>=(state.maxRolls||3)?"Bacanja iskorišćena":state.rolls===0?"Baci kockice":"Baci ponovo";}
  if(clear)clear.disabled=!canAct||state.gameOver||state.rolls===0;
  if(crossout){crossout.disabled=!canAct||state.gameOver||state.rolls===0;crossout.classList.toggle("crossout-active",state.crossOutMode);crossout.textContent=state.crossOutMode?"Otkaži precrtavanje":"Precrtaj polje (0)";}
  const tabs=app.querySelector("#tabs");tabs.innerHTML=state.players.map((p,i)=>'<button class="player-tab '+(i===state.currentPlayer?'active':'')+'">'+escapeHtml(p.name)+'</button>').join("");
