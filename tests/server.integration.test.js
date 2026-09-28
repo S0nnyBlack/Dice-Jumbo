@@ -156,6 +156,43 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     host.emit("turn:commit", { columnId: "free", row: String(face) });
     await occupiedError;
     assert.equal(hostTurn.currentPlayerId, created.playerId);
+
+    const scoreRows = ["1", "2", "3", "4", "5", "6", "MAX", "MIN", "KENTA", "TRILING", "FUL", "POKER", "YAMB"];
+    let turnState = hostTurn;
+    for (let move = 0; move < 80 && !turnState.gameOver; move++) {
+      const actorId = turnState.currentPlayerId;
+      const actor = actorId === created.playerId ? host : resumedSocket;
+      const ownPlayer = turnState.players.find(player => player.id === actorId);
+      assert.ok(ownPlayer, "active player is included in each state");
+
+      let readyState = turnState;
+      if (readyState.rolls === 0) {
+        const rollWait = waitFor(actor, "state", state => state.currentPlayerId === actorId && state.rolls === 1);
+        actor.emit("turn:roll");
+        readyState = await rollWait;
+      }
+
+      const nextCell = [
+        ["down", scoreRows],
+        ["free", scoreRows],
+        ["up", [...scoreRows].reverse()]
+      ].flatMap(([columnId, rows]) =>
+        rows.filter(row => ownPlayer.cells[`${columnId}::${row}`] === undefined)
+          .map(row => ({ columnId, row }))
+      )[0];
+      assert.ok(nextCell, "active player has an unfilled score cell");
+
+      const turnComplete = waitFor(actor, "state", state => state.gameOver || state.currentPlayerId !== actorId);
+      actor.emit("turn:commit", { ...nextCell, crossOut: true });
+      turnState = await turnComplete;
+    }
+
+    assert.equal(turnState.gameOver, true, "the game ends after all required cells are filled");
+    for (const player of turnState.players) {
+      assert.notEqual(player.cells["free::SUM_TOP"], undefined);
+      assert.notEqual(player.cells["free::SUM_MID"], undefined);
+      assert.notEqual(player.cells["free::SUM_TOTAL"], undefined);
+    }
   } finally {
     for (const socket of sockets) socket.disconnect();
     child.kill("SIGTERM");
