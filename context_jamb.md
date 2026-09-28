@@ -116,10 +116,13 @@ Commit na `main`: [`03f1102f`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/0
 
 ## Verzija 62 — bezbedni online zahtevi i upravljanje sobom
 
+Commit na `main`: [`cf13fe6e`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/cf13fe6e57076be719080bad181730a787819a16).
+
 - Server odbija neispravna imena i kodove sobe bez prekida rada; Socket.IO događaji bez objekta zahteva više ne izazivaju grešku pri raspakivanju.
 - Napuštanje čekaonice uklanja igrača i njegovu sesiju. Ako domaćin ode, sledeći igrač postaje domaćin. Napuštanje započete partije zatvara sobu za sve učesnike.
 - Kada su svi igrači nepovezani, napuštena soba i njene sesije brišu se posle 30 minuta.
 - Online ekran čuva postojeći raspored pri promeni stanja, položaj skrolovane tabele i fokus izabrane kockice.
 - Dugme za početak partije je dostupno tek kada su najmanje dva igrača povezana i svi učesnici online.
 - Provera: 26 od 26 lokalnih testova prolazi. U pregledniku je potvrđeno da online raspored, položaj tabele i fokus kockice ostaju isti posle serverskih promena stanja; napuštanje partije vraća početni ekran i briše stari token.
+- Naknadna provera je otkrila trku u integracionom testu: `state` je mogao da stigne odmah posle `room:resumed`, pre nego što test počne da ga sluša. Slušanje oba događaja sada počinje pre zahteva za obnovu sesije; lokalni `npm test` prolazi sa istom komandom koju koristi GitHub Actions.
 

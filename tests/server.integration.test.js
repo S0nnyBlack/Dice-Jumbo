@@ -154,10 +154,11 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     const resumedSocket = await connect(baseUrl);
     sockets.push(resumedSocket);
     const resumedWait = waitFor(resumedSocket, "room:resumed");
+    const resumedStateWait = waitFor(resumedSocket, "state", state => state.currentPlayerId === joined.playerId);
     resumedSocket.emit("room:resume", { sessionToken: token });
     const resumed = await resumedWait;
     assert.equal(resumed.playerId, joined.playerId);
-    const resumedState = await waitFor(resumedSocket, "state", state => state.currentPlayerId === joined.playerId);
+    const resumedState = await resumedStateWait;
     assert.equal(resumedState.rolls, 1);
 
     const index = resumedState.dice.findIndex((_, i) => i === 0);
