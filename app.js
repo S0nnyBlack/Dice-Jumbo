@@ -4,7 +4,7 @@ import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBo
 
 const state={
  mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),undoHistory:[],columns:["down","free","up"],
- currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false
+ currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false,hostId:null,onlineUndoAvailable:false
 };
 const app=document.getElementById("app");
 const defs=()=>state.columns.map(id=>COLUMN_DEFS.find(c=>c.id===id)).filter(Boolean);
@@ -410,7 +410,7 @@ function renderSoloSheet(){
 
 function renderServerState(s){
  if(!s)return;
- state.mode="online";state.onlineStarted=Boolean(s.started);state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
+ state.mode="online";state.onlineStarted=Boolean(s.started);state.hostId=s.hostId||null;state.onlineUndoAvailable=s.canUndo===true;state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
  const idx=s.players.findIndex(p=>p.id===s.currentPlayerId);if(idx>=0)state.currentPlayer=idx;
  state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{},crossedCells:p.crossedCells||[]}));
  state.columns=normalizeColumnIds(s.config?.columns||state.columns);
@@ -425,7 +425,7 @@ function renderLobbyState(s){
 
 function game(){
  app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="rulesHelp">Pravila</button></div></header>
- <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div><div class="layout"><section class="panel game-controls"><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
+ <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div><div class="layout"><section class="panel game-controls"><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
  bindRulesGuide();
  bindTableScale();
  const reconnect=app.querySelector("#reconnect");if(reconnect)reconnect.onclick=()=>{reconnect.disabled=true;reconnect.textContent="Povezivanje…";socket?.connect()};
@@ -433,6 +433,7 @@ function game(){
  app.querySelector("#roll").onclick=()=>{if(!net.connected||!net.synced)return;state.crossOutMode=false;socket?.emit("turn:roll")};
  app.querySelector("#clear").onclick=()=>{state.selected.clear();state.crossOutMode=false;socket?.emit("turn:select",{indices:[]})};
  app.querySelector("#crossout").onclick=()=>{state.crossOutMode=!state.crossOutMode;if(state.crossOutMode){state.selected.clear();socket?.emit("turn:select",{indices:[]})}renderOnline()};
+ app.querySelector("#undo").onclick=()=>{if(!net.connected||!net.synced||!state.onlineUndoAvailable||state.hostId!==net.playerId)return;if((state.rolls>0||state.announcedRow)&&!window.confirm("Vraćanjem poteza odbaciće se trenutni potez. Nastaviti?"))return;socket?.emit("turn:undo")};
  renderOnline();
 }
 
@@ -452,6 +453,7 @@ function renderOnline(){
  const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls}/${state.maxRolls||3}`;
  updateTurnStatus(canAct);
  const roll=app.querySelector("#roll"),clear=app.querySelector("#clear"),crossout=app.querySelector("#crossout");
+ const undo=app.querySelector("#undo");if(undo){undo.disabled=!net.connected||!net.synced||state.hostId!==net.playerId||!state.onlineUndoAvailable;undo.title=state.hostId===net.playerId?"Vrati poslednji potez cele sobe":"Samo domaćin može da vrati potez";}
  if(roll){roll.disabled=!canAct||state.gameOver||state.rolls>=(state.maxRolls||3);roll.textContent=state.rolls>=(state.maxRolls||3)?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
  if(clear)clear.disabled=!canAct||state.gameOver||state.rolls===0;
  if(crossout){crossout.disabled=!canAct||state.gameOver||state.rolls===0;crossout.classList.toggle("crossout-active",state.crossOutMode);crossout.textContent=state.crossOutMode?"Otkaži precrtavanje":"Precrtaj polje (0)";}
