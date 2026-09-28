@@ -7,7 +7,7 @@ Jumbo Dice je veb aplikacija za Jamb sa lokalnom solo partijom i online partijam
 - Šest kockica; za bodovanje se bira od jedne do pet kockica.
 - Do tri bacanja po potezu; do pet bacanja kada je ostalo samo jedno polje za bodovanje.
 - Izabrane kockice zadržavaju se pri sledećem bacanju.
-- Upis sa manje od pet izabranih kockica je dozvoljen uz potvrdu; kombinacije i dalje zahtevaju pet kockica.
+- Upis sa manje od pet izabranih kockica je dozvoljen uz potvrdu. Triling traži najmanje tri iste, Poker najmanje četiri iste; Kenta, Ful i Jamb zahtevaju pet kockica.
 - Dostupna polja su istaknuta u tabeli. Polje se može precrtati.
 - Igrač vidi pravila i ograničenja kolona tokom partije.
 - Solo partija se automatski čuva u pregledaču i nastavlja posle osvežavanja; može se vratiti poslednji upis ili precrtavanje.
@@ -57,9 +57,9 @@ Kolone se prikazuju u standardnom redosledu bez obzira na redosled kojim su uklj
 - **1–6** — zbir izabranih kockica odgovarajuće vrednosti.
 - **MAX / MIN** — zbir izabranih kockica.
 - **Kenta** — niz 1–5 ili 2–6: 66 posle prvog bacanja, 56 posle drugog i 46 posle trećeg. U koloni D vredi 66.
-- **Triling** — najmanje tri iste kockice: zbir svih izabranih kockica +20.
-- **Ful** — tri iste i dve iste: zbir +30.
-- **Poker** — četiri iste: vrednost te četiri kockice +40.
+- **Triling** — najmanje tri iste među izabranim kockicama: njihov zbir +20. Može se upisati sa 3, 4 ili 5 kockica.
+- **Ful** — tri iste i par u pet izabranih kockica: zbir +30.
+- **Poker** — najmanje četiri iste među izabranim kockicama: vrednost četiri iste +40. Može se upisati sa 4 ili 5 kockica.
 - **Jamb** — pet istih: zbir +50.
 - **Bonus gornjeg dela** — 30 poena kada je zbir redova 1–6 najmanje 60.
 - **Zbir kolone** — gornji deo sa bonusom, kombinacije, MAX i MIN.

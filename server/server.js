@@ -42,7 +42,7 @@ function counts(v) { return v.reduce((m, x) => (m[x] = (m[x] || 0) + 1, m), {});
 
 const SCORE_ROWS = [...TOP_ROWS, "MAX", "MIN", ...COMBO_ROWS];
 function analyse(values) {
-  if (!Array.isArray(values) || values.length !== 5) return null;
+  if (!Array.isArray(values) || values.length < 1 || values.length > 5) return null;
   const c = counts(values);
   const freq = Object.values(c);
   const sorted = [...new Set(values)].sort((a, b) => a - b).join(",");
@@ -50,11 +50,11 @@ function analyse(values) {
   return {
     total,
     counts: c,
-    kenta: sorted === "1,2,3,4,5" || sorted === "2,3,4,5,6",
-    triling: freq.includes(3),
-    ful: freq.includes(3) && freq.includes(2),
-    poker: freq.includes(4),
-    yamb: freq.includes(5)
+    kenta: values.length === 5 && (sorted === "1,2,3,4,5" || sorted === "2,3,4,5,6"),
+    triling: freq.some(count => count >= 3),
+    ful: values.length === 5 && freq.includes(3) && freq.includes(2),
+    poker: freq.some(count => count >= 4),
+    yamb: values.length === 5 && freq.includes(5)
   };
 }
 function combinationScore(row, values, { rolls = 3, manual = false } = {}) {
@@ -127,7 +127,7 @@ function calculateEntry(room, player, col, row, selected, crossOut = false) {
   else if (row === "MAX" || row === "MIN") value = sum(selected);
   else if (COMBO_ROWS.includes(row)) {
     value = combinationScore(row, selected, { rolls: room.rolls, manual: col === "d" });
-    if (value === null) return { ok: false, error: "Kombinacija zahteva 5 odgovarajućih kockica." };
+    if (value === null) return { ok: false, error: "Izabrane kockice ne ispunjavaju uslov za ovu kombinaciju." };
   }
   return { ok: true, value };
 }

@@ -24,13 +24,16 @@ export const upperBonus=total=>total>=60?30:0;
 export function counts(v){return v.reduce((m,x)=>(m[x]=(m[x]||0)+1,m),{})}
 export function upperScore(v,face){return v.filter(x=>x===face).reduce((a,b)=>a+b,0)}
 export function analyse(v){
- if(!Array.isArray(v)||v.length!==5)return {valid:false};
+ if(!validDice(v))return {valid:false};
  const c=counts(v),freq=Object.values(c),u=[...new Set(v)].sort((a,b)=>a-b);
  return {
   valid:true,total:sum(v),counts:c,
   upper:[1,2,3,4,5,6].reduce((m,f)=>(m[f]=upperScore(v,f),m),{}),
-  kenta:u.join(",")==="1,2,3,4,5"||u.join(",")==="2,3,4,5,6",
-  triling:freq.includes(3),ful:freq.includes(3)&&freq.includes(2),poker:freq.includes(4),yamb:freq.includes(5)
+  kenta:v.length===5&&(u.join(",")==="1,2,3,4,5"||u.join(",")==="2,3,4,5,6"),
+  triling:freq.some(count=>count>=3),
+  ful:v.length===5&&freq.includes(3)&&freq.includes(2),
+  poker:freq.some(count=>count>=4),
+  yamb:v.length===5&&freq.includes(5)
  };
 }
 export function combinationScore(row,v,{rolls=3,manual=false}={}){
@@ -84,7 +87,7 @@ export function availableEntries(columnIds,cells,values,{crossOut=false,announce
    let value=null;
    if(VALUE_ROWS.map(String).includes(row))value=upperScore(values,Number(row));
    else if(row==="MAX"||row==="MIN")value=sum(values);
-   else if(values.length===5)value=combinationScore(row,values,{rolls,manual:colId===manualColumn});
+   else value=combinationScore(row,values,{rolls,manual:colId===manualColumn});
    if(value!==null&&value!==undefined)out.push({colId,colName:column.name,row,value});
   }
  }
