@@ -1,3 +1,5 @@
+const socket=window.io ? window.io() : null;
+const net={connected:!!socket,roomCode:null,playerId:null,sessionToken:null,server:null};
 import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,analyse,combinationScore}from"./game.js";
 
 const state={
@@ -13,7 +15,7 @@ const isFilled=(p,col,row)=>p.cells[cellKey(col,row)]!==undefined;
 const selectedValues=()=>[...state.selected].map(i=>state.dice[i]);
 
 function setup(){
- app.innerHTML=`<section class="panel setup">
+ app.innerHTML=`<section class="panel setup"><div id="network" class="status">Online: povezivanje sa serverom…</div><div class="setup-card"><h2>Online partija</h2><div class="toolbar"><button class="btn" id="createRoom">Kreiraj sobu</button><input id="roomCodeInput" placeholder="ROOM CODE"><button class="btn" id="joinRoom">Pridruži se</button></div></div>
  <div class="brand"><h1>Jumbo Dice</h1><p>Nova partija</p></div>
  <div class="setup-card"><h2>Igrači</h2><div class="setup-grid player-grid">${[0,1,2,3].map(i=>`<label class="toggle"><span><input type="checkbox" data-player="${i}" ${i<state.activePlayers?"checked":""} ${i===0?"disabled":""}> ${state.players[i].name}</span><span>${i===0?"HOST":i<state.activePlayers?"AKTIVAN":"—"}</span></label>`).join("")}</div></div>
  <div class="setup-card"><h2>Kolone</h2><p class="status">Gore, Dole i Slobodna su obavezne. Ostale host uključuje ili isključuje pre početka partije.</p>
@@ -22,6 +24,9 @@ function setup(){
  app.querySelectorAll("[data-player]").forEach(x=>x.onchange=()=>{state.players[+x.dataset.player].enabled=x.checked;state.activePlayers=state.players.filter((p,i)=>i===0||p.enabled).length});
  app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{state.columns=x.checked?[...new Set([...state.columns,x.dataset.col])]:state.columns.filter(id=>id!==x.dataset.col)});
  app.querySelector("#start").onclick=()=>{state.players=state.players.filter((p,i)=>i===0||p.enabled);state.screen="game";newTurn();game()};
+ if(socket){socket.on("connect",()=>{net.connected=true;const n=app.querySelector("#network");if(n)n.textContent="Online: server povezan";const token=localStorage.getItem("jumboDiceSession");if(token)socket.emit("room:resume",{sessionToken:token})});socket.on("disconnect",()=>{net.connected=false;const n=app.querySelector("#network");if(n)n.textContent="Veza prekinuta — pokušaj ponovnog povezivanja…"});socket.on("room:created",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken);alert("Soba: "+d.roomCode)});socket.on("room:joined",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken);alert("Pridruženi ste sobi "+d.roomCode);});socket.on("game:error",e=>alert(e.message));socket.on("state",s=>{net.server=s;renderServerState(s)});}
+ app.querySelector("#createRoom").onclick=()=>socket?.emit("room:create",{name:"Igrač 1",config:{columns:state.columns}});
+ app.querySelector("#joinRoom").onclick=()=>socket?.emit("room:join",{roomCode:app.querySelector("#roomCodeInput").value,name:"Igrač"});
 }
 function newTurn(){state.rolls=0;state.dice=[];state.selected.clear()}
 function game(){
@@ -78,7 +83,7 @@ function highlightOpen(o){
 function renderDice(){
  const d=app.querySelector("#dice");if(!d)return;
  d.innerHTML=state.dice.map((v,i)=>`<button class="die ${state.selected.has(i)?"selected":""}" data-i="${i}">${v}</button>`).join("");
- d.querySelectorAll(".die").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;state.selected.has(i)?state.selected.delete(i):state.selected.size<5&&state.selected.add(i);renderAll()});
+ d.querySelectorAll(".die").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;state.selected.has(i)?state.selected.delete(i):state.selected.size<5&&state.selected.add(i);if(socket&&net.roomCode)socket.emit("turn:select",{indices:[...state.selected]});else renderAll()});
  const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls}/3`;
 }
 function renderTabs(){const t=app.querySelector("#tabs");if(!t)return;t.innerHTML=state.players.map((p,i)=>`<button class="player-tab ${i===state.currentPlayer?"active":""}" data-p="${i}">${p.name}</button>`).join("");t.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{state.viewPlayer=+b.dataset.p;renderSheet()})}
