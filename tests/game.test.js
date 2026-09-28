@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds, COLUMN_DEFS, calculateColumnSums } from "../game.js";
+import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds, COLUMN_DEFS, calculateColumnSums, visibleCellsForPlayer } from "../game.js";
 
 test("rollDice returns the requested number of valid die values",()=>{
  const dice=rollDice(6);assert.equal(dice.length,6);
@@ -130,4 +130,17 @@ test("column sums separate upper, max-min weighted by ones, and combinations",()
   "free::KENTA":66,"free::TRILING":42,"free::FUL":0,"free::POKER":56,"free::YAMB":80
  };
  assert.deepEqual(calculateColumnSums(cells,"free"),{SUM_TOP:91,SUM_MID:120,SUM_TOTAL:244});
+});
+
+test("online subtotals are private to their owner until the game ends",()=>{
+ const cells={"free::1":2,"free::SUM_TOP":32,"free::SUM_MID":12,"free::SUM_TOTAL":66};
+ const own=visibleCellsForPlayer(cells,{isSelf:true,gameOver:false});
+ const opponent=visibleCellsForPlayer(cells,{isSelf:false,gameOver:false});
+ const final=visibleCellsForPlayer(cells,{isSelf:false,gameOver:true});
+ assert.equal(own["free::SUM_TOTAL"],66);
+ assert.equal(opponent["free::1"],2);
+ for(const row of ["SUM_TOP","SUM_MID","SUM_TOTAL"]){
+  assert.equal(opponent["free::"+row],undefined);
+  assert.equal(final["free::"+row],cells["free::"+row]);
+ }
 });
