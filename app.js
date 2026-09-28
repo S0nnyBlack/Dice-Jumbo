@@ -166,21 +166,47 @@ function renderSolo(){
  renderSoloSheet();
 }
 
-function renderSoloSheet(){
- const p=current();const sheet=app.querySelector("#sheet");if(!sheet)return;
- const rows=[...scoreRows,"SUM_TOP","MAX","MIN","SUM_MID","SUM_TOTAL"];
- let html=`<table class="sheet"><thead><tr><th>Kategorija</th>${defs().map(d=>`<th>${d.name}</th>`).join("")}</tr></thead><tbody>`;
+function renderScoreSheet(player,isSelf=true){
+ const sheet=app.querySelector("#sheet");if(!sheet)return;
+ const columns=defs();
+ const headers={down:"↓",free:"S",up:"↑",announced:"↕",contra:"↓↑",r:"R",n:"N",d:"D",o:"O",m:"M"};
+ const titles={down:"Dole",free:"Slobodna",up:"Gore",announced:"Najava",contra:"Kontra najava",r:"R",n:"N",d:"D",o:"O",m:"M"};
+ const rows=[
+  {id:"1",label:"1",type:"normal"},{id:"2",label:"2",type:"normal"},{id:"3",label:"3",type:"normal"},
+  {id:"4",label:"4",type:"normal"},{id:"5",label:"5",type:"normal"},{id:"6",label:"6",type:"normal"},
+  {id:"SUM_TOP",label:"Σ",type:"sum"},{id:"MAX",label:"max",type:"normal"},{id:"MIN",label:"min",type:"normal"},
+  {id:"SUM_MID",label:"Σ",type:"sum"},
+  {id:"KENTA",label:"KENTA",sub:"66, 56, 46",type:"combo"},
+  {id:"TRILING",label:"TRILING",sub:"+20",type:"combo"},
+  {id:"FUL",label:"FUL",sub:"+30",type:"combo"},
+  {id:"POKER",label:"POKER",sub:"+40",type:"combo"},
+  {id:"YAMB",label:"YAMB",sub:"+50",type:"combo"},
+  {id:"SUM_TOTAL",label:"Σ",type:"sum"}
+ ];
+ const hideRow=!isSelf;
+ let html=`<table class="sheet premium-sheet"><colgroup><col class="label-col">${columns.map(c=>`<col class="data-col col-${c.id}">`).join("")}</colgroup>
+ <thead><tr><th class="corner-hatch" aria-label="Kategorija"></th>${columns.map(c=>`<th class="sheet-head ${c.id==="r"?"group-start":""}" title="${titles[c.id]}"><span class="head-symbol">${headers[c.id]}</span><span class="head-name">${titles[c.id]}</span></th>`).join("")}</tr></thead><tbody>`;
  for(const row of rows){
-   const isSum=row.startsWith("SUM_")||row==="MAX"||row==="MIN";
-   html+=`<tr class="${isSum?"sum":""}"><td>${row}</td>`;
-   for(const col of defs()){
-     const v=p.cells[cellKey(col.id,row)];
-     html+=`<td class="${v===undefined?"empty":""}">${v===undefined?"—":v}</td>`;
+   const hiddenSum=hideRow&&["SUM_TOP","SUM_MID","SUM_TOTAL"].includes(row.id);
+   html+=`<tr class="sheet-row ${row.type} ${hiddenSum?"hidden-total-row":""}"><th class="row-label">${row.label}${row.sub?`<small>${row.sub}</small>`:""}</th>`;
+   for(const col of columns){
+     const v=player?.cells?.[cellKey(col.id,row.id)];
+     const shown=hiddenSum?(v===undefined?"":"🔒"):(v===undefined?"":v);
+     const classNames=["sheet-cell",v===undefined?"empty":"filled",col.id==="o"?"o-column":"",col.id==="r"?"group-start":""].filter(Boolean).join(" ");
+     html+=`<td class="${classNames}" data-cell="${cellKey(col.id,row.id)}">${shown}</td>`;
    }
-   html+=`</tr>`;
+   html+="</tr>";
  }
- html+=`<tr class="total-own"><th>Ukupno</th><th colspan="${Math.max(1,defs().length)}">${Object.entries(p.cells).reduce((a,[k,v])=>k.includes("::SUM_")?a:a+Number(v),0)}</th></tr></tbody></table>`;
+ if(isSelf){
+   const total=Object.entries(player?.cells||{}).reduce((acc,[k,v])=>k.includes("::SUM_")?acc:acc+Number(v||0),0);
+   html+=`<tr class="final-total"><th class="row-label">UKUPNO</th><td colspan="${columns.length}" class="final-total-value">${total}</td></tr>`;
+ }
+ html+="</tbody></table>";
  sheet.innerHTML=html;
+}
+
+function renderSoloSheet(){
+ renderScoreSheet(current(),true);
 }
 
 function renderServerState(s){
