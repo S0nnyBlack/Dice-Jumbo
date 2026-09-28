@@ -170,11 +170,34 @@ function commitOnlineCandidate(candidate){
 }
 
 
+function refreshLocalDerived(player){
+ const columns=state.columns;
+ const maxIndex=columns.indexOf("m");
+ if(maxIndex>=0){
+   const sources=columns.slice(0,maxIndex),firstSix=sources.slice(0,6);
+   for(const row of scoreRows){
+     if(isFilled(player,"m",row)||!sources.length||!sources.every(col=>isFilled(player,col,row)))continue;
+     const crossed=scoreRows.slice(0,6).includes(row)&&firstSix.some(col=>player.crossedCells.includes(cellKey(col,row)));
+     player.cells[cellKey("m",row)]=crossed?0:Math.max(...sources.map(col=>Number(player.cells[cellKey(col,row)]||0)));
+     if(crossed)player.crossedCells.push(cellKey("m",row));
+   }
+ }
+ for(const col of columns){
+   const upper=VALUE_ROWS.map(face=>Number(player.cells[cellKey(col,String(face))]||0)).reduce((a,b)=>a+b,0);
+   const top=upper>=60?upper+30:upper;
+   const middle=COMBINATION_ROWS.reduce((total,row)=>total+Number(player.cells[cellKey(col,row)]||0),0);
+   player.cells[cellKey(col,"SUM_TOP")]=top;
+   player.cells[cellKey(col,"SUM_MID")]=middle;
+   player.cells[cellKey(col,"SUM_TOTAL")]=top+middle+Number(player.cells[cellKey(col,"MAX")]||0)-Number(player.cells[cellKey(col,"MIN")]||0);
+ }
+}
 function commitSolo(candidate){
  const p=current();
  if(isFilled(p,candidate.colId,candidate.row))return;
  p.cells[cellKey(candidate.colId,candidate.row)]=candidate.value;
+ if(candidate.crossOut){p.crossedCells=p.crossedCells||[];p.crossedCells.push(cellKey(candidate.colId,candidate.row));}
  state.contraTargetRow=state.columns.includes("contra")?(state.announcedRow||null):null;
+ refreshLocalDerived(p);
  state.pending=null;
  const filled=defs().every(col=>scoreRows.every(row=>isFilled(p,col.id,row)));
  if(filled){state.gameOver=true;newTurn();renderSolo();return;}
@@ -255,7 +278,7 @@ function renderScoreSheet(player,isSelf=true){
    html+="</tr>";
  }
  if(isSelf||state.gameOver){
-   const total=Object.entries(player?.cells||{}).reduce((acc,[k,v])=>k.includes("::SUM_")?acc:acc+Number(v||0)*(k.endsWith("::MIN")?-1:1),0);
+   const total=columns.reduce((acc,col)=>acc+Number(player?.cells?.[cellKey(col.id,"SUM_TOTAL")]||0),0);
    html+=`<tr class="final-total"><th class="row-label">UKUPNO</th><td colspan="${columns.length}" class="final-total-value">${state.gameOver?total:"🔒"}</td></tr>`;
  }
  html+="</tbody></table>";
