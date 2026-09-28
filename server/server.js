@@ -234,6 +234,7 @@ io.on("connection", socket => {
       connected: true,
       ready: true,
       cells: {},
+      announcedRow: null,
       token: sessionToken()
     };
     room.players.push(player);
@@ -317,9 +318,9 @@ io.on("connection", socket => {
     if (room.rolls === 0) return emitError(socket, "Potez još nije bačen.");
     const isCrossOut = crossOut === true;
     if (room.contraTargetRow && room.config.columns.includes("contra") && (columnId !== "contra" || row !== room.contraTargetRow)) return emitError(socket, "Morate odigrati protivnikovo najavljeno polje u koloni Kontra najava.");
-    if (!room.contraTargetRow && columnId === "contra" && room.config.columns.includes("contra")) return emitError(socket, "Nema najave protivnika za Kontra najavu.");
+    if (!room.contraTargetRow && columnId === "contra" && room.config.columns.includes("contra") && !isCrossOut) return emitError(socket, "Nema najave protivnika za Kontra najavu.");
     if (player.announcedRow && (columnId !== "announced" || row !== player.announcedRow)) return emitError(socket, "Morate odigrati najavljeno polje.");
-    if (!player.announcedRow && columnId === "announced" && room.config.columns.includes("announced")) return emitError(socket, "Najavu možete odigrati samo ako ste je postavili posle prvog bacanja.");
+    if (!player.announcedRow && columnId === "announced" && room.config.columns.includes("announced") && !isCrossOut) return emitError(socket, "Najavu možete odigrati samo ako ste je postavili posle prvog bacanja.");
     if (!isCrossOut && (room.selection.length < 1 || room.selection.length > 5)) return emitError(socket, "Izaberite od 1 do 5 kockica ili precrtajte polje.");
 
     const selectedValues = room.selection.map(i => room.dice[i]);
