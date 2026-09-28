@@ -123,7 +123,10 @@ function calculateEntry(room, player, col, row, selected, crossOut = false) {
 
   let value = null;
   if (TOP_ROWS.includes(row)) value = upperScore(selected, Number(row));
-  else if (row === "MAX" || row === "MIN") value = sum(selected);
+  else if (row === "MAX" || row === "MIN") {
+    if (selected.length !== 5) return { ok: false, error: "MAX i MIN zahtevaju tačno 5 izabranih kockica." };
+    value = sum(selected);
+  }
   else if (COMBO_ROWS.includes(row)) {
     value = combinationScore(row, selected, { rolls: room.rolls, manual: col === "r" });
     if (value === null) return { ok: false, error: "Izabrane kockice ne ispunjavaju uslov za ovu kombinaciju." };
