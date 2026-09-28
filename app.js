@@ -36,6 +36,9 @@ function bindTableScale(){
  applyTableScale();
 }
 const SOLO_SAVE_KEY="jumboDiceSoloSaveV1";
+const SESSION_KEY="jumboDiceSession";
+const DEPLOYMENT_ID_KEY="jumboDiceDeploymentIdV1";
+let deploymentChecked=false;
 function saveSoloGame(){
  if(!state.soloActive||state.mode!=="solo")return;
  const player=current();
@@ -144,7 +147,7 @@ function onlineSetup(){
    app.querySelector("#createRoom").onclick=()=>socket.emit("room:create",{name:app.querySelector("#playerName").value||"Igrač 1",config:{columns:normalizeColumnIds(state.columns)}});
    app.querySelector("#joinRoom").onclick=()=>socket.emit("room:join",{roomCode:app.querySelector("#roomCodeInput").value,name:app.querySelector("#joinName").value||"Igrač"});
    updateNetworkStatus();
-  const token=localStorage.getItem("jumboDiceSession");if(token)socket.emit("room:resume",{sessionToken:token});
+  const token=localStorage.getItem(SESSION_KEY);if(deploymentChecked&&token)socket.emit("room:resume",{sessionToken:token});
  }
 }
 
@@ -158,7 +161,7 @@ function updateNetworkStatus(){
  if(banner){banner.hidden=net.connected&&!needsSync;if(message)message.textContent=needsSync?"Veza je obnovljena; sinhronizujem stanje sobe…":"Veza je prekinuta. Pokušaj automatskog povezivanja je u toku.";if(reconnect){reconnect.hidden=net.connected;reconnect.disabled=net.connected;reconnect.textContent=net.connected?"Sinhronizujem…":"Poveži ponovo";}}
 }
 if(socket){
- socket.on("connect",()=>{net.connected=true;net.synced=false;updateNetworkStatus();const token=localStorage.getItem("jumboDiceSession");if(token&&state.mode!=="solo")socket.emit("room:resume",{sessionToken:token});if(state.mode==="online")renderOnline()});
+ socket.on("connect",()=>{net.connected=true;net.synced=false;updateNetworkStatus();const token=localStorage.getItem("jumboDiceSession");if(deploymentChecked&&token&&state.mode!=="solo")socket.emit("room:resume",{sessionToken:token});if(state.mode==="online")renderOnline()});
  socket.on("disconnect",()=>{net.connected=false;net.synced=false;updateNetworkStatus();if(state.mode==="online")renderOnline()});
  socket.on("connect_error",()=>{net.connected=false;net.synced=false;updateNetworkStatus()});
  socket.on("room:resumed",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken)});
@@ -497,4 +500,21 @@ function renderOnline(){
  renderSoloSheet();
 }
 
-if(restoreSoloGame())soloGame();else setup();
+async function startApp(){
+ try{
+  const response=await fetch("/health",{cache:"no-store"});
+  if(!response.ok)throw new Error("Server verzija nije dostupna.");
+  const {deploymentId}=await response.json();
+  if(typeof deploymentId==="string"&&deploymentId){
+   const previousDeployment=localStorage.getItem(DEPLOYMENT_ID_KEY);
+   if(previousDeployment!==deploymentId){
+    localStorage.removeItem(SOLO_SAVE_KEY);
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.setItem(DEPLOYMENT_ID_KEY,deploymentId);
+   }
+  }
+ }catch(error){console.warn("Verzija servera nije proverena; sačuvana partija je zadržana.",error);}
+ deploymentChecked=true;
+ if(restoreSoloGame())soloGame();else setup();
+}
+startApp();
