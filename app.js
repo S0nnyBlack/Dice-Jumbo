@@ -322,7 +322,7 @@ function updateTurnStatus(isMyTurn=true){
  if(state.mode==="online"&&!net.connected){status.textContent="Veza je prekinuta";status.dataset.state="waiting";return;}
  if(state.mode==="online"&&!net.synced){status.textContent="Sinhronizujem stanje sobe…";status.dataset.state="waiting";return;}
  if(state.gameOver){status.textContent="Partija završena";status.dataset.state="done";return;}
- if(state.contraTargetRow){status.textContent="Obavezna kontranajava: "+state.contraTargetRow;status.dataset.state="required";return;}
+ if(state.contraTargetRow){status.textContent="Obavezno Dirigovano: "+state.contraTargetRow;status.dataset.state="required";return;}
  if(state.announcedRow){status.textContent="Obavezna najava: "+state.announcedRow;status.dataset.state="required";return;}
  if(!isMyTurn){status.textContent="Čeka se potez protivnika";status.dataset.state="waiting";return;}
  if(state.rolls===0){status.textContent="Baci kockice da započneš potez";status.dataset.state="ready";return;}
