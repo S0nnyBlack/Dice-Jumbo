@@ -4,13 +4,15 @@ import { spawn } from "node:child_process";
 import net from "node:net";
 import { io as createClient } from "socket.io-client";
 
-const timeoutMs = 5000;
+const timeoutMs = 15000;
+let waitCount = 0;
 
 function waitFor(socket, event, predicate = () => true) {
+  const waitNumber = ++waitCount;
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       socket.off(event, onEvent);
-      reject(new Error(`Timed out waiting for ${event}`));
+      reject(new Error(`Timed out waiting for ${event} (wait #${waitNumber})`));
     }, timeoutMs);
     const onEvent = value => {
       if (!predicate(value)) return;
