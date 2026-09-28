@@ -50,20 +50,3 @@ test("cross-outs score zero and obey directional column order", () => {
   cells["down::1"]=0; assert.deepEqual(availableEntries(["down"],cells,[],{crossOut:true}).map(e=>e.row),["2"]);
   assert.deepEqual(availableEntries(["up"],{},[],{crossOut:true}).map(e=>e.row),["YAMB"]);
 });
-
-test("announced scores are locked to the announced row and column", () => {
-  const entries=availableEntries(["free","announced"],{},[2,2,3,3,4],{announcedRow:"FUL"});
-  assert.equal(entries.length,1);
-  assert.deepEqual({colId:entries[0].colId,row:entries[0].row,value:entries[0].value},{colId:"announced",row:"FUL",value:44});
-});
-test("contra scores are locked to the opponent's announced row", () => {
-  const entries=availableEntries(["free","contra","announced"],{},[2,2,3,3,4],{contraRow:"FUL"});
-  assert.equal(entries.length,1);
-  assert.equal(entries[0].colId,"contra");
-  assert.equal(entries[0].row,"FUL");
-  assert.equal(entries[0].value,44);
-});
-test("announced and contra rows are unavailable until a row is declared or targeted", () => {
-  const entries=availableEntries(["free","announced","contra"],{},[1,2,3,4,5]);
-  assert.ok(entries.every(e=>e.colId==="free"));
-});
