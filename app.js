@@ -37,10 +37,11 @@ function columnSetup(title,buttonText,onStart,locked=false){
  app.innerHTML=`<section class="panel setup">
  <div class="brand"><h1>Jumbo Dice</h1><p>${title}</p></div>
  <div class="setup-card"><h2>Kolone</h2><p class="status">${locked?"Podešavanja su zaključana do kraja tekuće partije.":"Gore, Dole i Slobodna su obavezne. Ostale kolone možete uključiti ili isključiti pre početka."}</p>
- <div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("")}</div></div>
+ <div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("")}</div>${locked?"":'<button class="btn" id="selectAll" type="button">Izaberi sve</button>'}</div>
  <button class="btn primary" id="start">${buttonText}</button><button class="btn" id="back">Nazad</button>
  </section>`;
  app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{state.columns=x.checked?[...new Set([...state.columns,x.dataset.col])]:state.columns.filter(id=>id!==x.dataset.col)});
+ const selectAll=app.querySelector("#selectAll");if(selectAll)selectAll.onclick=()=>{state.columns=COLUMN_DEFS.map(c=>c.id);app.querySelectorAll("[data-col]").forEach(input=>{input.checked=true})};
  app.querySelector("#start").onclick=onStart;
  app.querySelector("#back").onclick=setup;
 }
