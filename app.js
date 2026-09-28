@@ -133,7 +133,7 @@ function setup(){
 }
 
 function columnSetup(title,buttonText,onStart,locked=false){
- app.innerHTML=`<section class="panel setup">
+ app.innerHTML=`${appNavMarkup("KOLONE")}<section class="panel setup">
  <div class="brand"><h1>Jumbo Dice</h1><p>${title}</p></div>
  <div class="setup-card"><h2>Kolone</h2><p class="status">${locked?"Podešavanja su zaključana do kraja tekuće partije.":"Početno su uključene samo obavezne kolone: Gore, Dole i Slobodna. Možete uključiti ostale kolone ili izabrati sve."}</p>
  <div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("")}</div>${locked?'<button class="btn" id="newSolo" type="button">Nova partija</button>':'<button class="btn" id="selectAll" type="button">Izaberi sve</button>'}</div>
@@ -158,7 +158,7 @@ function soloSetup(){
 function onlineSetup(){
  state.mode="setup-online";
  state.columns=["down","free","up"];
- app.innerHTML=`<section class="panel setup">
+ app.innerHTML=`${appNavMarkup("ONLINE STO")}<section class="panel setup">
  <div class="brand"><h1>Jumbo Dice</h1><p>Online multiplayer</p></div>
  <div id="network" class="status">Online: povezivanje sa serverom…</div>
  <div class="setup-card"><h2>Soba</h2><div class="toolbar">
@@ -474,7 +474,7 @@ function renderLobbyState(s){
 
 function game(){
  app.innerHTML=`${appNavMarkup("ONLINE")}<section class="match-heading"><div class="match-title"><span class="eyebrow">PARTIJA UŽIVO</span><h1>Jamb sto</h1><p>Baci kockice. Sačuvaj kombinaciju. Upiši rezultat.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button></div></section>
- <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div><div class="layout"><section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">Bacanje <b id="count">0 od 3</b></span></div><div class="dice-grid" id="dice" aria-label="Kockice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Izaberi označeno polje za upis.</p></div><div class="tabs" id="tabs"></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
+ <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div><div class="layout"><section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">6 kockica · do 3 bacanja</span></div><div class="dice-grid" id="dice" aria-label="Kockice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Izaberi označeno polje za upis.</p></div><div class="tabs" id="tabs"></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
  bindRulesGuide();
  bindTableScale();
  const reconnect=app.querySelector("#reconnect");if(reconnect)reconnect.onclick=()=>{reconnect.disabled=true;reconnect.textContent="Povezivanje…";socket?.connect()};
