@@ -97,6 +97,11 @@ function columnRows(colId) {
 function emptyCell(player, col, row) { return player.cells[key(col, row)] === undefined; }
 function validColumn(config, id) { return config.columns.includes(id); }
 function frontierRows(col, player) {
+  if (col === "down") return SCORE_ROWS.find(row => emptyCell(player, col, row)) ? [SCORE_ROWS.find(row => emptyCell(player, col, row))] : [];
+  if (col === "up") {
+    const row = [...SCORE_ROWS].reverse().find(item => emptyCell(player, col, item));
+    return row ? [row] : [];
+  }
   const directions = {
     r: [["MAX", "6", "5", "4", "3", "2", "1"], ["MIN", "KENTA", "TRILING", "FUL", "POKER", "YAMB"]],
     n: [SCORE_ROWS, [...SCORE_ROWS].reverse()]
@@ -349,7 +354,8 @@ io.on("connection", socket => {
     if (room.rolls === 0) return emitError(socket, "Potez još nije bačen.");
     const isCrossOut = crossOut === true;
     if (room.contraTargetRow && room.config.columns.includes("contra") && (columnId !== "contra" || row !== room.contraTargetRow)) return emitError(socket, "Morate odigrati protivnikovo najavljeno polje u koloni Kontra najava.");
-    if (!room.contraTargetRow && columnId === "contra" && room.config.columns.includes("contra") && !isCrossOut) return emitError(socket, "Nema najave protivnika za Kontra najavu.");
+    const announcedFull = room.config.columns.includes("announced") && SCORE_ROWS.every(scoreRow => !emptyCell(player, "announced", scoreRow));
+    if (!room.contraTargetRow && columnId === "contra" && room.config.columns.includes("contra") && !announcedFull && !isCrossOut) return emitError(socket, "Nema najave protivnika za Kontra najavu.");
     if (player.announcedRow && (columnId !== "announced" || row !== player.announcedRow)) return emitError(socket, "Morate odigrati najavljeno polje.");
     if (!player.announcedRow && columnId === "announced" && room.config.columns.includes("announced") && !isCrossOut) return emitError(socket, "Najavu možete odigrati samo ako ste je postavili posle prvog bacanja.");
     if (!isCrossOut && (room.selection.length < 1 || room.selection.length > 5)) return emitError(socket, "Izaberite od 1 do 5 kockica ili precrtajte polje.");
