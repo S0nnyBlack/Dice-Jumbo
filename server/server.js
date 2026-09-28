@@ -6,7 +6,7 @@ import { randomInt } from "crypto";
 import path from "path";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
-import { normalizeColumnIds, calculateColumnSums, visibleCellsForPlayer } from "../game.js";
+import { normalizeColumnIds, calculateColumnSums, visibleCellsForPlayer, combinationScore } from "../game.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,40 +50,7 @@ function createCode() {
 function makeDice() { return Array.from({ length: 6 }, () => randomInt(1, 7)); }
 function key(col, row) { return col + "::" + row; }
 function sum(v) { return v.reduce((a, b) => a + b, 0); }
-function counts(v) { return v.reduce((m, x) => (m[x] = (m[x] || 0) + 1, m), {}); }
-
 const SCORE_ROWS = [...TOP_ROWS, "MAX", "MIN", ...COMBO_ROWS];
-function analyse(values) {
-  if (!Array.isArray(values) || values.length < 1 || values.length > 5) return null;
-  const c = counts(values);
-  const freq = Object.values(c);
-  const sorted = [...new Set(values)].sort((a, b) => a - b).join(",");
-  const total = sum(values);
-  return {
-    total,
-    counts: c,
-    kenta: values.length === 5 && (sorted === "1,2,3,4,5" || sorted === "2,3,4,5,6"),
-    triling: freq.some(count => count >= 3),
-    ful: values.length === 5 && freq.includes(3) && freq.includes(2),
-    poker: freq.some(count => count >= 4),
-    yamb: values.length === 5 && freq.includes(5)
-  };
-}
-function combinationScore(row, values, { rolls = 3, manual = false } = {}) {
-  const a = analyse(values);
-  if (!a) return null;
-  if (row === "KENTA") return a.kenta ? (manual ? 66 : rolls === 1 ? 66 : rolls === 2 ? 56 : 46) : null;
-  if (row === "TRILING") return a.triling ? a.total + 20 : null;
-  if (row === "FUL") return a.ful ? a.total + 30 : null;
-  if (row === "POKER") {
-    if (!a.poker) return null;
-    const fourCount = Object.values(a.counts).find(count => count >= 4);
-    const face = Number(Object.keys(a.counts).find(value => a.counts[value] === fourCount));
-    return face * 4 + 40;
-  }
-  if (row === "YAMB") return a.yamb ? a.total + 50 : null;
-  return null;
-}
 function upperScore(values, face) { return values.filter(x => x === face).reduce((a, b) => a + b, 0); }
 function columnRows(colId) {
   if (colId === "up" || colId === "down" || colId === "r" || colId === "n") {
@@ -346,7 +313,6 @@ io.on("connection", socket => {
     else room.dice = room.dice.map((value, i) => room.selection.includes(i) ? value : fresh[i]);
 
     room.rolls++;
-    room.selection = [];
     broadcast(room);
   });
 

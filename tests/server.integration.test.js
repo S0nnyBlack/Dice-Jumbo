@@ -126,10 +126,7 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     host.emit("turn:roll");
     const reroll = await rerollWait;
     assert.equal(reroll.dice[heldIndex], firstRoll.dice[heldIndex]);
-
-    const selectedAgain = waitFor(host, "state", state => state.selection.includes(heldIndex));
-    host.emit("turn:select", { indices: [heldIndex] });
-    await selectedAgain;
+    assert.deepEqual(reroll.selection, [heldIndex], "saved dice stay selected after reroll");
 
     const face = firstRoll.dice[heldIndex];
     const commitWait = waitFor(host, "state", state =>

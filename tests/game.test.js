@@ -25,14 +25,15 @@ test("Kenta varies with roll count and manual Kenta is always 66",()=>{
 });
 test("combination rows apply the documented bonuses and poker sums only four matching dice",()=>{
  assert.equal(combinationScore("TRILING",[4,4,4]),32);
- assert.equal(combinationScore("TRILING",[4,4,4,1]),33);
+ assert.equal(combinationScore("TRILING",[4,4,4,1]),32);
  assert.equal(combinationScore("POKER",[4,4,4,4]),56);
- assert.equal(combinationScore("TRILING",[4,4,4,4,4]),40);
+ assert.equal(combinationScore("TRILING",[4,4,4,4,4]),32);
  assert.equal(combinationScore("POKER",[4,4,4,4,4]),56);
  assert.equal(combinationScore("YAMB",[4,4,4,4,4]),70);
  assert.equal(combinationScore("TRILING",[4,4,3]),null);
  assert.equal(combinationScore("POKER",[4,4,4,3]),null);
- assert.equal(combinationScore("TRILING",[4,4,4,1,2]),35);
+ assert.equal(combinationScore("TRILING",[4,4,4,1,2]),32);
+ assert.equal(combinationScore("TRILING",[6,6,6,1,2]),38);
  assert.equal(combinationScore("FUL",[3,3,3,5,5]),49);
  assert.equal(combinationScore("POKER",[2,2,2,2,5]),48);
  assert.equal(combinationScore("YAMB",[6,6,6,6,6]),80);
@@ -53,7 +54,7 @@ test("short selections suggest Triling and Poker only after the required matchin
  assert.ok(three.some(e=>e.row==="TRILING"&&e.value===32));
  assert.ok(!three.some(e=>e.row==="POKER"));
  const four=availableEntries(["free"],{},[4,4,4,4]);
- assert.ok(four.some(e=>e.row==="TRILING"&&e.value===36));
+ assert.ok(four.some(e=>e.row==="TRILING"&&e.value===32));
  assert.ok(four.some(e=>e.row==="POKER"&&e.value===56));
  const five=availableEntries(["free"],{},[4,4,4,4,4]);
  for(const row of ["TRILING","POKER","YAMB"])assert.ok(five.some(e=>e.row===row));
@@ -144,3 +145,4 @@ test("online subtotals are private to their owner until the game ends",()=>{
   assert.equal(final["free::"+row],cells["free::"+row]);
  }
 });
+

@@ -101,3 +101,12 @@ Provera: 25 od 25 testova prolazi lokalno. Pregledani su solo prikazi na desktop
 - U složenom prikazu širina panela tabele je ograničena na 740 px i centrirana, dok panel kockica koristi raspoloživ prostor. Na telefonu tabela ima sopstveno vodoravno pomeranje.
 - Provera: 25 od 25 lokalnih testova prolazi; pregledane su širine od 320 do 1920 px, uključujući granice preloma. Stranica nema vodoravno pomeranje.
 
+## Verzija 61 — ispravka Trilinga
+
+- Triling računa zbir tačno tri iste kockice; četvrta i peta izabrana kockica ne povećavaju rezultat.
+- Bonus od 20 poena ostaje uz zbir tri iste kockice.
+- Solo predlozi i online upis koriste istu funkciju za bodovanje, pa rezultat ostaje jednak u oba režima.
+- Pravila na sajtu i u README dokumentu su usklađena sa obračunom.
+- Kockice koje igrač označi ostaju označene i nakon sledećeg bacanja, u solo i online partiji, dok ih igrač sam ne isključi ili se potez ne završi.
+- Provera: 25 od 25 lokalnih testova prolazi, uključujući slučajeve sa tri, četiri i pet istih kockica i čuvanje izbora pri ponovnom bacanju. U pregledniku je potvrđeno da solo kockica zadržava vrednost, oznaku „Sačuvana” i `aria-pressed="true"` posle ponovnog bacanja.
+

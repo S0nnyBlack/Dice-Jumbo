@@ -51,7 +51,11 @@ export function analyse(v){
 export function combinationScore(row,v,{rolls=3,manual=false}={}){
  const a=analyse(v);if(!a.valid)return null;
  if(row==="KENTA")return a.kenta?(manual?66:rolls===1?66:rolls===2?56:46):null;
- if(row==="TRILING")return a.triling?a.total+20:null;
+ if(row==="TRILING"){
+  if(!a.triling)return null;
+  const face=Number(Object.keys(a.counts).find(value=>a.counts[value]>=3));
+  return face*3+20;
+ }
  if(row==="FUL")return a.ful?a.total+30:null;
  if(row==="POKER"){
   if(!a.poker)return null;
@@ -110,3 +114,4 @@ export function directionOrder(colId,cells){
  if(colId==="up"){for(let i=rows.length-1;i>=0;i--)if(open(cells,colId,rows[i]))return rows[i];}
  return null;
 }
+
