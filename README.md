@@ -21,7 +21,7 @@ Phase 2 adds the real score-sheet model, per-player sheets, public opponent visi
 - Kenta: 1-5 = 66, 2-6 = 56.
 
 ## Multiplayer
-The UI/state is structured per player, but this repository still needs a server-authoritative realtime transport before it should be considered online multiplayer.
+The repository includes a server-authoritative realtime transport using Express and Socket.IO. Render deployment is supported via render.yaml.
 
 ## Solo mode
 - Single-player local mode is available without an AI opponent.
