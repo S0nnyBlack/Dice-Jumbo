@@ -2,11 +2,10 @@ export const COLUMN_DEFS=[
  {id:"down",name:"Dole",headerSymbol:"↓",headerLabel:"Dole",headerTitle:"Dole",mandatory:true,direction:"down"},
  {id:"free",name:"Slobodna",headerSymbol:"S",headerLabel:"Slobodna",headerTitle:"Slobodna",mandatory:true,direction:"free"},
  {id:"up",name:"Gore",headerSymbol:"↑",headerLabel:"Gore",headerTitle:"Gore",mandatory:true,direction:"up"},
- {id:"announced",name:"Najava",headerSymbol:"↕",headerLabel:"Najava",headerTitle:"Najava",mandatory:false,direction:"announce"},
- {id:"contra",name:"Kontra najava",headerSymbol:"↓↑",headerLabel:"Kontra",headerTitle:"Kontra najava",mandatory:false,direction:"contra"},
- {id:"r",name:"R",headerSymbol:"R",headerLabel:"R",headerTitle:"R · Max naviše, min naniže",mandatory:false,direction:"center-out"},
- {id:"n",name:"N",headerSymbol:"N",headerLabel:"N",headerTitle:"N · 1 naniže, Yamb naviše",mandatory:false,direction:"both-ends"},
- {id:"d",name:"D",headerSymbol:"D",headerLabel:"D",headerTitle:"D · Ručna, samo posle prvog bacanja",mandatory:false,direction:"manual"},
+ {id:"announced",name:"Najava",headerSymbol:"N",headerLabel:"Najava",headerTitle:"Najava",mandatory:false,direction:"announce"},
+ {id:"contra",name:"Dirigovano",headerSymbol:"D",headerLabel:"Dirigovano",headerTitle:"Dirigovano · prati polje koje je protivnik najavio",mandatory:false,direction:"contra"},
+ {id:"r",name:"R",headerSymbol:"R",headerLabel:"R",headerTitle:"R · Ručna, samo posle prvog bacanja",mandatory:false,direction:"manual"},
+ {id:"n",name:"N",headerSymbol:"↓↑",headerLabel:"N",headerTitle:"N · 1 naniže, Yamb naviše",mandatory:false,direction:"both-ends"},
  {id:"o",name:"O",headerSymbol:"O",headerLabel:"O",headerTitle:"O · tek nakon prethodnih kolona",mandatory:false,direction:"required"},
  {id:"m",name:"M",headerSymbol:"M",headerLabel:"M",headerTitle:"M · maksimum iz prethodnih kolona",mandatory:false,direction:"maximum"}
 ];
@@ -59,13 +58,12 @@ function requiredColumnReady(columnIds,cells){
 }
 export function frontierRows(colId,cells){
  const directions={
-  r:[["MAX","6","5","4","3","2","1"],["MIN","KENTA","TRILING","FUL","POKER","YAMB"]],
   n:[["1","2","3","4","5","6","MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"],["YAMB","POKER","FUL","TRILING","KENTA","MIN","MAX","6","5","4","3","2","1"]]
  }[colId];
  if(!directions)return [];
  return [...new Set(directions.map(rows=>rows.find(row=>open(cells,colId,row))).filter(Boolean))];
 }
-export function availableEntries(columnIds,cells,values,{crossOut=false,announcedRow=null,contraRow=null,rolls=3,manualColumn="d"}={}){
+export function availableEntries(columnIds,cells,values,{crossOut=false,announcedRow=null,contraRow=null,rolls=3,manualColumn="r"}={}){
  if(!crossOut&&!validDice(values))return[];
  const out=[];
  const restricted=contraRow?{column:"contra",row:contraRow}:announcedRow?{column:"announced",row:announcedRow}:null;
@@ -79,7 +77,7 @@ export function availableEntries(columnIds,cells,values,{crossOut=false,announce
   if(!restricted&&colId==="contra"&&!crossOut&&!announcedFull)continue;
   const column=COLUMN_DEFS.find(item=>item.id===colId);
   if(!column)continue;
-  const candidates=["up","down"].includes(colId)?[directionOrder(colId,cells)]:["r","n"].includes(colId)?frontierRows(colId,cells):SCORE_ROWS;
+  const candidates=["up","down"].includes(colId)?[directionOrder(colId,cells)]:colId==="n"?frontierRows(colId,cells):SCORE_ROWS;
   for(const row of candidates){
    if(restricted&&row!==restricted.row)continue;
    if(!row||!SCORE_ROWS.includes(row)||!open(cells,colId,row))continue;

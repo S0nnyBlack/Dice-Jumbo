@@ -43,10 +43,9 @@ Tri osnovne kolone su uvek uključene:
 Dodatne kolone su opcione:
 
 - **Najava** — bira se posle prvog bacanja i obavezuje igrača na najavljeni red.
-- **Kontra najava** — prati polje koje je protivnik najavio u prethodnom potezu. Ako nema najave, slobodan unos je moguć kada je kolona Najava popunjena.
-- **R** — od MAX-a naniže i od MIN-a naviše.
-- **N** — od jedinice naniže i od Jamba naviše.
-- **D** — ručna kolona; igra se nakon prvog bacanja. Ručna Kenta vredi 66.
+- **Dirigovano (D)** — prati polje koje je protivnik najavio u prethodnom potezu. Ako nema najave, slobodan unos je moguć kada je kolona Najava popunjena.
+- **R** — ručna kolona; može se igrati samo posle prvog bacanja. Ručna Kenta vredi 66.
+- **N (↓↑)** — popunjava se od jedinica naniže i od Jamba naviše.
 - **O** — otključava se kada su popunjene sve prethodne uključene kolone.
 - **M** — automatski upisuje najveći rezultat iz prethodnih uključenih kolona. Precrtavanja u odgovarajućim poljima prvih šest kolona prenose se u M.
 
@@ -56,7 +55,7 @@ Kolone se prikazuju u standardnom redosledu bez obzira na redosled kojim su uklj
 
 - **1–6** — zbir izabranih kockica odgovarajuće vrednosti.
 - **MAX / MIN** — zbir izabranih kockica.
-- **Kenta** — niz 1–5 ili 2–6: 66 posle prvog bacanja, 56 posle drugog i 46 posle trećeg. U koloni D vredi 66.
+- **Kenta** — niz 1–5 ili 2–6: 66 posle prvog bacanja, 56 posle drugog i 46 posle trećeg. U koloni R vredi 66.
 - **Triling** — najmanje tri iste među izabranim kockicama: njihov zbir +20. Može se upisati sa 3, 4 ili 5 kockica.
 - **Ful** — tri iste i par u pet izabranih kockica: zbir +30.
 - **Poker** — najmanje četiri iste među izabranim kockicama: vrednost četiri iste +40. Može se upisati sa 4 ili 5 kockica.

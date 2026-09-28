@@ -77,7 +77,7 @@ function columnRows(colId) {
   if (colId === "up" || colId === "down" || colId === "r" || colId === "n") {
     return [...TOP_ROWS, "SUM_TOP", "MAX", "MIN", "SUM_MID", ...COMBO_ROWS, "SUM_TOTAL"];
   }
-  if (["free", "announced", "contra", "r", "n", "d", "o", "m"].includes(colId)) {
+  if (["free", "announced", "contra", "r", "n", "o", "m"].includes(colId)) {
     return [...TOP_ROWS, "SUM_TOP", "MAX", "MIN", "SUM_MID", ...COMBO_ROWS, "SUM_TOTAL"];
   }
   return [];
@@ -91,7 +91,6 @@ function frontierRows(col, player) {
     return row ? [row] : [];
   }
   const directions = {
-    r: [["MAX", "6", "5", "4", "3", "2", "1"], ["MIN", "KENTA", "TRILING", "FUL", "POKER", "YAMB"]],
     n: [SCORE_ROWS, [...SCORE_ROWS].reverse()]
   }[col];
   if (!directions) return [];
@@ -111,9 +110,9 @@ function calculateEntry(room, player, col, row, selected, crossOut = false) {
 
   if (col === "up" && row !== frontierRows("up", player)[0]) return { ok: false, error: "Gore kolona mora pratiti redosled." };
   if (col === "down" && row !== frontierRows("down", player)[0]) return { ok: false, error: "Dole kolona mora pratiti redosled." };
-  if (["r", "n"].includes(col) && !frontierRows(col, player).includes(row)) return { ok: false, error: "Kolona mora pratiti otvoreni redosled." };
+  if (col === "n" && !frontierRows(col, player).includes(row)) return { ok: false, error: "Kolona mora pratiti otvoreni redosled." };
   if (col === "o" && !requiredColumnReady(room, player)) return { ok: false, error: "Kolona O se otključava kada se popune prethodne kolone." };
-  if (col === "d" && room.rolls !== 1) return { ok: false, error: "Ručna kolona se popunjava posle prvog bacanja." };
+  if (col === "r" && room.rolls !== 1) return { ok: false, error: "Ručna kolona se popunjava posle prvog bacanja." };
   if (col === "m") return { ok: false, error: "Kolona M se izračunava iz prethodnih kolona." };
 
   const scoreable = TOP_ROWS.includes(row) || row === "MAX" || row === "MIN" || COMBO_ROWS.includes(row);
@@ -126,7 +125,7 @@ function calculateEntry(room, player, col, row, selected, crossOut = false) {
   if (TOP_ROWS.includes(row)) value = upperScore(selected, Number(row));
   else if (row === "MAX" || row === "MIN") value = sum(selected);
   else if (COMBO_ROWS.includes(row)) {
-    value = combinationScore(row, selected, { rolls: room.rolls, manual: col === "d" });
+    value = combinationScore(row, selected, { rolls: room.rolls, manual: col === "r" });
     if (value === null) return { ok: false, error: "Izabrane kockice ne ispunjavaju uslov za ovu kombinaciju." };
   }
   return { ok: true, value };
@@ -360,7 +359,7 @@ io.on("connection", socket => {
     if (!room || !player || !room.started) return;
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
     if (!room.config.columns.includes("announced")) return emitError(socket, "Kolona Najava nije uključena.");
-    if (room.contraTargetRow && room.config.columns.includes("contra")) return emitError(socket, "Morate odigrati protivnikovu kontranajavu.");
+    if (room.contraTargetRow && room.config.columns.includes("contra")) return emitError(socket, "Morate odigrati polje u koloni Dirigovano.");
     if (room.rolls !== 1) return emitError(socket, "Najavu možete postaviti samo posle prvog bacanja.");
     if (player.announcedRow) return emitError(socket, "Najava za ovaj potez je već postavljena.");
     const scoreRows = [...TOP_ROWS, "MAX", "MIN", ...COMBO_ROWS];
@@ -368,7 +367,7 @@ io.on("connection", socket => {
     if (room.config.columns.includes("contra")) {
       const idx = room.players.findIndex(p => p.id === player.id);
       const next = room.players[(idx + 1) % room.players.length];
-      if (!emptyCell(next, "contra", row)) return emitError(socket, "Protivnik je već iskoristio to polje u Kontra najavi.");
+      if (!emptyCell(next, "contra", row)) return emitError(socket, "Protivnik je već iskoristio to polje u koloni Dirigovano.");
     }
     player.announcedRow = row;
     broadcast(room);
@@ -382,7 +381,7 @@ io.on("connection", socket => {
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
     if (room.rolls === 0) return emitError(socket, "Potez još nije bačen.");
     const isCrossOut = crossOut === true;
-    if (room.contraTargetRow && room.config.columns.includes("contra") && (columnId !== "contra" || row !== room.contraTargetRow)) return emitError(socket, "Morate odigrati protivnikovo najavljeno polje u koloni Kontra najava.");
+    if (room.contraTargetRow && room.config.columns.includes("contra") && (columnId !== "contra" || row !== room.contraTargetRow)) return emitError(socket, "Morate odigrati protivnikovo najavljeno polje u koloni Dirigovano.");
     const announcedFull = room.config.columns.includes("announced") && SCORE_ROWS.every(scoreRow => !emptyCell(player, "announced", scoreRow));
     if (!room.contraTargetRow && columnId === "contra" && room.config.columns.includes("contra") && !announcedFull && !isCrossOut) return emitError(socket, "Nema najave protivnika za Kontra najavu.");
     if (player.announcedRow && (columnId !== "announced" || row !== player.announcedRow)) return emitError(socket, "Morate odigrati najavljeno polje.");
@@ -391,9 +390,9 @@ io.on("connection", socket => {
 
     const selectedValues = room.selection.map(i => room.dice[i]);
     if (columnId === "o" && !requiredColumnReady(room, player)) return emitError(socket, "Kolona O se otključava kada se popune prethodne kolone.");
-    if (columnId === "d" && room.rolls !== 1) return emitError(socket, "Ručna kolona se popunjava posle prvog bacanja.");
+    if (columnId === "r" && room.rolls !== 1) return emitError(socket, "Ručna kolona se popunjava posle prvog bacanja.");
     if (columnId === "m") return emitError(socket, "Kolona M se izračunava iz prethodnih kolona.");
-    if (["r", "n"].includes(columnId) && !frontierRows(columnId, player).includes(row)) return emitError(socket, "Kolona mora pratiti otvoreni redosled.");
+    if (columnId === "n" && !frontierRows(columnId, player).includes(row)) return emitError(socket, "Kolona mora pratiti otvoreni redosled.");
     const result = calculateEntry(room, player, columnId, row, selectedValues, isCrossOut);
     if (!result.ok) return emitError(socket, result.error);
 
