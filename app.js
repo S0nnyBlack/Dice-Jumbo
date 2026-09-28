@@ -224,7 +224,7 @@ function announceRow(row){
 }
 function renderAnnouncementUi(){
  const box=app.querySelector("#announceOptions");if(!box)return;
- const isMyTurn=state.mode!=="online"||state.players[state.currentPlayer]?.id===net.playerId;
+ const isMyTurn=state.mode!=="online"||(state.players[state.currentPlayer]?.id===net.playerId&&net.connected&&net.synced);
  if(!isMyTurn){box.innerHTML="";return;}
  if(state.contraTargetRow){box.textContent=(state.mode==="online"?"Protivnik je najavio ":"Prethodno si najavio ")+state.contraTargetRow+". Moraš odigrati to polje u koloni Kontra najava.";return;}
  if(state.announcedRow){box.textContent="Najavljeno polje: "+state.announcedRow+". Ovaj potez moraš završiti isključivo u toj ćeliji kolone Najava.";return;}
@@ -248,7 +248,7 @@ function confirmShortSelection(candidate){
  return window.confirm("Izabrali ste "+state.selected.size+" od 5 kockica. Upis će se računati samo iz izabranih kockica. Da li želite da nastavite?");
 }
 function commitOnlineCandidate(candidate){
- if(!confirmShortSelection(candidate))return;
+ if(!net.connected||!net.synced||!confirmShortSelection(candidate))return;
  socket?.emit("turn:commit",{columnId:candidate.colId,row:candidate.row,crossOut:state.crossOutMode});
 }
 
@@ -300,6 +300,8 @@ function commitSolo(candidate){
 
 function updateTurnStatus(isMyTurn=true){
  const status=app.querySelector("#turnStatus");if(!status)return;
+ if(state.mode==="online"&&!net.connected){status.textContent="Veza je prekinuta";status.dataset.state="waiting";return;}
+ if(state.mode==="online"&&!net.synced){status.textContent="Sinhronizujem stanje sobe…";status.dataset.state="waiting";return;}
  if(state.gameOver){status.textContent="Partija završena";status.dataset.state="done";return;}
  if(state.contraTargetRow){status.textContent="Obavezna kontranajava: "+state.contraTargetRow;status.dataset.state="required";return;}
  if(state.announcedRow){status.textContent="Obavezna najava: "+state.announcedRow;status.dataset.state="required";return;}
@@ -363,7 +365,7 @@ function renderScoreSheet(player,isSelf=true){
   {id:"YAMB",label:"YAMB",sub:"+50",type:"combo"},
   {id:"SUM_TOTAL",label:"Σ",type:"sum"}
  ];
- const canChoose=isSelf&&!state.gameOver&&state.rolls>0&&(state.crossOutMode||state.selected.size>0)&&(state.mode!=="online"||current()?.id===net.playerId);
+ const canChoose=isSelf&&!state.gameOver&&state.rolls>0&&(state.crossOutMode||state.selected.size>0)&&(state.mode!=="online"||(current()?.id===net.playerId&&net.connected&&net.synced));
  const choices=canChoose?soloCandidates():[];
  const hideRow=!state.gameOver&&!isSelf;
  let html=`<table class="sheet premium-sheet" style="--sheet-min-width:${64+52*columns.length}px"><colgroup><col class="label-col">${columns.map(c=>`<col class="data-col col-${c.id}">`).join("")}</colgroup>
@@ -423,7 +425,7 @@ function renderLobbyState(s){
 
 function game(){
  app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="rulesHelp">Pravila</button></div></header>
- <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span></div><div class="layout"><section class="panel game-controls"><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
+ <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div><div class="layout"><section class="panel game-controls"><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
  bindRulesGuide();
  bindTableScale();
  const reconnect=app.querySelector("#reconnect");if(reconnect)reconnect.onclick=()=>{reconnect.disabled=true;reconnect.textContent="Povezivanje…";socket?.connect()};
@@ -437,20 +439,22 @@ function game(){
 function renderOnline(){
  const d=app.querySelector("#dice");if(!d)return;
  const isMyTurn=state.players[state.currentPlayer]?.id===net.playerId;
- d.innerHTML=state.dice.map((v,i)=>'<button class="die '+(state.selected.has(i)?"selected":"")+'" data-i="'+i+'" '+(!isMyTurn||state.gameOver||state.rolls===0?"disabled":"")+'>'+v+'</button>').join("");
+ const canAct=isMyTurn&&net.connected&&net.synced;
+ updateNetworkStatus();
+ d.innerHTML=state.dice.map((v,i)=>'<button class="die '+(state.selected.has(i)?"selected":"")+'" data-i="'+i+'" '+(!canAct||state.gameOver||state.rolls===0?"disabled":"")+'>'+v+'</button>').join("");
  d.querySelectorAll(".die").forEach(b=>b.onclick=()=>{
-   if(!isMyTurn||state.gameOver||state.rolls===0)return;
+   if(!canAct||state.gameOver||state.rolls===0)return;
    state.crossOutMode=false;
    const i=+b.dataset.i;
    state.selected.has(i)?state.selected.delete(i):state.selected.size<5&&state.selected.add(i);
    socket?.emit("turn:select",{indices:[...state.selected]});
  });
  const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls}/${state.maxRolls||3}`;
- updateTurnStatus(isMyTurn);
+ updateTurnStatus(canAct);
  const roll=app.querySelector("#roll"),clear=app.querySelector("#clear"),crossout=app.querySelector("#crossout");
- if(roll){roll.disabled=!isMyTurn||state.gameOver||state.rolls>=(state.maxRolls||3);roll.textContent=state.rolls>=(state.maxRolls||3)?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
- if(clear)clear.disabled=!isMyTurn||state.gameOver||state.rolls===0;
- if(crossout){crossout.disabled=!isMyTurn||state.gameOver||state.rolls===0;crossout.classList.toggle("crossout-active",state.crossOutMode);crossout.textContent=state.crossOutMode?"Otkaži precrtavanje":"Precrtaj polje (0)";}
+ if(roll){roll.disabled=!canAct||state.gameOver||state.rolls>=(state.maxRolls||3);roll.textContent=state.rolls>=(state.maxRolls||3)?"Sva bacanja iskorišćena":"Baci / ponovo baci";}
+ if(clear)clear.disabled=!canAct||state.gameOver||state.rolls===0;
+ if(crossout){crossout.disabled=!canAct||state.gameOver||state.rolls===0;crossout.classList.toggle("crossout-active",state.crossOutMode);crossout.textContent=state.crossOutMode?"Otkaži precrtavanje":"Precrtaj polje (0)";}
  const tabs=app.querySelector("#tabs");tabs.innerHTML=state.players.map((p,i)=>'<button class="player-tab '+(i===state.currentPlayer?'active':'')+'">'+escapeHtml(p.name)+'</button>').join("");
  const box=app.querySelector("#options");
  if(box){
@@ -461,9 +465,9 @@ function renderOnline(){
    else if(state.crossOutMode)hint="Izaberi dostupno polje koje želiš da precrtaš. U polje će biti upisana 0.";
    else if(state.selected.size===0)hint="Izaberi 1–5 kockica za bodovanje ili označi kockice za sledeće bacanje.";
    else hint=`Izabrano: ${state.selected.size}/5. Sa manje od 5 kockica prikazaće se upozorenje pri upisu.`;
-   const ops=state.gameOver||!isMyTurn?[]:soloCandidates();
+   const ops=state.gameOver||!canAct?[]:soloCandidates();
    const cards=ops.map((o,i)=>'<button class="option" data-op="'+i+'"><b>'+escapeHtml(o.colName)+' · '+escapeHtml(o.row)+'</b><span>'+o.value+'</span></button>').join("");
-   const empty=!state.gameOver&&isMyTurn&&state.rolls>0&&!state.crossOutMode&&state.selected.size>0&&!ops.length?"Nema dostupnih polja za izabrani rezultat.":"";
+   const empty=!state.gameOver&&canAct&&state.rolls>0&&!state.crossOutMode&&state.selected.size>0&&!ops.length?"Nema dostupnih polja za izabrani rezultat.":"";
    box.innerHTML='<span class="status">'+hint+'</span>'+(cards||(empty?'<span class="status options-empty">'+empty+'</span>':""));
    box.querySelectorAll("[data-op]").forEach(b=>b.onclick=()=>commitOnlineCandidate(ops[+b.dataset.op]));
  }
