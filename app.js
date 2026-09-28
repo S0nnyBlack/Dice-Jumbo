@@ -45,7 +45,7 @@ function columnSetup(title,buttonText,onStart){
 }
 
 function soloSetup(){
- state.columns=["down","free","up"];
+ state.columns=[...COLUMN_DEFS.map(c=>c.id)];
  columnSetup("Solo igra","Pokreni solo igru",()=>{resetLocal();state.columns=[...new Set(["down","free","up",...state.columns])];state.mode="solo";soloGame();});
 }
 
