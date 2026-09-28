@@ -36,16 +36,20 @@ export function combinationScore(row,v){
  if(row==="YAMB")return a.yamb?a.total+50:null;
  return null;
 }
-export function availableEntries(columnIds,cells,values,{crossOut=false}={}){
+export function availableEntries(columnIds,cells,values,{crossOut=false,announcedRow=null,contraRow=null}={}){
  const validDice=Array.isArray(values)&&values.length>=1&&values.length<=5&&values.every(value=>Number.isInteger(value)&&value>=1&&value<=6);
  if(!crossOut&&!validDice)return[];
  const rowsToScore=[...VALUE_ROWS.map(String),"MAX","MIN",...COMBINATION_ROWS];
  const out=[];
+ const restricted=contraRow?{column:"contra",row:contraRow}:announcedRow?{column:"announced",row:announcedRow}:null;
  for(const colId of columnIds){
+  if(restricted&&colId!==restricted.column)continue;
+  if(!restricted&&["announced","contra"].includes(colId)&&!crossOut)continue;
   const column=COLUMN_DEFS.find(item=>item.id===colId);
   if(!column)continue;
   const candidates=["up","down"].includes(colId)?[directionOrder(colId,cells)]:rowsToScore;
   for(const row of candidates){
+   if(restricted&&row!==restricted.row)continue;
    if(!row||!rowsToScore.includes(row))continue;
    if(cells[colId+"::"+row]!==undefined&&cells[colId+"::"+row]!==null)continue;
    if(crossOut){out.push({colId,colName:column.name,row,value:0});continue;}

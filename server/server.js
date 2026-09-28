@@ -160,6 +160,8 @@ function publicState(room, viewerId) {
     rolls: room.currentPlayerId === viewerId ? room.rolls : 0,
     dice: room.currentPlayerId === viewerId ? room.dice : [],
     selection: room.currentPlayerId === viewerId ? room.selection : [],
+    announcedRow: viewer?.announcedRow || null,
+    contraTargetRow: room.currentPlayerId === viewerId ? room.contraTargetRow : null,
     config: room.config,
     players: room.players.map(p => ({
       id: p.id,
@@ -197,6 +199,7 @@ io.on("connection", socket => {
       connected: true,
       ready: true,
       cells: {},
+      announcedRow: null,
       token: sessionToken()
     };
     const room = {
@@ -208,7 +211,8 @@ io.on("connection", socket => {
       currentPlayerId: player.id,
       rolls: 0,
       dice: [],
-      selection: []
+      selection: [],
+      contraTargetRow: null
     };
     rooms.set(room.code, room);
     sessions.set(player.token, { roomCode: room.code, playerId: player.id });
@@ -230,6 +234,7 @@ io.on("connection", socket => {
       connected: true,
       ready: true,
       cells: {},
+      announcedRow: null,
       token: sessionToken()
     };
     room.players.push(player);
@@ -251,6 +256,8 @@ io.on("connection", socket => {
     room.rolls = 0;
     room.dice = [];
     room.selection = [];
+    room.contraTargetRow = null;
+    for (const p of room.players) p.announcedRow = null;
     broadcast(room);
   });
 
@@ -282,6 +289,26 @@ io.on("connection", socket => {
     broadcast(room);
   });
 
+  socket.on("turn:announce", ({ row } = {}) => {
+    const room = getRoomBySocket(socket.id);
+    const player = getPlayer(room, socket.id);
+    if (!room || !player || !room.started) return;
+    if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
+    if (!room.config.columns.includes("announced")) return emitError(socket, "Kolona Najava nije uključena.");
+    if (room.contraTargetRow && room.config.columns.includes("contra")) return emitError(socket, "Morate odigrati protivnikovu kontranajavu.");
+    if (room.rolls !== 1) return emitError(socket, "Najavu možete postaviti samo posle prvog bacanja.");
+    if (player.announcedRow) return emitError(socket, "Najava za ovaj potez je već postavljena.");
+    const scoreRows = [...TOP_ROWS, "MAX", "MIN", ...COMBO_ROWS];
+    if (!scoreRows.includes(row) || !emptyCell(player, "announced", row)) return emitError(socket, "Izabrano polje za Najavu nije dostupno.");
+    if (room.config.columns.includes("contra")) {
+      const idx = room.players.findIndex(p => p.id === player.id);
+      const next = room.players[(idx + 1) % room.players.length];
+      if (!emptyCell(next, "contra", row)) return emitError(socket, "Protivnik je već iskoristio to polje u Kontra najavi.");
+    }
+    player.announcedRow = row;
+    broadcast(room);
+  });
+
   socket.on("turn:commit", ({ columnId, row, crossOut = false } = {}) => {
     const room = getRoomBySocket(socket.id);
     const player = getPlayer(room, socket.id);
@@ -290,6 +317,10 @@ io.on("connection", socket => {
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
     if (room.rolls === 0) return emitError(socket, "Potez još nije bačen.");
     const isCrossOut = crossOut === true;
+    if (room.contraTargetRow && room.config.columns.includes("contra") && (columnId !== "contra" || row !== room.contraTargetRow)) return emitError(socket, "Morate odigrati protivnikovo najavljeno polje u koloni Kontra najava.");
+    if (!room.contraTargetRow && columnId === "contra" && room.config.columns.includes("contra") && !isCrossOut) return emitError(socket, "Nema najave protivnika za Kontra najavu.");
+    if (player.announcedRow && (columnId !== "announced" || row !== player.announcedRow)) return emitError(socket, "Morate odigrati najavljeno polje.");
+    if (!player.announcedRow && columnId === "announced" && room.config.columns.includes("announced") && !isCrossOut) return emitError(socket, "Najavu možete odigrati samo ako ste je postavili posle prvog bacanja.");
     if (!isCrossOut && (room.selection.length < 1 || room.selection.length > 5)) return emitError(socket, "Izaberite od 1 do 5 kockica ili precrtajte polje.");
 
     const selectedValues = room.selection.map(i => room.dice[i]);
@@ -307,6 +338,8 @@ io.on("connection", socket => {
     }
     for (const [k, v] of Object.entries(totals)) player.cells[k] = v;
 
+    room.contraTargetRow = room.config.columns.includes("contra") ? (player.announcedRow || null) : null;
+    player.announcedRow = null;
     const idx = room.players.findIndex(p => p.id === player.id);
     room.currentPlayerId = room.players[(idx + 1) % room.players.length].id;
     room.rolls = 0;
