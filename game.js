@@ -19,6 +19,10 @@ export const SCORE_ROWS=[...VALUE_ROWS.map(String),"MAX","MIN",...COMBINATION_RO
 export const rollDie=()=>Math.floor(Math.random()*6)+1;
 export const rollDice=(n=6)=>Array.from({length:n},rollDie);
 export const sum=v=>v.reduce((a,b)=>a+b,0);
+export function visibleCellsForPlayer(cells={}, {isSelf=false,gameOver=false}={}){
+ const subtotals=["SUM_TOP","SUM_MID","SUM_TOTAL"];
+ return Object.fromEntries(Object.entries(cells).filter(([key])=>gameOver||isSelf||!subtotals.some(row=>key.endsWith("::"+row))));
+}
 export function calculateColumnSums(cells={},columnId){
  const value=row=>Number(cells[columnId+"::"+row]??0);
  const upper=VALUE_ROWS.reduce((total,face)=>total+value(String(face)),0);
