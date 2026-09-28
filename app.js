@@ -4,7 +4,7 @@ import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,analyse,combinationScore
 
 const state={
  mode:"setup",rolls:0,dice:[],selected:new Set(),columns:["down","free","up"],
- currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{}}],activePlayers:1,viewPlayer:0,pending:null,gameOver:false
+ currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{}}],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false
 };
 const app=document.getElementById("app");
 const defs=()=>state.columns.map(id=>COLUMN_DEFS.find(c=>c.id===id)).filter(Boolean);
@@ -17,7 +17,7 @@ const scoreRows=[...VALUE_ROWS.map(String),"MAX","MIN","KENTA","TRILING","FUL","
 
 function resetLocal(){
  state.mode="solo";state.rolls=0;state.dice=[];state.selected.clear();state.players=[{id:"local",name:"Igrač 1",cells:{}}];
- state.currentPlayer=0;state.viewPlayer=0;state.pending=null;state.gameOver=false;
+ state.currentPlayer=0;state.viewPlayer=0;state.pending=null;state.gameOver=false;state.soloActive=false;
 }
 
 function setup(){
@@ -33,11 +33,11 @@ function setup(){
  app.querySelector("#online").onclick=onlineSetup;
 }
 
-function columnSetup(title,buttonText,onStart){
+function columnSetup(title,buttonText,onStart,locked=false){
  app.innerHTML=`<section class="panel setup">
  <div class="brand"><h1>Jumbo Dice</h1><p>${title}</p></div>
- <div class="setup-card"><h2>Kolone</h2><p class="status">Gore, Dole i Slobodna su obavezne. Ostale kolone možete uključiti ili isključiti pre početka.</p>
- <div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory?"disabled":""}></label>`).join("")}</div></div>
+ <div class="setup-card"><h2>Kolone</h2><p class="status">${locked?"Podešavanja su zaključana do kraja tekuće partije.":"Gore, Dole i Slobodna su obavezne. Ostale kolone možete uključiti ili isključiti pre početka."}</p>
+ <div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("")}</div></div>
  <button class="btn primary" id="start">${buttonText}</button><button class="btn" id="back">Nazad</button>
  </section>`;
  app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{state.columns=x.checked?[...new Set([...state.columns,x.dataset.col])]:state.columns.filter(id=>id!==x.dataset.col)});
@@ -46,8 +46,12 @@ function columnSetup(title,buttonText,onStart){
 }
 
 function soloSetup(){
+ if(state.soloActive&&!state.gameOver){
+   columnSetup("Solo igra u toku","Nastavi partiju",soloGame,true);
+   return;
+ }
  state.columns=[...COLUMN_DEFS.map(c=>c.id)];
- columnSetup("Solo igra","Pokreni solo igru",()=>{resetLocal();state.columns=[...new Set(["down","free","up",...state.columns])];state.mode="solo";soloGame();});
+ columnSetup("Solo igra","Pokreni solo igru",()=>{resetLocal();state.columns=[...new Set(["down","free","up",...state.columns])];state.mode="solo";state.soloActive=true;soloGame();});
 }
 
 function onlineSetup(){
@@ -159,7 +163,7 @@ function renderSolo(){
  const count=app.querySelector("#count");if(count)count.textContent=`${state.rolls}/3`;
  const box=app.querySelector("#options");if(box){
    if(state.gameOver){box.innerHTML='<span class="status">Solo partija je završena.</span>';}
-   else if(state.selected.size!==5){box.innerHTML='<span class="status">Izaberi tačno 5 kockica. Možeš menjati izbor do sledećeg bacanja.</span>';}
+   else if(state.selected.size!==5){box.innerHTML='<span class="status">Označi još '+(5-state.selected.size)+' kockice da vidiš dostupna polja.</span>';}
    else{
      const ops=soloCandidates();
      box.innerHTML=ops.length?ops.map((o,i)=>`<button class="option" data-op="${i}"><b>${o.colName} · ${o.row}</b><span>${o.value}</span></button>`).join(""):'<span class="status">Nema dostupnog upisa za ovu kombinaciju.</span>';
@@ -186,6 +190,8 @@ function renderScoreSheet(player,isSelf=true){
   {id:"YAMB",label:"YAMB",sub:"+50",type:"combo"},
   {id:"SUM_TOTAL",label:"Σ",type:"sum"}
  ];
+ const canChoose=isSelf&&!state.gameOver&&state.rolls>0&&state.selected.size===5&&(state.mode!=="online"||current()?.id===net.playerId);
+ const choices=canChoose?soloCandidates():[];
  const hideRow=!state.gameOver&&!isSelf;
  let html=`<table class="sheet premium-sheet"><colgroup><col class="label-col">${columns.map(c=>`<col class="data-col col-${c.id}">`).join("")}</colgroup>
  <thead><tr><th class="corner-hatch" aria-label="Kategorija"></th>${columns.map(c=>`<th class="sheet-head ${c.id==="r"?"group-start":""}" title="${titles[c.id]}"><span class="head-symbol">${headers[c.id]}</span><span class="head-name">${titles[c.id]}</span></th>`).join("")}</tr></thead><tbody>`;
@@ -194,9 +200,12 @@ function renderScoreSheet(player,isSelf=true){
    html+=`<tr class="sheet-row ${row.type} ${hiddenSum?"hidden-total-row":""}"><th class="row-label">${row.label}${row.sub?`<small>${row.sub}</small>`:""}</th>`;
    for(const col of columns){
      const v=player?.cells?.[cellKey(col.id,row.id)];
-     const shown=hiddenSum?"🔒":(v===undefined?"":v);
-     const classNames=["sheet-cell",hiddenSum?"locked-total":(v===undefined?"empty":"filled"),col.id==="o"?"o-column":"",col.id==="r"?"group-start":""].filter(Boolean).join(" ");
-     html+=`<td class="${classNames}" data-cell="${cellKey(col.id,row.id)}">${shown}</td>`;
+     const optionIndex=choices.findIndex(option=>option.colId===col.id&&option.row===row.id);
+     const isAvailable=optionIndex>=0&&v===undefined&&!hiddenSum;
+     const shown=hiddenSum?"🔒":isAvailable?choices[optionIndex].value:(v===undefined?"":v);
+     const classNames=["sheet-cell",hiddenSum?"locked-total":isAvailable?"available-entry":(v===undefined?"empty":"filled"),col.id==="o"?"o-column":"",col.id==="r"?"group-start":""].filter(Boolean).join(" ");
+     const choiceAttrs=isAvailable?` data-choice="${optionIndex}" role="button" tabindex="0" aria-label="Dostupno polje: ${escapeHtml(col.name)}, ${row.label}, ${choices[optionIndex].value} poena"`:"";
+     html+=`<td class="${classNames}" data-cell="${cellKey(col.id,row.id)}"${choiceAttrs}>${shown}</td>`;
    }
    html+="</tr>";
  }
@@ -206,6 +215,16 @@ function renderScoreSheet(player,isSelf=true){
  }
  html+="</tbody></table>";
  sheet.innerHTML=html;
+ sheet.querySelectorAll("[data-choice]").forEach(cell=>{
+   const choose=()=>{
+     const option=choices[Number(cell.dataset.choice)];
+     if(!option)return;
+     if(state.mode==="solo")commitSolo(option);
+     else socket?.emit("turn:commit",{columnId:option.colId,row:option.row});
+   };
+   cell.onclick=choose;
+   cell.onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();choose();}};
+ });
 }
 
 function renderSoloSheet(){
@@ -249,7 +268,7 @@ function renderOnline(){
    if(state.gameOver) box.innerHTML='<span class="status game-over-status">Partija je završena. Konačan rezultat je prikazan na tabeli.</span>';
    else if(state.players[state.currentPlayer]?.id!==net.playerId) box.innerHTML='<span class="status">Sačekaj svoj potez.</span>';
    else if(state.rolls===0) box.innerHTML='<span class="status">Baci kockice da započneš potez.</span>';
-   else if(state.selected.size!==5) box.innerHTML='<span class="status">Izaberi tačno 5 kockica.</span>';
+   else if(state.selected.size!==5) box.innerHTML='<span class="status">Označi još '+(5-state.selected.size)+' kockice da vidiš dostupna polja.</span>';
    else{
      const ops=soloCandidates();
      box.innerHTML=ops.length?ops.map((o,i)=>'<button class="option" data-op="'+i+'"><b>'+o.colName+' · '+o.row+'</b><span>'+o.value+'</span></button>').join(""):'<span class="status">Nema dostupnog upisa za ovu kombinaciju.</span>';
