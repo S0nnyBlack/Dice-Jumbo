@@ -309,6 +309,7 @@ header .brand h1, .brand h1 {
   .premium-sheet { min-width: 760px; }
   .premium-sheet .head-symbol { font-size: 19px; }
   .premium-sheet .head-name { font-size: 8px; }
+  .premium-sheet .head-detail { display: block; margin-top: 3px; color: #92a8b0; font-size: 8px; line-height: 1.05; }
   .premium-sheet .row-label { font-size: 13px; }
   .premium-sheet .row-label small { font-size: 9px; }
 }
@@ -333,3 +334,170 @@ header .brand h1, .brand h1 {
 
 .btn.crossout-active { border-color: var(--gold); background: linear-gradient(180deg, #6a4b13, #3c2c10); color: #fff0b4; box-shadow: 0 0 0 2px rgba(246,198,78,.22); }
 .options-empty { padding: 9px 12px; border-left: 3px solid var(--gold-deep); color: #ffdf83; }
+
+
+/* Responsive game layout: retain the full score sheet and make narrow overflow usable. */
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding:
+    env(safe-area-inset-top, 0px)
+    env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+}
+.game-status {
+  width: min(100%, 1540px);
+  margin: 0 auto;
+  padding: 0 24px 8px;
+}
+.game-controls { grid-area: controls; }
+.game-score { grid-area: score; }
+.layout { grid-template-areas: "controls score"; }
+.die, .btn, .option, .player-tab, .sheet-cell[role="button"] {
+  touch-action: manipulation;
+}
+.premium-sheet .sheet-cell.available-entry {
+  transition: background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .die:hover:not(:disabled) { transform: translateY(-2px); }
+}
+@media (max-width: 1050px) {
+  .layout {
+    grid-template-areas: "score" "controls";
+  }
+  .game-status { padding-right: 24px; padding-left: 24px; }
+}
+@media (max-width: 700px) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left, 0px));
+    padding-right: max(0px, env(safe-area-inset-right, 0px));
+  }
+  header {
+    display: flex;
+    align-items: center;
+    flex-flow: row wrap;
+    gap: 8px 12px;
+    padding: 8px 12px 6px;
+  }
+  header .brand { min-width: 0; flex: 1 1 150px; }
+  header .brand h1, .brand h1 { font-size: clamp(21px, 6vw, 28px); letter-spacing: .015em; }
+  .mode-badge { margin-left: 3px; padding: 3px 6px; font-size: 9px; }
+  header .brand p { display: none; }
+  header > .toolbar { flex: 0 1 auto; gap: 6px; }
+  header > .toolbar .btn { min-height: 44px; padding: 8px 9px; font-size: 12px; }
+  .game-status {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 auto;
+    padding: 8px 12px;
+    border-top: 1px solid rgba(133, 170, 185, .12);
+    border-bottom: 1px solid rgba(133, 170, 185, .12);
+    background: rgba(9, 23, 35, .88);
+    font-size: clamp(12px, 3.4vw, 14px);
+  }
+  .layout {
+    padding: 8px 8px max(12px, env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+  }
+  .panel { min-width: 0; padding: 10px; border-radius: 12px; }
+  .game-score { padding: 8px; }
+  .tabs { margin-bottom: 8px; }
+  .sheet-wrap {
+    width: 100%;
+    max-height: min(62dvh, 620px);
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .premium-sheet.sheet {
+    width: max(100%, var(--sheet-min-width));
+    min-width: 0;
+    table-layout: fixed;
+  }
+  .premium-sheet .label-col { width: 64px; }
+  .premium-sheet .data-col { width: 52px; }
+  .premium-sheet th, .premium-sheet td {
+    height: 48px;
+    padding: 4px 2px;
+  }
+  .premium-sheet thead th { height: 54px; }
+  .premium-sheet .corner-hatch,
+  .premium-sheet .row-label {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+  }
+  .premium-sheet thead .corner-hatch { z-index: 4; }
+  .premium-sheet .row-label { box-shadow: 2px 0 4px rgba(0, 0, 0, .25); }
+  .premium-sheet .head-symbol { font-size: 17px; }
+  .premium-sheet .head-name { font-size: 9px; line-height: 1.05; }
+  .premium-sheet .head-detail { display: none; }
+  .premium-sheet .row-label { font-size: 13px; }
+  .premium-sheet .row-label small { font-size: 9px; }
+  .premium-sheet .sheet-cell { font-size: 14px; }
+  .game-controls { padding: 12px; }
+  .meta { font-size: 13px; }
+  .dice-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 10px 0 12px;
+    padding: 10px;
+    border-width: 4px;
+    border-radius: 14px;
+  }
+  .die {
+    width: 100%;
+    min-width: 0;
+    min-height: 56px;
+    border-radius: 12px;
+    font-size: clamp(27px, 8vw, 36px);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .die.selected { transform: translateY(-2px); }
+  .die:active:not(:disabled), .btn:active:not(:disabled), .option:active {
+    transform: scale(.97);
+  }
+  .game-controls > .toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .game-controls > .toolbar .btn {
+    min-width: 0;
+    min-height: 48px;
+    padding: 9px 8px;
+    font-size: clamp(12px, 3.4vw, 14px);
+  }
+  .game-controls > .toolbar .btn.primary { grid-column: 1 / -1; }
+  .options { gap: 7px; margin-top: 12px; }
+  .option {
+    min-width: 0;
+    min-height: 48px;
+    flex: 1 1 125px;
+    padding: 9px 10px;
+    touch-action: manipulation;
+  }
+  .premium-sheet .sheet-cell.available-entry {
+    box-shadow: inset 0 0 0 2px rgba(246, 198, 78, .74);
+  }
+}
+@media (max-width: 374px) {
+  header { padding-right: 8px; padding-left: 8px; }
+  header > .toolbar .btn { padding-right: 7px; padding-left: 7px; font-size: 11px; }
+  .layout { padding-right: 6px; padding-left: 6px; }
+  .premium-sheet .label-col { width: 58px; }
+  .premium-sheet .data-col { width: 50px; }
+  .premium-sheet.sheet {
+    width: max(100%, var(--sheet-min-width));
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 900px) {
+  header { padding-top: 5px; padding-bottom: 4px; }
+  .game-status { padding-top: 5px; padding-bottom: 5px; }
+  .sheet-wrap { max-height: 68dvh; }
+  .dice-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .die { min-height: 48px; }
+}

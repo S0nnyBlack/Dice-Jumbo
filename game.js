@@ -1,14 +1,14 @@
 export const COLUMN_DEFS=[
- {id:"down",name:"Dole",headerSymbol:"↓",headerTitle:"Dole",mandatory:true,direction:"down"},
- {id:"free",name:"Slobodna",headerSymbol:"S",headerTitle:"Slobodna",mandatory:true,direction:"free"},
- {id:"up",name:"Gore",headerSymbol:"↑",headerTitle:"Gore",mandatory:true,direction:"up"},
- {id:"announced",name:"Najava",headerSymbol:"↕",headerTitle:"Najava",mandatory:false,direction:"announce"},
- {id:"contra",name:"Kontra najava",headerSymbol:"↓↑",headerTitle:"Kontra najava",mandatory:false,direction:"contra"},
- {id:"r",name:"R",headerSymbol:"R",headerTitle:"R · Max naviše, min naniže",mandatory:false,direction:"center-out"},
- {id:"n",name:"N",headerSymbol:"N",headerTitle:"N · 1 naniže, Yamb naviše",mandatory:false,direction:"both-ends"},
- {id:"d",name:"D",headerSymbol:"D",headerTitle:"D · Ručna, samo posle prvog bacanja",mandatory:false,direction:"manual"},
- {id:"o",name:"O",headerSymbol:"O",headerTitle:"O · tek nakon prethodnih kolona",mandatory:false,direction:"required"},
- {id:"m",name:"M",headerSymbol:"M",headerTitle:"M · maksimum iz prethodnih kolona",mandatory:false,direction:"maximum"}
+ {id:"down",name:"Dole",headerSymbol:"↓",headerLabel:"Dole",headerTitle:"Dole",mandatory:true,direction:"down"},
+ {id:"free",name:"Slobodna",headerSymbol:"S",headerLabel:"Slobodna",headerTitle:"Slobodna",mandatory:true,direction:"free"},
+ {id:"up",name:"Gore",headerSymbol:"↑",headerLabel:"Gore",headerTitle:"Gore",mandatory:true,direction:"up"},
+ {id:"announced",name:"Najava",headerSymbol:"↕",headerLabel:"Najava",headerTitle:"Najava",mandatory:false,direction:"announce"},
+ {id:"contra",name:"Kontra najava",headerSymbol:"↓↑",headerLabel:"Kontra",headerTitle:"Kontra najava",mandatory:false,direction:"contra"},
+ {id:"r",name:"R",headerSymbol:"R",headerLabel:"R",headerTitle:"R · Max naviše, min naniže",mandatory:false,direction:"center-out"},
+ {id:"n",name:"N",headerSymbol:"N",headerLabel:"N",headerTitle:"N · 1 naniže, Yamb naviše",mandatory:false,direction:"both-ends"},
+ {id:"d",name:"D",headerSymbol:"D",headerLabel:"D",headerTitle:"D · Ručna, samo posle prvog bacanja",mandatory:false,direction:"manual"},
+ {id:"o",name:"O",headerSymbol:"O",headerLabel:"O",headerTitle:"O · tek nakon prethodnih kolona",mandatory:false,direction:"required"},
+ {id:"m",name:"M",headerSymbol:"M",headerLabel:"M",headerTitle:"M · maksimum iz prethodnih kolona",mandatory:false,direction:"maximum"}
 ];
 export const VALUE_ROWS=[1,2,3,4,5,6];
 export const COMBINATION_ROWS=["KENTA","TRILING","FUL","POKER","YAMB"];
