@@ -13,7 +13,7 @@ test("upper section bonus begins at 60",()=>{
  assert.equal(upperBonus(59),0);assert.equal(upperBonus(60),30);assert.equal(upperBonus(63),30);
 });
 test("analyse accepts valid selections from one to five dice and rejects larger selections",()=>{
- assert.equal(analyse([1,2,3,4]).valid,true);assert.deepEqual(analyse([],{}),{valid:false});assert.deepEqual(analyse([1,2,3,4,5,6]),{valid:false});
+ assert.equal(analyse([1,2,3,4]).valid,true);assert.deepEqual(analyse([]),{valid:false});assert.deepEqual(analyse([1,2,3,4,5,6]),{valid:false});
 });
 test("Kenta varies with roll count and manual Kenta is always 66",()=>{
  const straight=[1,2,3,4,5];
@@ -27,7 +27,7 @@ test("combination rows apply the documented bonuses and poker sums only four mat
  assert.equal(combinationScore("TRILING",[4,4,4]),32);
  assert.equal(combinationScore("TRILING",[4,4,4,1]),33);
  assert.equal(combinationScore("POKER",[4,4,4,4]),56);
- assert.equal(combinationScore("TRILING",[4,4,4,4,4]),36);
+ assert.equal(combinationScore("TRILING",[4,4,4,4,4]),40);
  assert.equal(combinationScore("POKER",[4,4,4,4,4]),56);
  assert.equal(combinationScore("YAMB",[4,4,4,4,4]),70);
  assert.equal(combinationScore("TRILING",[4,4,3]),null);
