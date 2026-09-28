@@ -84,9 +84,9 @@ export function availableEntries(columnIds,cells,values,{crossOut=false,announce
    if(crossOut){out.push({colId,colName:column.name,row,value:0,crossOut:true});continue;}
    let value=null;
    if(VALUE_ROWS.map(String).includes(row))value=upperScore(values,Number(row));
-   else if(row==="MAX"||row==="MIN")value=sum(values);
+   else if((row==="MAX"||row==="MIN")&&values.length===5)value=sum(values);
    else value=combinationScore(row,values,{rolls,manual:colId===manualColumn});
-   if(value!==null&&value!==undefined)out.push({colId,colName:column.name,row,value});
+   if(value!==null&&value!==undefined&&value!==0)out.push({colId,colName:column.name,row,value});
   }
  }
  return out;

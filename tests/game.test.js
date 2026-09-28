@@ -60,6 +60,25 @@ test("short selections suggest Triling and Poker only after the required matchin
  const unrelated=availableEntries(["free"],{},[4,4,3]);
  assert.ok(!unrelated.some(e=>e.row==="TRILING"));
 });
+
+test("MAX and MIN require exactly five selected dice",()=>{
+ for(const dice of [[1],[1,2],[1,2,3],[1,2,3,4]]){
+  const entries=availableEntries(["free"],{},dice);
+  assert.ok(!entries.some(entry=>entry.row==="MAX"||entry.row==="MIN"));
+ }
+ const entries=availableEntries(["free"],{},[1,2,3,4,5]);
+ assert.ok(entries.some(entry=>entry.row==="MAX"&&entry.value===15));
+ assert.ok(entries.some(entry=>entry.row==="MIN"&&entry.value===15));
+});
+test("zero scores are not suggested unless the player is crossing out a cell",()=>{
+ const scoring=availableEntries(["free"],{},[1]);
+ assert.ok(scoring.some(entry=>entry.row==="1"&&entry.value===1));
+ assert.ok(!scoring.some(entry=>entry.row==="2"));
+ assert.ok(scoring.every(entry=>entry.value!==0));
+ const crossing=availableEntries(["free"],{},[],{crossOut:true});
+ assert.ok(crossing.length>0);
+ assert.ok(crossing.every(entry=>entry.value===0&&entry.crossOut===true));
+});
 test("manual R column can only be played after the first throw",()=>{
  const dice=[1,2,3,4,5];
  assert.ok(!availableEntries(["r"],{},dice,{rolls:2}).length);
