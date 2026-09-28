@@ -167,6 +167,13 @@ function sumVisibleCells(player, col, group) {
   const total = rows.reduce((acc, row) => acc + Number(player.cells[key(col, row)] || 0), 0);
   return group === "top" && total >= 60 ? total + 30 : total;
 }
+function maxRollsForTurn(room, player) {
+  let remaining = 0;
+  for (const col of room.config.columns) {
+    for (const row of SCORE_ROWS) if (emptyCell(player, col, row)) remaining++;
+  }
+  return remaining === 1 ? 5 : 3;
+}
 function isGameOver(room) {
   return room.started && room.players.length > 0 && room.players.every(player =>
     room.config.columns.every(col => columnRows(col)
@@ -194,6 +201,7 @@ function publicState(room, viewerId) {
     hostId: room.hostId,
     currentPlayerId: room.currentPlayerId,
     rolls: room.currentPlayerId === viewerId ? room.rolls : 0,
+    maxRolls: room.currentPlayerId === viewerId && viewer ? maxRollsForTurn(room, viewer) : 3,
     dice: room.currentPlayerId === viewerId ? room.dice : [],
     selection: room.currentPlayerId === viewerId ? room.selection : [],
     announcedRow: viewer?.announcedRow || null,
@@ -306,7 +314,7 @@ io.on("connection", socket => {
     if (!room || !player || !room.started) return;
     if (isGameOver(room)) return emitError(socket, "Partija je završena.");
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
-    if (room.rolls >= 3) return emitError(socket, "Maksimalno 3 bacanja.");
+    if (room.rolls >= maxRollsForTurn(room, player)) return emitError(socket, "Dostignut je maksimalan broj bacanja za ovaj potez.");
 
     const fresh = makeDice();
     if (room.rolls === 0) room.dice = fresh;
