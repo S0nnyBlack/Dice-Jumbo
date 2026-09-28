@@ -15,6 +15,25 @@ const selectedValues=()=>[...state.selected].map(i=>state.dice[i]);
 const isFilled=(p,col,row)=>p?.cells?.[cellKey(col,row)]!==undefined;
 const scoreRows=[...VALUE_ROWS.map(String),"MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"];
 
+const SOLO_SAVE_KEY="jumboDiceSoloSaveV1";
+function saveSoloGame(){
+ if(!state.soloActive||state.mode!=="solo")return;
+ const player=current();
+ const snapshot={version:1,columns:state.columns,player:{name:player?.name||"Igrač 1",cells:player?.cells||{},crossedCells:player?.crossedCells||[]},rolls:state.rolls,dice:state.dice,selected:[...state.selected],crossOutMode:state.crossOutMode,announcedRow:state.announcedRow,contraTargetRow:state.contraTargetRow,gameOver:state.gameOver,undoHistory:state.undoHistory};
+ try{localStorage.setItem(SOLO_SAVE_KEY,JSON.stringify(snapshot));}catch(error){console.warn("Solo partija nije mogla da se sačuva.",error);}
+}
+function restoreSoloGame(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(SOLO_SAVE_KEY)||"null");
+  if(!saved||saved.version!==1||!saved.player||typeof saved.player.cells!=="object"||Array.isArray(saved.player.cells)||!Array.isArray(saved.dice)||saved.dice.some(value=>!Number.isInteger(value)||value<1||value>6))return false;
+  state.mode="solo";state.columns=normalizeColumnIds(saved.columns);state.players=[{id:"local",name:"Igrač 1",cells:saved.player.cells,crossedCells:Array.isArray(saved.player.crossedCells)?saved.player.crossedCells:[]}];
+  state.currentPlayer=0;state.viewPlayer=0;state.rolls=Number.isInteger(saved.rolls)?Math.max(0,Math.min(5,saved.rolls)):0;state.dice=saved.dice.slice(0,6);
+  state.selected=new Set(Array.isArray(saved.selected)?saved.selected.filter(i=>Number.isInteger(i)&&i>=0&&i<state.dice.length).slice(0,5):[]);
+  state.crossOutMode=saved.crossOutMode===true;state.announcedRow=typeof saved.announcedRow==="string"?saved.announcedRow:null;state.contraTargetRow=typeof saved.contraTargetRow==="string"?saved.contraTargetRow:null;state.gameOver=saved.gameOver===true;
+  state.undoHistory=Array.isArray(saved.undoHistory)?saved.undoHistory.slice(-50):[];state.soloActive=true;return true;
+ }catch(error){console.warn("Sačuvana solo partija nije mogla da se učita.",error);return false;}
+}
+
 function resetLocal(){
  state.mode="solo";state.rolls=0;state.maxRolls=3;state.dice=[];state.selected.clear();state.undoHistory=[];state.players=[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]}];
  state.currentPlayer=0;state.viewPlayer=0;state.pending=null;state.gameOver=false;state.soloActive=false;state.crossOutMode=false;state.announcedRow=null;state.contraTargetRow=null;
@@ -262,6 +281,7 @@ function renderSolo(){
  }
  renderAnnouncementUi();
  renderSoloSheet();
+ saveSoloGame();
 }
 
 function renderScoreSheet(player,isSelf=true){
@@ -382,4 +402,4 @@ function renderOnline(){
  renderSoloSheet();
 }
 
-setup();
+if(restoreSoloGame())soloGame();else setup();
