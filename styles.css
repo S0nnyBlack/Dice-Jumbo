@@ -744,3 +744,24 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .premium-sheet .sheet-cell.available-entry { transition: none; }
 }
+/* Keep dice readable in the narrower sidebar and restore stacked table headers. */
+.game-sidebar > .game-controls .dice-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.game-sidebar > .game-controls .die { min-height: 76px; }
+.premium-sheet thead th.sheet-head {
+  padding: 6px 4px;
+  text-align: center;
+  vertical-align: middle;
+  white-space: normal;
+}
+.premium-sheet .head-symbol,
+.premium-sheet .head-name,
+.premium-sheet .head-detail { display: block; }
+.premium-sheet .head-symbol { font-size: 21px; line-height: 1; }
+.premium-sheet .head-name { font-size: 10px; font-weight: 750; line-height: 1.15; }
+.premium-sheet .head-detail { margin-top: 2px; font-size: 9px; line-height: 1.15; }
+@media (max-width: 700px) {
+  .premium-sheet .head-symbol { font-size: 17px; }
+  .premium-sheet .head-name { font-size: 9px; }
+}
