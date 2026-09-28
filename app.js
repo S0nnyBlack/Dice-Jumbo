@@ -1,6 +1,6 @@
 const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:false,roomCode:null,playerId:null,sessionToken:null,server:null};
-import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBonus}from"./game.js";
+import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBonus,normalizeColumnIds}from"./game.js";
 
 const state={
  mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),columns:["down","free","up"],
@@ -40,7 +40,7 @@ function columnSetup(title,buttonText,onStart,locked=false){
  <div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("")}</div>${locked?"":'<button class="btn" id="selectAll" type="button">Izaberi sve</button>'}</div>
  <button class="btn primary" id="start">${buttonText}</button><button class="btn" id="back">Nazad</button>
  </section>`;
- app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{state.columns=x.checked?[...new Set([...state.columns,x.dataset.col])]:state.columns.filter(id=>id!==x.dataset.col)});
+ app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{const selected=new Set(state.columns);x.checked?selected.add(x.dataset.col):selected.delete(x.dataset.col);state.columns=normalizeColumnIds([...selected])});
  const selectAll=app.querySelector("#selectAll");if(selectAll)selectAll.onclick=()=>{state.columns=COLUMN_DEFS.map(c=>c.id);app.querySelectorAll("[data-col]").forEach(input=>{input.checked=true})};
  app.querySelector("#start").onclick=onStart;
  app.querySelector("#back").onclick=setup;
@@ -52,7 +52,7 @@ function soloSetup(){
    return;
  }
  state.columns=["down","free","up"];
- columnSetup("Solo igra","Pokreni solo igru",()=>{resetLocal();state.columns=[...new Set(["down","free","up",...state.columns])];state.mode="solo";state.soloActive=true;soloGame();});
+ columnSetup("Solo igra","Pokreni solo igru",()=>{resetLocal();state.columns=normalizeColumnIds(state.columns);state.mode="solo";state.soloActive=true;soloGame();});
 }
 
 function onlineSetup(){
@@ -67,12 +67,13 @@ function onlineSetup(){
  </div><div class="toolbar" style="margin-top:10px">
    <input id="roomCodeInput" placeholder="ROOM CODE"><input id="joinName" placeholder="Ime igrača" value="Igrač 2"><button class="btn" id="joinRoom">Pridruži se</button>
  </div></div>
- <div class="setup-card"><h2>Kolone</h2><div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory?"disabled":""}></label>`).join("")}</div></div>
+ <div class="setup-card"><h2>Kolone</h2><div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory?"disabled":""}></label>`).join("")}</div><button class="btn" id="selectAll" type="button">Izaberi sve</button></div>
  <button class="btn" id="back">Nazad</button></section>`;
- app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{state.columns=x.checked?[...new Set([...state.columns,x.dataset.col])]:state.columns.filter(id=>id!==x.dataset.col)});
+ app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{const selected=new Set(state.columns);x.checked?selected.add(x.dataset.col):selected.delete(x.dataset.col);state.columns=normalizeColumnIds([...selected])});
+ app.querySelector("#selectAll").onclick=()=>{state.columns=COLUMN_DEFS.map(c=>c.id);app.querySelectorAll("[data-col]").forEach(input=>{input.checked=true})};
  app.querySelector("#back").onclick=setup;
  if(socket){
-   app.querySelector("#createRoom").onclick=()=>socket.emit("room:create",{name:app.querySelector("#playerName").value||"Igrač 1",config:{columns:state.columns}});
+   app.querySelector("#createRoom").onclick=()=>socket.emit("room:create",{name:app.querySelector("#playerName").value||"Igrač 1",config:{columns:normalizeColumnIds(state.columns)}});
    app.querySelector("#joinRoom").onclick=()=>socket.emit("room:join",{roomCode:app.querySelector("#roomCodeInput").value,name:app.querySelector("#joinName").value||"Igrač"});
    updateNetworkStatus();
  }
@@ -313,7 +314,7 @@ function renderServerState(s){
  state.mode="online";state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
  const idx=s.players.findIndex(p=>p.id===s.currentPlayerId);if(idx>=0)state.currentPlayer=idx;
  state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{},crossedCells:p.crossedCells||[]}));
- state.columns=s.config?.columns||state.columns;
+ state.columns=normalizeColumnIds(s.config?.columns||state.columns);
  if(s.started){game();renderOnline();}
  else renderLobbyState(s);
 }

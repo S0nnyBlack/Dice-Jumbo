@@ -10,6 +10,10 @@ export const COLUMN_DEFS=[
  {id:"o",name:"O",headerSymbol:"O",headerLabel:"O",headerTitle:"O · tek nakon prethodnih kolona",mandatory:false,direction:"required"},
  {id:"m",name:"M",headerSymbol:"M",headerLabel:"M",headerTitle:"M · maksimum iz prethodnih kolona",mandatory:false,direction:"maximum"}
 ];
+export function normalizeColumnIds(ids=[]){
+ const requested=new Set(Array.isArray(ids)?ids:[]);
+ return COLUMN_DEFS.filter(column=>column.mandatory||requested.has(column.id)).map(column=>column.id);
+}
 export const VALUE_ROWS=[1,2,3,4,5,6];
 export const COMBINATION_ROWS=["KENTA","TRILING","FUL","POKER","YAMB"];
 export const SCORE_ROWS=[...VALUE_ROWS.map(String),"MAX","MIN",...COMBINATION_ROWS];

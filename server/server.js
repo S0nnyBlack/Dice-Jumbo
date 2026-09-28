@@ -5,6 +5,7 @@ import { Server } from "socket.io";
 import { randomInt } from "crypto";
 import path from "path";
 import { fileURLToPath } from "url";
+import { normalizeColumnIds } from "../game.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,19 +28,6 @@ const MAX_PLAYERS = 4;
 const MIN_PLAYERS = 2;
 const COMBO_ROWS = ["KENTA", "TRILING", "FUL", "POKER", "YAMB"];
 const TOP_ROWS = ["1", "2", "3", "4", "5", "6"];
-
-const colDefs = [
-  { id: "down", name: "Dole", mandatory: true },
-  { id: "free", name: "Slobodna", mandatory: true },
-  { id: "up", name: "Gore", mandatory: true },
-  { id: "announced", name: "Najava", mandatory: false },
-  { id: "contra", name: "Kontra najava", mandatory: false },
-  { id: "r", name: "R", mandatory: false },
-  { id: "n", name: "N", mandatory: false },
-  { id: "d", name: "D", mandatory: false },
-  { id: "o", name: "O", mandatory: false },
-  { id: "m", name: "M", mandatory: false }
-];
 
 function createCode() {
   let value;
@@ -234,10 +222,7 @@ function sessionToken() { return randomInt(100000000, 999999999).toString(36) + 
 
 io.on("connection", socket => {
   socket.on("room:create", ({ name = "Igrač 1", config = {} } = {}) => {
-    const columns = [...new Set([
-      "down", "free", "up",
-      ...(Array.isArray(config.columns) ? config.columns : [])
-    ])];
+    const columns = normalizeColumnIds(config?.columns);
     const player = {
       id: randomInt(100000, 999999999).toString(),
       name: String(name).slice(0, 24),

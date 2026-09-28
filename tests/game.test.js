@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore } from "../game.js";
+import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds } from "../game.js";
 
 test("rollDice returns the requested number of valid die values",()=>{
  const dice=rollDice(6);assert.equal(dice.length,6);
@@ -74,4 +74,9 @@ test("announced score is restricted to its declared row",()=>{
 test("contra score is restricted to the opponent's announced row",()=>{
  const entries=availableEntries(["free","contra"],{},[2,2,2,3,3],{contraRow:"FUL"});
  assert.equal(entries.length,1);assert.equal(entries[0].colId,"contra");assert.equal(entries[0].row,"FUL");
+});
+
+test("enabled columns retain canonical order regardless of selection order",()=>{
+ assert.deepEqual(normalizeColumnIds(["m","o","d","r","unknown","o"]),["down","free","up","r","d","o","m"]);
+ assert.deepEqual(normalizeColumnIds(null),["down","free","up"]);
 });
