@@ -3,7 +3,7 @@ services:
     name: jumbo-dice
     runtime: node
     plan: free
-    buildCommand: npm install && npm run prepare:deploy
+    buildCommand: npm install --no-audit --no-fund && npm run prepare:deploy
     startCommand: npm start
     healthCheckPath: /health
-    autoDeployTrigger: commit
+    autoDeployTrigger: checksPass
