@@ -151,7 +151,12 @@ function renderAnnouncementUi(){
  if(state.contraTargetRow){box.textContent=(state.mode==="online"?"Protivnik je najavio ":"Prethodno si najavio ")+state.contraTargetRow+". Moraš odigrati to polje u koloni Kontra najava.";return;}
  if(state.announcedRow){box.textContent="Najavljeno polje: "+state.announcedRow+". Ovaj potez moraš završiti isključivo u toj ćeliji kolone Najava.";return;}
  let info="";
- if(state.columns.includes("contra")){const cells=current()?.cells||{};const full=state.columns.includes("announced")&&scoreRows.every(row=>cells[cellKey("announced",row)]!==undefined);info=full?"Kolona Najava je popunjena, pa se Kontra najava može igrati slobodno.":"Kontra najava prati polje koje je protivnik najavio u prethodnom potezu. Bez najave protivnika, ćeliju možeš precrtati."; }
+ const cells=current()?.cells||{};
+ if(state.columns.includes("d"))info="D (Ručna) se popunjava posle prvog bacanja; ručna Kenta vredi 66. ";
+ const oIndex=state.columns.indexOf("o");
+ if(oIndex>=0){const earlier=state.columns.slice(0,oIndex);const ready=earlier.every(col=>scoreRows.every(row=>cells[cellKey(col,row)]!==undefined));if(!ready)info+="Kolona O se otključava tek kada su prethodne uključene kolone popunjene. ";}
+ if(state.columns.includes("m"))info+="Kolona M se automatski popunjava maksimumom iz prethodnih uključenih kolona; precrtanje se prenosi kao X. ";
+ if(state.columns.includes("contra")){const full=state.columns.includes("announced")&&scoreRows.every(row=>cells[cellKey("announced",row)]!==undefined);info=full?"Kolona Najava je popunjena, pa se Kontra najava može igrati slobodno.":"Kontra najava prati polje koje je protivnik najavio u prethodnom potezu. Bez najave protivnika, ćeliju možeš precrtati."; }
  if(!state.columns.includes("announced")){box.textContent=info;return;}
  if(state.rolls===0){box.textContent=(info?info+" ":"")+"Najavu možeš izabrati samo posle prvog bacanja; izbor te obavezuje na baš to polje.";return;}
  if(state.rolls>1){box.textContent=(info?info+" ":"")+"Prvo bacanje je prošlo, pa Najava više nije dostupna u ovom potezu.";return;}
