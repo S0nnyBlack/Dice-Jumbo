@@ -102,23 +102,26 @@ function calculateEntry(room, player, col, row, selected) {
   let value = null;
   if (TOP_ROWS.includes(row)) {
     value = upperScore(selected, Number(row));
-  } else if (row === "MAX" || row === "MIN" || row === "SUM_TOP" || row === "SUM_MID" || row === "SUM_TOTAL") {
+  } else if (row === "MAX" || row === "MIN") {
+    value = sum(selected);
+  } else if (row === "SUM_TOP" || row === "SUM_MID" || row === "SUM_TOTAL") {
     return { ok: false, error: "Zbirna polja se ne upisuju ručno." };
   } else if (row === "KENTA" || row === "TRILING" || row === "FUL" || row === "POKER" || row === "YAMB") {
     value = combinationScore(row, selected);
     if (value === null) return { ok: false, error: "Kombinacija nije validna za ovaj upis." };
   }
 
-  if (col === "up" && player.nextUpRow !== undefined && row !== player.nextUpRow) return { ok: false, error: "Gore kolona mora pratiti redosled." };
-  if (col === "down" && player.nextDownRow !== undefined && row !== player.nextDownRow) return { ok: false, error: "Dole kolona mora pratiti redosled." };
+  const sequenceRows = columnRows(col).filter(r => !["SUM_TOP", "SUM_MID", "SUM_TOTAL"].includes(r));
+  if (col === "up" && row !== (player.nextUpRow ?? sequenceRows[sequenceRows.length - 1])) return { ok: false, error: "Gore kolona mora pratiti redosled." };
+  if (col === "down" && row !== (player.nextDownRow ?? sequenceRows[0])) return { ok: false, error: "Dole kolona mora pratiti redosled." };
 
   return { ok: true, value };
 }
 
 function updateSequence(player, col, row) {
-  const rows = columnRows(col).filter(r => !["SUM_TOP", "SUM_MID", "SUM_TOTAL", "MAX", "MIN"].includes(r));
+  const rows = columnRows(col).filter(r => !["SUM_TOP", "SUM_MID", "SUM_TOTAL"].includes(r));
   if (col === "up") {
-    player.nextUpRow = rows[rows.indexOf(row) + 1];
+    player.nextUpRow = rows[rows.indexOf(row) - 1];
   }
   if (col === "down") {
     const next = rows[rows.indexOf(row) + 1];
@@ -286,7 +289,7 @@ io.on("connection", socket => {
     for (const col of room.config.columns) {
       totals[key(col, "SUM_TOP")] = sumVisibleCells(player, col, "top");
       totals[key(col, "SUM_MID")] = sumVisibleCells(player, col, "combo");
-      totals[key(col, "SUM_TOTAL")] = totals[key(col, "SUM_TOP")] + totals[key(col, "SUM_MID")];
+      totals[key(col, "SUM_TOTAL")] = totals[key(col, "SUM_TOP")] + totals[key(col, "SUM_MID")] + Number(player.cells[key(col, "MAX")] || 0) - Number(player.cells[key(col, "MIN")] || 0);
     }
     for (const [k, v] of Object.entries(totals)) player.cells[k] = v;
 
