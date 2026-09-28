@@ -43,7 +43,7 @@ Tri osnovne kolone su uvek uključene:
 Dodatne kolone su opcione:
 
 - **Najava** — bira se posle prvog bacanja i obavezuje igrača na najavljeni red.
-- **Dirigovano (D)** — prati polje koje je protivnik najavilo u prethodnom potezu. Ako nema najave, slobodan unos je moguć kada je kolona Najava popunjena.
+- **Dirigovano (D)** — prati polje koje je protivnik najavio u prethodnom potezu. Ako nema najave, slobodan unos je moguć kada je kolona Najava popunjena.
 - **R** — ručna kolona; može se igrati samo posle prvog bacanja. Ručna Kenta vredi 66.
 - **N (↓↑)** — popunjava se od jedinica naniže i od Jamba naviše.
 - **O** — otključava se kada su popunjene sve prethodne uključene kolone.
