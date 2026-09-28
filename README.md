@@ -28,6 +28,7 @@ Partija se igra lokalno u pregledaču, bez protivnika kojim upravlja računar. P
 ### Online
 
 - Kreiranje sobe i pridruživanje putem koda sobe. Čekaonica prikazuje veliki kod sa dugmetom za kopiranje i četiri mesta sa statusom igrača.
+- Početni ekran Online sto prikazuje odvojene kartice za kreiranje i pridruživanje; domaćin bira kolone pre kreiranja sobe.
 - Igra za 2–4 igrača; domaćin pokreće partiju i bira aktivne kolone.
 - Server upravlja bacanjima, redosledom poteza, unosom rezultata i proverom pravila.
 - Tabele drugih igrača mogu se pregledati; ukupni rezultat ostaje sakriven do završetka partije.

@@ -216,6 +216,40 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
 .lobby-leave { display: block; margin: auto; border: 0; background: transparent; color: var(--muted-ink); font-weight: 800; }
 .lobby-leave:hover { color: var(--ink); }
 
+/* The entry screen keeps room creation and joining visible as separate actions. */
+.online-setup { width: min(calc(100% - 32px), 900px); margin: 32px auto 40px; color: var(--ink); }
+.online-setup-heading { margin-bottom: 22px; }
+.online-setup-heading h1 { margin: 5px 0; font-size: clamp(30px,3vw,40px); letter-spacing: -.04em; }
+.online-setup-heading p, .online-card-heading p { margin: 0; color: var(--muted-ink); line-height: 1.45; }
+.online-network { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--green-soft); font-size: 12px; font-weight: 750; }
+.online-network::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.online-setup-grid { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(280px,1fr); align-items: start; gap: 16px; }
+.online-setup-card { min-width: 0; padding: 23px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: 0 20px 45px #0003; }
+.online-card-heading { margin-bottom: 20px; }
+.online-card-heading h2 { margin: 5px 0; color: var(--ink); font-size: 23px; }
+.online-field { display: grid; gap: 7px; margin: 0 0 17px; color: var(--ink); font-size: 12px; font-weight: 750; }
+.online-field input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid #68635a; border-radius: 9px; background: #272624; color: var(--ink); font: inherit; font-size: 14px; }
+.online-field input::placeholder { color: var(--muted-ink); }
+.online-column-heading { display: flex; align-items: end; justify-content: space-between; gap: 10px; margin: 22px 0 10px; }
+.online-column-heading h3 { margin: 4px 0 0; font-size: 16px; }
+.online-column-heading .btn { padding: 8px 10px; font-size: 12px; }
+.online-column-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.online-column-grid .toggle { border: 1px solid var(--line); border-radius: 9px; background: #393632; font-size: 13px; }
+.online-column-grid .toggle:has(input:checked) { border-color: var(--green-dark); background: #3d4c2e; }
+.online-column-grid input { accent-color: var(--green); }
+.online-submit { width: 100%; min-height: 48px; margin-top: 22px; font-weight: 850; }
+.join-room-card .online-submit { margin-top: 9px; }
+.online-back { display: block; margin: 18px auto 0; border: 0; background: transparent; color: var(--muted-ink); }
+.online-back:hover { color: var(--ink); }
+
+@media (max-width: 820px) {
+  .online-setup-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .online-setup { width: calc(100% - 24px); margin-top: 20px; }
+  .online-setup-card { padding: 17px; }
+}
+
 @media (max-width: 1400px) {
   #app { padding-left: 72px; }
   .site-nav { width: 72px; padding: 22px 10px; }

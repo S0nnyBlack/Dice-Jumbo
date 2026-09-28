@@ -174,17 +174,18 @@ function soloSetup(){
 function onlineSetup(){
  state.mode="setup-online";
  state.columns=["down","free","up"];
- app.innerHTML=`${appNavMarkup("ONLINE STO")}<section class="panel setup">
-  <div class="brand"><h1>Vreme je za jamb.</h1><p>Online multiplayer</p></div>
- <div id="network" class="status">Online: povezivanje sa serverom…</div>
- <div class="setup-card"><h2>Soba</h2><div class="toolbar">
-   <input id="playerName" aria-label="Ime domaćina" placeholder="Ime igrača" value="Igrač 1">
-   <button class="btn" id="createRoom">Kreiraj sobu</button>
- </div><div class="toolbar" style="margin-top:10px">
-   <input id="roomCodeInput" aria-label="Kod sobe" placeholder="ROOM CODE"><input id="joinName" aria-label="Ime igrača koji se pridružuje" placeholder="Ime igrača" value="Igrač 2"><button class="btn" id="joinRoom">Pridruži se</button>
- </div></div>
- <div class="setup-card"><h2>Kolone</h2><div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory?"disabled":""}></label>`).join("")}</div><button class="btn" id="selectAll" type="button">Izaberi sve</button></div>
- <button class="btn" id="back">Nazad</button></section>`;
+ app.innerHTML=`${appNavMarkup("ONLINE STO")}<section class="online-setup">
+  <header class="online-setup-heading"><span class="eyebrow">IGRAJ SA DRUGIMA</span><h1>Online sto</h1><p>Napravi sobu ili se pridruži prijateljima pomoću koda.</p><div id="network" class="online-network" role="status">Povezivanje sa serverom…</div></header>
+  <div class="online-setup-grid"><section class="online-setup-card create-room-card"><div class="online-card-heading"><span class="eyebrow">TVOJA PARTIJA</span><h2>Napravi sobu</h2><p>Izaberi kolone, pa podeli kod sa ostalim igračima.</p></div>
+   <label class="online-field" for="playerName">Tvoje ime<input id="playerName" placeholder="Ime igrača" value="Igrač 1" autocomplete="nickname"></label>
+   <div class="online-column-heading"><div><span class="eyebrow">PODEŠAVANJA IGRE</span><h3>Kolone listića</h3></div><button class="btn" id="selectAll" type="button">Izaberi sve</button></div>
+   <div class="setup-grid online-column-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory?"disabled":""}></label>`).join("")}</div>
+   <button class="btn primary online-submit" id="createRoom" type="button">Kreiraj sobu</button></section>
+  <section class="online-setup-card join-room-card"><div class="online-card-heading"><span class="eyebrow">IMAŠ KOD?</span><h2>Pridruži se sobi</h2><p>Unesi kod koji ti je poslao domaćin.</p></div>
+   <label class="online-field" for="roomCodeInput">Kod sobe<input id="roomCodeInput" placeholder="KOD SOBE" maxlength="8" autocomplete="off" autocapitalize="characters"></label>
+   <label class="online-field" for="joinName">Tvoje ime<input id="joinName" placeholder="Ime igrača" value="Igrač 2" autocomplete="nickname"></label>
+   <button class="btn online-submit" id="joinRoom" type="button">Pridruži se</button></section></div>
+  <button class="btn online-back" id="back" type="button">← Nazad</button></section>`;
  app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{const selected=new Set(state.columns);x.checked?selected.add(x.dataset.col):selected.delete(x.dataset.col);state.columns=normalizeColumnIds([...selected])});
  app.querySelector("#selectAll").onclick=()=>{state.columns=COLUMN_DEFS.map(c=>c.id);app.querySelectorAll("[data-col]").forEach(input=>{input.checked=true})};
  app.querySelector("#back").onclick=setup;
@@ -198,7 +199,7 @@ function onlineSetup(){
 
 function updateNetworkStatus(){
  const n=document.getElementById("network");
- if(n)n.textContent=net.connected?"Online: server povezan":"Online: veza prekinuta — pokušavam ponovno povezivanje.";
+ if(n)n.textContent=net.connected?"Server povezan":"Veza prekinuta — pokušavam ponovno povezivanje.";
  const create=app.querySelector("#createRoom"),join=app.querySelector("#joinRoom");
  if(create)create.disabled=!net.connected;if(join)join.disabled=!net.connected;
  const banner=app.querySelector("#connectionStatus"),message=app.querySelector("#connectionMessage"),reconnect=app.querySelector("#reconnect");

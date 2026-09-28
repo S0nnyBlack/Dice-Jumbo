@@ -135,3 +135,10 @@ Commit na `main`: [`cf13fe6e`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/c
 - Boje menija sobe prate prethodni brif Jamb Arena: ugljenosiva pozadina i kartice, svetao tekst i zelena aktivna stanja. Pravila igre i uslov za početak online partije nisu menjani.
 - Provera: 26 od 26 testova prolazi lokalno (`npm test`). U pregledniku su provereni prikazi listića na 320, 1191, 1210, 1211 i 1605 px; čekaonica je proverena sa dva povezana igrača na 390 i 1440 px, uključujući kopiranje koda.
 
+## Verzija 64 — početni meni za online sto
+
+- Korisnički snimak je pokazao da se pod „Napravi sobu” misli na početni ekran pre kreiranja sobe, a ne na čekaonicu sa kodom. Početni ekran Online sto sada ima odvojene kartice za kreiranje i pridruživanje.
+- Kreiranje sobe zadržava izbor svih devet kolona i dugme „Izaberi sve”; ime domaćina i glavno dugme su jasno istaknuti. Pridruživanje ima zasebna polja za kod i ime.
+- Primenjena je postojeća paleta Jamb Arena bez plave: tamne kartice, svetao tekst i zelena primarna akcija. Raspored se slaže u jednu kolonu na manjim ekranima.
+- Provera: 26 od 26 lokalnih testova prolazi; vizuelno provereni desktop 1440 px i telefon 390 px bez vodoravnog pomeranja stranice.
+
