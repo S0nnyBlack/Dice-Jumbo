@@ -52,6 +52,7 @@ function key(col, row) { return col + "::" + row; }
 function sum(v) { return v.reduce((a, b) => a + b, 0); }
 function counts(v) { return v.reduce((m, x) => (m[x] = (m[x] || 0) + 1, m), {}); }
 
+const SCORE_ROWS = [...TOP_ROWS, "MAX", "MIN", ...COMBO_ROWS];
 function analyse(values) {
   if (!Array.isArray(values) || values.length !== 5) return null;
   const c = counts(values);
@@ -60,44 +61,67 @@ function analyse(values) {
   const total = sum(values);
   return {
     total,
+    counts: c,
     kenta: sorted === "1,2,3,4,5" || sorted === "2,3,4,5,6",
-    kentaScore: sorted === "1,2,3,4,5" ? 66 : sorted === "2,3,4,5,6" ? 56 : null,
     triling: freq.includes(3),
     ful: freq.includes(3) && freq.includes(2),
     poker: freq.includes(4),
     yamb: freq.includes(5)
   };
 }
-function combinationScore(row, values) {
+function combinationScore(row, values, { rolls = 3, manual = false } = {}) {
   const a = analyse(values);
   if (!a) return null;
-  if (row === "KENTA") return a.kenta ? a.kentaScore : null;
+  if (row === "KENTA") return a.kenta ? (manual ? 66 : rolls === 1 ? 66 : rolls === 2 ? 56 : 46) : null;
   if (row === "TRILING") return a.triling ? a.total + 20 : null;
   if (row === "FUL") return a.ful ? a.total + 30 : null;
-  if (row === "POKER") return a.poker ? a.total + 40 : null;
+  if (row === "POKER") {
+    if (!a.poker) return null;
+    const fourCount = Object.values(a.counts).find(count => count >= 4);
+    const face = Number(Object.keys(a.counts).find(value => a.counts[value] === fourCount));
+    return face * 4 + 40;
+  }
   if (row === "YAMB") return a.yamb ? a.total + 50 : null;
   return null;
 }
 function upperScore(values, face) { return values.filter(x => x === face).reduce((a, b) => a + b, 0); }
-
 function columnRows(colId) {
-  if (colId === "up" || colId === "down") return [...TOP_ROWS, "SUM_TOP", "MAX", "MIN", "SUM_MID", ...COMBO_ROWS, "SUM_TOTAL"];
-  if (colId === "free" || colId === "announced" || colId === "contra" || ["r", "n", "d", "o", "m"].includes(colId)) {
+  if (colId === "up" || colId === "down" || colId === "r" || colId === "n") {
+    return [...TOP_ROWS, "SUM_TOP", "MAX", "MIN", "SUM_MID", ...COMBO_ROWS, "SUM_TOTAL"];
+  }
+  if (["free", "announced", "contra", "r", "n", "d", "o", "m"].includes(colId)) {
     return [...TOP_ROWS, "SUM_TOP", "MAX", "MIN", "SUM_MID", ...COMBO_ROWS, "SUM_TOTAL"];
   }
   return [];
 }
 function emptyCell(player, col, row) { return player.cells[key(col, row)] === undefined; }
 function validColumn(config, id) { return config.columns.includes(id); }
-
+function frontierRows(col, player) {
+  const directions = {
+    r: [["MAX", "6", "5", "4", "3", "2", "1"], ["MIN", "KENTA", "TRILING", "FUL", "POKER", "YAMB"]],
+    n: [SCORE_ROWS, [...SCORE_ROWS].reverse()]
+  }[col];
+  if (!directions) return [];
+  return [...new Set(directions.map(rows => rows.find(row => emptyCell(player, col, row))).filter(Boolean))];
+}
+function requiredColumnReady(room, player) {
+  const stop = room.config.columns.indexOf("o");
+  if (stop < 0) return true;
+  return room.config.columns.slice(0, stop).every(col =>
+    SCORE_ROWS.every(row => !emptyCell(player, col, row))
+  );
+}
 function calculateEntry(room, player, col, row, selected, crossOut = false) {
   if (!validColumn(room.config, col)) return { ok: false, error: "Kolona nije aktivna." };
   if (!columnRows(col).includes(row)) return { ok: false, error: "Red nije dozvoljen." };
   if (!emptyCell(player, col, row)) return { ok: false, error: "Polje je već iskorišćeno." };
 
-  const sequenceRows = columnRows(col).filter(r => !["SUM_TOP", "SUM_MID", "SUM_TOTAL"].includes(r));
-  if (col === "up" && row !== (player.nextUpRow ?? sequenceRows[sequenceRows.length - 1])) return { ok: false, error: "Gore kolona mora pratiti redosled." };
-  if (col === "down" && row !== (player.nextDownRow ?? sequenceRows[0])) return { ok: false, error: "Dole kolona mora pratiti redosled." };
+  if (col === "up" && row !== frontierRows("up", player)[0]) return { ok: false, error: "Gore kolona mora pratiti redosled." };
+  if (col === "down" && row !== frontierRows("down", player)[0]) return { ok: false, error: "Dole kolona mora pratiti redosled." };
+  if (["r", "n"].includes(col) && !frontierRows(col, player).includes(row)) return { ok: false, error: "Kolona mora pratiti otvoreni redosled." };
+  if (col === "o" && !requiredColumnReady(room, player)) return { ok: false, error: "Kolona O se otključava kada se popune prethodne kolone." };
+  if (col === "d" && room.rolls !== 1) return { ok: false, error: "Ručna kolona se popunjava posle prvog bacanja." };
+  if (col === "m") return { ok: false, error: "Kolona M se izračunava iz prethodnih kolona." };
 
   const scoreable = TOP_ROWS.includes(row) || row === "MAX" || row === "MIN" || COMBO_ROWS.includes(row);
   if (crossOut) return scoreable ? { ok: true, value: 0 } : { ok: false, error: "Zbirna polja ne mogu da se precrtaju." };
@@ -106,30 +130,37 @@ function calculateEntry(room, player, col, row, selected, crossOut = false) {
   }
 
   let value = null;
-  if (TOP_ROWS.includes(row)) {
-    value = upperScore(selected, Number(row));
-  } else if (row === "MAX" || row === "MIN") {
-    value = sum(selected);
-  } else if (COMBO_ROWS.includes(row)) {
-    value = combinationScore(row, selected);
+  if (TOP_ROWS.includes(row)) value = upperScore(selected, Number(row));
+  else if (row === "MAX" || row === "MIN") value = sum(selected);
+  else if (COMBO_ROWS.includes(row)) {
+    value = combinationScore(row, selected, { rolls: room.rolls, manual: col === "d" });
     if (value === null) return { ok: false, error: "Kombinacija zahteva 5 odgovarajućih kockica." };
   }
   return { ok: true, value };
 }
-
 function updateSequence(player, col, row) {
   const rows = columnRows(col).filter(r => !["SUM_TOP", "SUM_MID", "SUM_TOTAL"].includes(r));
-  if (col === "up") {
-    player.nextUpRow = rows[rows.indexOf(row) - 1];
-  }
-  if (col === "down") {
-    const next = rows[rows.indexOf(row) + 1];
-    player.nextDownRow = next;
+  if (col === "up") player.nextUpRow = rows[rows.indexOf(row) - 1];
+  if (col === "down") player.nextDownRow = rows[rows.indexOf(row) + 1];
+}
+function updateMaximumColumn(room, player) {
+  const maxIndex = room.config.columns.indexOf("m");
+  if (maxIndex < 0) return;
+  const sources = room.config.columns.slice(0, maxIndex);
+  const firstSix = sources.slice(0, 6);
+  for (const row of SCORE_ROWS) {
+    if (!emptyCell(player, "m", row)) continue;
+    if (!sources.length || !sources.every(col => !emptyCell(player, col, row))) continue;
+    const isCrossed = TOP_ROWS.includes(row) && firstSix.some(col => (player.crossedCells || []).includes(key(col, row)));
+    const value = isCrossed ? 0 : Math.max(...sources.map(col => Number(player.cells[key(col, row)] || 0)));
+    player.cells[key("m", row)] = value;
+    if (isCrossed) player.crossedCells.push(key("m", row));
   }
 }
 function sumVisibleCells(player, col, group) {
   const rows = group === "top" ? TOP_ROWS : COMBO_ROWS;
-  return rows.reduce((acc, row) => acc + Number(player.cells[key(col, row)] || 0), 0);
+  const total = rows.reduce((acc, row) => acc + Number(player.cells[key(col, row)] || 0), 0);
+  return group === "top" && total >= 60 ? total + 30 : total;
 }
 function isGameOver(room) {
   return room.started && room.players.length > 0 && room.players.every(player =>
