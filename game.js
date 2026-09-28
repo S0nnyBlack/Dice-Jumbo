@@ -44,7 +44,7 @@ export function availableEntries(columnIds,cells,values,{crossOut=false,announce
  const restricted=contraRow?{column:"contra",row:contraRow}:announcedRow?{column:"announced",row:announcedRow}:null;
  for(const colId of columnIds){
   if(restricted&&colId!==restricted.column)continue;
-  if(!restricted&&["announced","contra"].includes(colId))continue;
+  if(!restricted&&["announced","contra"].includes(colId)&&!crossOut)continue;
   const column=COLUMN_DEFS.find(item=>item.id===colId);
   if(!column)continue;
   const candidates=["up","down"].includes(colId)?[directionOrder(colId,cells)]:rowsToScore;
