@@ -7,6 +7,10 @@ import { randomInt } from "crypto";
 const app = express();
 app.use(cors());
 app.get("/health", (_, res) => res.json({ ok: true, service: "jumbo-dice-server" }));
+app.get("/", (_, res) => res.sendFile(new URL("../index.html", import.meta.url).pathname));
+app.get("/app.js", (_, res) => res.sendFile(new URL("../app.js", import.meta.url).pathname));
+app.get("/game.js", (_, res) => res.sendFile(new URL("../game.js", import.meta.url).pathname));
+app.get("/styles.css", (_, res) => res.sendFile(new URL("../styles.css", import.meta.url).pathname));
 
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*", methods: ["GET", "POST"] } });
