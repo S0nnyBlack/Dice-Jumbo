@@ -19,7 +19,7 @@ test("UI exposes keyboard-operable score cells and status announcements", () => 
 
 test("score sheet can scroll horizontally and the layout has narrow-screen rules", () => {
   assert.match(app, /class="sheet-wrap"/);
-  assert.match(css, /\.sheet-wrap\s*\{[^}]*overflow-x:\s*auto/s);
+  assert.match(css, /\.sheet-wrap\s*\{[^}]*overflow:\s*auto/s);
   assert.match(css, /@media\s*\(max-width:\s*\d+px\)/);
   assert.match(css, /\.sheet-wrap\s*\{[^}]*-webkit-overflow-scrolling:\s*touch/s);
 });
