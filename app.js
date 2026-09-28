@@ -8,11 +8,12 @@ const state={
 };
 const app=document.getElementById("app");
 const defs=()=>state.columns.map(id=>COLUMN_DEFS.find(c=>c.id===id)).filter(Boolean);
+const escapeHtml=value=>String(value).replace(/[&<>"\']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","\'":"&#39;"}[ch]));
 const current=()=>state.players[state.currentPlayer];
 const cellKey=(col,row)=>col+"::"+row;
 const selectedValues=()=>[...state.selected].map(i=>state.dice[i]);
 const isFilled=(p,col,row)=>p?.cells?.[cellKey(col,row)]!==undefined;
-const scoreRows=[...VALUE_ROWS.map(String),"KENTA","TRILING","FUL","POKER","YAMB"];
+const scoreRows=[...VALUE_ROWS.map(String),"MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"];
 
 function resetLocal(){
  state.mode="solo";state.rolls=0;state.dice=[];state.selected.clear();state.players=[{id:"local",name:"Igrač 1",cells:{}}];
@@ -78,6 +79,7 @@ function updateNetworkStatus(){
 if(socket){
  socket.on("connect",()=>{net.connected=true;updateNetworkStatus();const token=localStorage.getItem("jumboDiceSession");if(token)socket.emit("room:resume",{sessionToken:token})});
  socket.on("disconnect",()=>{net.connected=false;updateNetworkStatus()});
+ socket.on("room:resumed",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken)});
  socket.on("room:created",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken);alert("Soba je kreirana: "+d.roomCode);});
  socket.on("room:joined",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken);alert("Pridružen si sobi "+d.roomCode);});
  socket.on("game:error",e=>alert(e.message));
@@ -134,6 +136,7 @@ function soloCandidates(){
 function makeCandidate(col,row,values,a){
  let value=null;
  if(VALUE_ROWS.map(String).includes(row)) value=a.upper[Number(row)];
+ else if(row==="MAX"||row==="MIN") value=a.total;
  else value=combinationScore(row,values);
  if(value===null||value===undefined)return null;
  return{colId:col.id,colName:col.name,row,value};
@@ -198,7 +201,7 @@ function renderScoreSheet(player,isSelf=true){
    html+="</tr>";
  }
  if(isSelf){
-   const total=Object.entries(player?.cells||{}).reduce((acc,[k,v])=>k.includes("::SUM_")?acc:acc+Number(v||0),0);
+   const total=Object.entries(player?.cells||{}).reduce((acc,[k,v])=>k.includes("::SUM_")?acc:acc+Number(v||0)*(k.endsWith("::MIN")?-1:1),0);
    html+=`<tr class="final-total"><th class="row-label">UKUPNO</th><td colspan="${columns.length}" class="final-total-value">${total}</td></tr>`;
  }
  html+="</tbody></table>";
@@ -215,12 +218,18 @@ function renderServerState(s){
  const idx=s.players.findIndex(p=>p.id===s.currentPlayerId);if(idx>=0)state.currentPlayer=idx;
  state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{}}));
  state.columns=s.config?.columns||state.columns;
- if(s.started){if(state.mode!=="game")state.mode="online";game();renderOnline();}
+ if(s.started){game();renderOnline();}
+ else renderLobbyState(s);
+}
+function renderLobbyState(s){
+ app.innerHTML='<section class="panel setup"><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>Soba '+s.roomCode+'</p></div><div class="setup-card"><h2>Igrači ('+s.players.length+'/4)</h2><div class="status">'+s.players.map(p=>escapeHtml(p.name)+(p.id===s.hostId?' · host':'')+(p.connected?'':' · offline')).join('<br>')+'</div><p class="status">'+(s.players.length<2?'Čeka se još jedan igrač.':'Soba je spremna za početak.')+'</p>'+(s.hostId===net.playerId?'<button class="btn primary" id="startOnline" '+(s.players.length<2?'disabled':'')+'>Pokreni partiju</button>':'<p class="status">Čeka se da host pokrene partiju.</p>')+'</div><button class="btn" id="back">Početni ekran</button></section>';
+ app.querySelector("#back").onclick=setup;
+ const start=app.querySelector("#startOnline");if(start)start.onclick=()=>socket?.emit("room:start");
 }
 
 function game(){
  app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja</p></div></header>
- <div class="layout"><section class="panel"><div class="meta"><span>Na potezu: <b>${current().name}</b></span><span>Bacanje <b id="count">0/3</b></span></div><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi</button></div><div class="options" id="options"></div></section><section class="panel"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>`;
+ <div class="layout"><section class="panel"><div class="meta"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span></div><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi</button></div><div class="options" id="options"></div></section><section class="panel"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>`;
  app.querySelector("#roll").onclick=()=>socket?.emit("turn:roll");app.querySelector("#clear").onclick=()=>{state.selected.clear();socket?.emit("turn:select",{indices:[]})};renderOnline();
 }
 
@@ -229,7 +238,18 @@ function renderOnline(){
  d.innerHTML=state.dice.map((v,i)=>`<button class="die ${state.selected.has(i)?"selected":""}" data-i="${i}">${v}</button>`).join("");
  d.querySelectorAll(".die").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;state.selected.has(i)?state.selected.delete(i):state.selected.size<5&&state.selected.add(i);socket?.emit("turn:select",{indices:[...state.selected]})});
  const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls}/3`;
- const tabs=app.querySelector("#tabs");tabs.innerHTML=state.players.map((p,i)=>`<button class="player-tab ${i===state.currentPlayer?"active":""}">${p.name}</button>`).join("");
+ const tabs=app.querySelector("#tabs");tabs.innerHTML=state.players.map((p,i)=>'<button class="player-tab '+(i===state.currentPlayer?'active':'')+'">'+escapeHtml(p.name)+'</button>').join("");
+ const box=app.querySelector("#options");
+ if(box){
+   if(state.players[state.currentPlayer]?.id!==net.playerId) box.innerHTML='<span class="status">Sačekaj svoj potez.</span>';
+   else if(state.rolls===0) box.innerHTML='<span class="status">Baci kockice da započneš potez.</span>';
+   else if(state.selected.size!==5) box.innerHTML='<span class="status">Izaberi tačno 5 kockica.</span>';
+   else{
+     const ops=soloCandidates();
+     box.innerHTML=ops.length?ops.map((o,i)=>'<button class="option" data-op="'+i+'"><b>'+o.colName+' · '+o.row+'</b><span>'+o.value+'</span></button>').join(""):'<span class="status">Nema dostupnog upisa za ovu kombinaciju.</span>';
+     box.querySelectorAll("[data-op]").forEach(b=>b.onclick=()=>socket?.emit("turn:commit",{columnId:ops[+b.dataset.op].colId,row:ops[+b.dataset.op].row}));
+   }
+ }
  renderSoloSheet();
 }
 
