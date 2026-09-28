@@ -10,6 +10,11 @@ Jumbo Dice je veb aplikacija za Jamb sa lokalnom solo partijom i online partijam
 - Upis sa manje od pet izabranih kockica je dozvoljen uz potvrdu; kombinacije i dalje zahtevaju pet kockica.
 - Dostupna polja su istaknuta u tabeli. Polje se može precrtati.
 - Igrač vidi pravila i ograničenja kolona tokom partije.
+- Solo partija se automatski čuva u pregledaču i nastavlja posle osvežavanja; može se vratiti poslednji upis ili precrtavanje.
+- U online partiji domaćin može da vrati poslednji potez za celu sobu.
+- Status poteza, bacanja i obaveznih najava prikazuje se iznad table; aktivna pravila otvaraju se bez napuštanja igre.
+- Veličina tabele može se menjati tokom igre i pamti se u pregledaču.
+- Pre izlaska iz aktivne partije prikazuje se potvrda; pri prekidu veze online unos se zaključava do sinhronizacije i dostupan je ručni pokušaj povezivanja.
 - Konačan zbir se prikazuje tek po završetku partije.
 - Mobilni prikaz stavlja tabelu ispred kockica i kontrola, uz veće dodirne površine, podršku za bezbedne margine ekrana i landscape orijentaciju. Široka tabela može da se pomera horizontalno kako bi polja ostala čitljiva.
 
