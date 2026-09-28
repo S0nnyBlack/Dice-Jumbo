@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds } from "../game.js";
+import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds, COLUMN_DEFS } from "../game.js";
 
 test("rollDice returns the requested number of valid die values",()=>{
  const dice=rollDice(6);assert.equal(dice.length,6);
@@ -42,11 +42,10 @@ test("down and up columns advance in order",()=>{
  const cells={};assert.equal(directionOrder("down",cells),"1");cells["down::1"]=2;
  assert.equal(directionOrder("down",cells),"2");assert.equal(directionOrder("up",{}),"YAMB");
 });
-test("R and N columns expose their two documented frontiers",()=>{
- assert.deepEqual(frontierRows("r",{}),["MAX","MIN"]);
+test("N column exposes its two documented frontiers while R is manual",()=>{
+ assert.deepEqual(frontierRows("r",{}),[]);
  assert.deepEqual(frontierRows("n",{}),["1","YAMB"]);
- const cells={"r::MAX":30,"n::1":3};
- assert.deepEqual(frontierRows("r",cells),["6","MIN"]);
+ const cells={"n::1":3};
  assert.deepEqual(frontierRows("n",cells),["2","YAMB"]);
 });
 test("short selections suggest Triling and Poker only after the required matching dice",()=>{
@@ -61,10 +60,10 @@ test("short selections suggest Triling and Poker only after the required matchin
  const unrelated=availableEntries(["free"],{},[4,4,3]);
  assert.ok(!unrelated.some(e=>e.row==="TRILING"));
 });
-test("manual D column can only be played after the first throw",()=>{
+test("manual R column can only be played after the first throw",()=>{
  const dice=[1,2,3,4,5];
- assert.ok(!availableEntries(["d"],{},dice,{rolls:2}).length);
- assert.ok(availableEntries(["d"],{},dice,{rolls:1}).some(e=>e.row==="KENTA"&&e.value===66));
+ assert.ok(!availableEntries(["r"],{},dice,{rolls:2}).length);
+ assert.ok(availableEntries(["r"],{},dice,{rolls:1}).some(e=>e.row==="KENTA"&&e.value===66));
 });
 test("O stays locked until earlier enabled columns are complete",()=>{
  const rows=["1","2","3","4","5","6","MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"];
@@ -91,6 +90,16 @@ test("contra score is restricted to the opponent's announced row",()=>{
 });
 
 test("enabled columns retain canonical order regardless of selection order",()=>{
- assert.deepEqual(normalizeColumnIds(["m","o","d","r","unknown","o"]),["down","free","up","r","d","o","m"]);
+ assert.deepEqual(normalizeColumnIds(["m","o","d","r","unknown","o"]),["down","free","up","r","o","m"]);
  assert.deepEqual(normalizeColumnIds(null),["down","free","up"]);
+});
+
+
+test("column symbols match their gameplay labels",()=>{
+ const columns=Object.fromEntries(COLUMN_DEFS.map(column=>[column.id,column]));
+ assert.equal(columns.announced.headerSymbol,"N");
+ assert.equal(columns.contra.name,"Dirigovano");assert.equal(columns.contra.headerSymbol,"D");
+ assert.equal(columns.r.direction,"manual");assert.equal(columns.r.headerTitle,"R · Ručna, samo posle prvog bacanja");
+ assert.equal(columns.n.headerSymbol,"↓↑");
+ assert.equal(columns.d,undefined);
 });
