@@ -61,6 +61,15 @@ test("short selections suggest Triling and Poker only after the required matchin
  assert.ok(!unrelated.some(e=>e.row==="TRILING"));
 });
 
+test("MAX and MIN require exactly five selected dice",()=>{
+ for(const dice of [[1],[1,2],[1,2,3],[1,2,3,4]]){
+  const entries=availableEntries(["free"],{},dice);
+  assert.ok(!entries.some(entry=>entry.row==="MAX"||entry.row==="MIN"));
+ }
+ const entries=availableEntries(["free"],{},[1,2,3,4,5]);
+ assert.ok(entries.some(entry=>entry.row==="MAX"&&entry.value===15));
+ assert.ok(entries.some(entry=>entry.row==="MIN"&&entry.value===15));
+});
 test("zero scores are not suggested unless the player is crossing out a cell",()=>{
  const scoring=availableEntries(["free"],{},[1]);
  assert.ok(scoring.some(entry=>entry.row==="1"&&entry.value===1));
