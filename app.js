@@ -10,7 +10,7 @@ const app=document.getElementById("app");
 function appNavMarkup(mode){
  return `<header class="site-nav"><div class="site-nav-inner">
   <button type="button" class="site-brand" data-nav="play" aria-label="Jumbo Dice početna strana"><span class="brand-mark" aria-hidden="true">JD</span><span class="brand-words"><strong>Jumbo Dice</strong><small>JAMB STO</small></span></button>
-  <nav class="main-nav" aria-label="Glavna navigacija"><button type="button" data-nav="play">Igraj</button><button type="button" data-nav="online">Online sto</button><button type="button" id="rulesHelp" data-nav="rules">Pravila</button></nav>
+  <nav class="main-nav" aria-label="Glavna navigacija"><button type="button" data-nav="play">Igraj</button><button type="button" data-nav="online" ${mode==="ONLINE"?'aria-current="page"':""}>Online sto</button><button type="button" id="rulesHelp" data-nav="rules">Pravila</button></nav>
   <span class="nav-context"><i aria-hidden="true"></i>${escapeHtml(mode)}</span>
  </div></header>`;
 }
