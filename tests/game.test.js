@@ -67,10 +67,11 @@ test("M column is derived and is not directly selectable",()=>{
  assert.equal(availableEntries(["m"],{},[1,2,3,4,5]).length,0);
 });
 test("announced score is restricted to its declared row",()=>{
- const entries=availableEntries(["free","announced"],{},[2,2,3,3,4],{announcedRow:"FUL"});
+ const entries=availableEntries(["free","announced"],{},[2,2,2,3,3],{announcedRow:"FUL"});
  assert.equal(entries.length,1);assert.equal(entries[0].colId,"announced");assert.equal(entries[0].row,"FUL");
+ assert.equal(entries[0].value,42);
 });
 test("contra score is restricted to the opponent's announced row",()=>{
- const entries=availableEntries(["free","contra"],{},[2,2,3,3,4],{contraRow:"FUL"});
+ const entries=availableEntries(["free","contra"],{},[2,2,2,3,3],{contraRow:"FUL"});
  assert.equal(entries.length,1);assert.equal(entries[0].colId,"contra");assert.equal(entries[0].row,"FUL");
 });
