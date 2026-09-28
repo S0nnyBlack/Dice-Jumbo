@@ -309,6 +309,7 @@ header .brand h1, .brand h1 {
   .premium-sheet { min-width: 760px; }
   .premium-sheet .head-symbol { font-size: 19px; }
   .premium-sheet .head-name { font-size: 8px; }
+  .premium-sheet .head-detail { display: block; margin-top: 3px; color: #92a8b0; font-size: 8px; line-height: 1.05; }
   .premium-sheet .row-label { font-size: 13px; }
   .premium-sheet .row-label small { font-size: 9px; }
 }
@@ -412,7 +413,7 @@ body {
     scrollbar-width: thin;
   }
   .premium-sheet.sheet {
-    width: max(100%, calc(64px + 52px * var(--column-count)));
+    width: max(100%, var(--sheet-min-width));
     min-width: 0;
     table-layout: fixed;
   }
@@ -433,6 +434,7 @@ body {
   .premium-sheet .row-label { box-shadow: 2px 0 4px rgba(0, 0, 0, .25); }
   .premium-sheet .head-symbol { font-size: 17px; }
   .premium-sheet .head-name { font-size: 9px; line-height: 1.05; }
+  .premium-sheet .head-detail { display: none; }
   .premium-sheet .row-label { font-size: 13px; }
   .premium-sheet .row-label small { font-size: 9px; }
   .premium-sheet .sheet-cell { font-size: 14px; }
@@ -489,7 +491,7 @@ body {
   .premium-sheet .label-col { width: 58px; }
   .premium-sheet .data-col { width: 50px; }
   .premium-sheet.sheet {
-    width: max(100%, calc(58px + 50px * var(--column-count)));
+    width: max(100%, var(--sheet-min-width));
   }
 }
 @media (max-height: 500px) and (orientation: landscape) and (max-width: 900px) {
