@@ -147,6 +147,7 @@ function announceRow(row){
 function renderAnnouncementUi(){
  const box=app.querySelector("#announceOptions");if(!box)return;
  if(state.contraTargetRow){box.innerHTML='<span class="status">Protivnik je najavio '+escapeHtml(state.contraTargetRow)+'. Moraš odigrati to polje u koloni Kontra najava.</span>';return;}
+ if(state.columns.includes("contra")){box.textContent="Kontra najava je dostupna samo kada je protivnik prethodno najavio polje. Bez protivničke najave možeš precrtati ćeliju.";if(state.rolls!==1||!state.columns.includes("announced"))return;}
  if(state.announcedRow){box.innerHTML='<span class="status">Najavljeno polje: '+escapeHtml(state.announcedRow)+'. Ovaj potez moraš završiti isključivo u toj ćeliji kolone Najava.</span>';return;}
  const isMyTurn=state.mode!=="online"||state.players[state.currentPlayer]?.id===net.playerId;
  if(!isMyTurn||state.rolls!==1||!state.columns.includes("announced")){box.innerHTML="";return;}
@@ -168,7 +169,7 @@ function commitSolo(candidate){
  const p=current();
  if(isFilled(p,candidate.colId,candidate.row))return;
  p.cells[cellKey(candidate.colId,candidate.row)]=candidate.value;
- state.contraTargetRow=state.announcedRow||null;
+ state.contraTargetRow=state.columns.includes("contra")?(state.announcedRow||null):null;
  state.pending=null;
  const filled=defs().every(col=>scoreRows.every(row=>isFilled(p,col.id,row)));
  if(filled){state.gameOver=true;newTurn();renderSolo();return;}
