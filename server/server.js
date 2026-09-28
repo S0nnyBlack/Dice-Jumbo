@@ -3,14 +3,32 @@ import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
 import { randomInt } from "crypto";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const publicRoot = path.resolve(__dirname, "..");
+
+
+
+
+
 
 const app = express();
 app.use(cors());
 app.get("/health", (_, res) => res.json({ ok: true, service: "jumbo-dice-server" }));
-app.get("/", (_, res) => res.sendFile(new URL("../index.html", import.meta.url).pathname));
-app.get("/app.js", (_, res) => res.sendFile(new URL("../app.js", import.meta.url).pathname));
-app.get("/game.js", (_, res) => res.sendFile(new URL("../game.js", import.meta.url).pathname));
-app.get("/styles.css", (_, res) => res.sendFile(new URL("../styles.css", import.meta.url).pathname));
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const publicRoot = path.resolve(__dirname, "..");
+
+app.get("/", (_, res) => res.sendFile(path.join(publicRoot, "index.html")));
+app.get("/app.js", (_, res) => res.sendFile(path.join(publicRoot, "app.js")));
+app.get("/game.js", (_, res) => res.sendFile(path.join(publicRoot, "game.js")));
+app.get("/styles.css", (_, res) => res.sendFile(path.join(publicRoot, "styles.css")));
 
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*", methods: ["GET", "POST"] } });
