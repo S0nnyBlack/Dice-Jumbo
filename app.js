@@ -63,7 +63,7 @@ function gameInProgress(){
  return (state.mode==="solo"&&state.soloActive&&!state.gameOver)||(state.mode==="online"&&state.onlineStarted&&!state.gameOver);
 }
 function confirmLeaveGame(){
- return !gameInProgress()||window.confirm("Partija još traje. Da li želite da izađete? Solo partija će biti sačuvana.");
+ return !gameInProgress()||window.confirm(state.mode==="solo"?"Solo partija još traje. Napredak će biti sačuvan. Da li želite da izađete?":"Online partija još traje. Možete se ponovo povezati nakon izlaska. Da li želite da izađete?");
 }
 window.addEventListener("beforeunload",event=>{
  if(!gameInProgress())return;
@@ -136,7 +136,7 @@ function updateNetworkStatus(){
  if(create)create.disabled=!net.connected;if(join)join.disabled=!net.connected;
  const banner=app.querySelector("#connectionStatus"),message=app.querySelector("#connectionMessage"),reconnect=app.querySelector("#reconnect");
  const needsSync=state.mode==="online"&&state.onlineStarted&&net.connected&&!net.synced;
- if(banner){banner.hidden=net.connected&&!needsSync;if(message)message.textContent=needsSync?"Veza je obnovljena; sinhronizujem stanje sobe…":"Veza je prekinuta. Pokušaj automatskog povezivanja je u toku.";if(reconnect)reconnect.hidden=net.connected;}
+ if(banner){banner.hidden=net.connected&&!needsSync;if(message)message.textContent=needsSync?"Veza je obnovljena; sinhronizujem stanje sobe…":"Veza je prekinuta. Pokušaj automatskog povezivanja je u toku.";if(reconnect){reconnect.hidden=net.connected;reconnect.disabled=net.connected;reconnect.textContent=net.connected?"Sinhronizujem…":"Poveži ponovo";}}
 }
 if(socket){
  socket.on("connect",()=>{net.connected=true;net.synced=false;updateNetworkStatus();const token=localStorage.getItem("jumboDiceSession");if(token)socket.emit("room:resume",{sessionToken:token});if(state.mode==="online")renderOnline()});
@@ -462,6 +462,7 @@ function renderOnline(){
  if(box){
    let hint="";
    if(state.gameOver)hint="Partija je završena. Konačan rezultat je prikazan na tabeli.";
+   else if(!canAct)hint=net.connected?"Sinhronizujem stanje sobe…":"Veza je prekinuta. Sačekaj ponovno povezivanje.";
    else if(!isMyTurn)hint="Sačekaj svoj potez.";
    else if(state.rolls===0)hint="Prvo baci kockice. Za bodovanje izaberi 1–5 kockica.";
    else if(state.crossOutMode)hint="Izaberi dostupno polje koje želiš da precrtaš. U polje će biti upisana 0.";
