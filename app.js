@@ -1,6 +1,6 @@
 const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:false,synced:false,roomCode:null,playerId:null,sessionToken:null,server:null};
-import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBonus,normalizeColumnIds}from"./game.js";
+import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums}from"./game.js";
 
 const state={
  mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),undoHistory:[],columns:["down","free","up"],
@@ -288,12 +288,8 @@ function refreshLocalDerived(player){
    }
  }
  for(const col of columns){
-   const upper=VALUE_ROWS.map(face=>Number(player.cells[cellKey(col,String(face))]||0)).reduce((a,b)=>a+b,0);
-   const top=upper+upperBonus(upper);
-   const middle=COMBINATION_ROWS.reduce((total,row)=>total+Number(player.cells[cellKey(col,row)]||0),0);
-   player.cells[cellKey(col,"SUM_TOP")]=top;
-   player.cells[cellKey(col,"SUM_MID")]=middle;
-   player.cells[cellKey(col,"SUM_TOTAL")]=top+middle+Number(player.cells[cellKey(col,"MAX")]||0)-Number(player.cells[cellKey(col,"MIN")]||0);
+   const sums=calculateColumnSums(player.cells,col);
+   for(const [row,value] of Object.entries(sums))player.cells[cellKey(col,row)]=value;
  }
 }
 function captureSoloSnapshot(){
