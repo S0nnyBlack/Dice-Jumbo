@@ -170,6 +170,7 @@ function sumVisibleCells(player, col, group) {
 function maxRollsForTurn(room, player) {
   let remaining = 0;
   for (const col of room.config.columns) {
+    if (col === "m") continue;
     for (const row of SCORE_ROWS) if (emptyCell(player, col, row)) remaining++;
   }
   return remaining === 1 ? 5 : 3;
