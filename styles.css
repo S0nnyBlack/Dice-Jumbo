@@ -368,6 +368,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
   cursor: pointer;
   text-align: left;
 }
+.brand-home { padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .brand-mark {
   display: grid;
   width: 38px;

@@ -1,15 +1,22 @@
 const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:false,synced:false,roomCode:null,playerId:null,sessionToken:null,server:null};
-import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums}from"./game.js";
+import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,SCORE_ROWS as scoreRows,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums}from"./game.js";
 
 const state={
  mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),diceRollAnimation:false,undoHistory:[],columns:["down","free","up"],
  currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false,hostId:null,onlineUndoAvailable:false
 };
 const app=document.getElementById("app");
+const DIE_PIPS={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
+let brandDieValue=5,brandClicks=0;
+const brandIsStar=()=>brandClicks>0&&brandClicks%10===0;
+function brandFaceMarkup(){
+ return brandIsStar()?'<span class="brand-star" aria-hidden="true">★</span>':`<span class="brand-face" aria-hidden="true">${DIE_PIPS[brandDieValue].map(pos=>`<i class="brand-pip pip-${pos}"></i>`).join("")}</span>`;
+}
+const brandDieLabel=()=>brandIsStar()?"Zvezdica! Klikni za novo bacanje.":`Kockica pokazuje ${brandDieValue}. Klikni za novo bacanje.`;
 function appNavMarkup(mode){
  return `<header class="site-nav"><div class="site-nav-inner">
-  <button type="button" class="site-brand" data-nav="play" aria-label="jamb.arena početna strana"><span class="brand-mark" aria-hidden="true">⚄</span><span class="brand-words"><strong>jamb<span>.arena</span></strong><small>JAMB STO</small></span></button>
+  <div class="site-brand"><button type="button" class="brand-mark" id="brandDie" aria-label="${brandDieLabel()}" title="Baci kockicu">${brandFaceMarkup()}</button><button type="button" class="brand-home" data-nav="play" aria-label="jamb.arena početna strana"><span class="brand-words"><strong>jamb<span>.arena</span></strong><small>JAMB STO</small></span></button></div>
   <span class="nav-caption">IGRA</span><nav class="main-nav" aria-label="Glavna navigacija"><button type="button" data-nav="play" ${["POČETNA","SOLO","KOLONE"].includes(mode)?'aria-current="page"':""}><span aria-hidden="true">⚄</span> Igraj jamb</button><button type="button" data-nav="online" ${mode.startsWith("ONLINE")?'aria-current="page"':""}><span aria-hidden="true">◎</span> Online sto</button><button type="button" id="rulesHelp" data-nav="rules"><span aria-hidden="true">?</span> Pravila igre</button></nav>
   <div class="site-nav-tip"><span>SAVET ZA IGRU</span><strong>Igraj strateški.</strong><p>Sačuvaj jaka bacanja za najavu, a slobodnu kolonu koristi mudro.</p></div><span class="nav-context"><i aria-hidden="true"></i>${escapeHtml(mode)}</span>
  </div></header>`;
@@ -17,11 +24,18 @@ function appNavMarkup(mode){
 function diceButtonMarkup(value,index,held,disabled){
  const stateLabel=held?"Sačuvana":"Sačuvaj";
  const accessibleState=held?"sačuvana":"nije sačuvana";
-  const pips={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
   const empty=!value;
-  return '<button type="button" class="die '+(held?"selected":"")+(empty?" die-placeholder":"")+(state.diceRollAnimation?" die-arrive":"")+'" data-i="'+index+'" aria-pressed="'+String(held)+'" aria-label="Kockica '+(index+1)+(empty?", još nije bačena":", "+value+"; "+accessibleState)+'" title="'+(empty?"Baci kockice":held?"Vrati u bacanje":"Sačuvaj") + '" '+(disabled?"disabled":"")+'><span class="die-face" aria-hidden="true">'+(pips[value]||[]).map(pos=>'<i class="pip pip-'+pos+'"></i>').join("")+'</span><span class="die-state">'+(empty?"Spremna":stateLabel)+'</span></button>';
+  return '<button type="button" class="die '+(held?"selected":"")+(empty?" die-placeholder":"")+(state.diceRollAnimation?" die-arrive":"")+'" data-i="'+index+'" aria-pressed="'+String(held)+'" aria-label="Kockica '+(index+1)+(empty?", još nije bačena":", "+value+"; "+accessibleState)+'" title="'+(empty?"Baci kockice":held?"Vrati u bacanje":"Sačuvaj") + '" '+(disabled?"disabled":"")+'><span class="die-face" aria-hidden="true">'+(DIE_PIPS[value]||[]).map(pos=>'<i class="pip pip-'+pos+'"></i>').join("")+'</span><span class="die-state">'+(empty?"Spremna":stateLabel)+'</span></button>';
 }
 app.addEventListener("click",event=>{
+ const brandDie=event.target.closest("#brandDie");
+ if(brandDie){
+  brandClicks++;
+  if(!brandIsStar())brandDieValue=([1,2,3,4,5,6].filter(value=>value!==brandDieValue))[Math.floor(Math.random()*5)];
+  brandDie.innerHTML=brandFaceMarkup();
+  brandDie.setAttribute("aria-label",brandDieLabel());
+  return;
+ }
  const button=event.target.closest("[data-nav]");
  if(!button)return;
  if(button.dataset.nav==="play"){
@@ -43,7 +57,6 @@ const current=()=>state.players[state.currentPlayer];
 const cellKey=(col,row)=>col+"::"+row;
 const selectedValues=()=>[...state.selected].map(i=>state.dice[i]);
 const isFilled=(p,col,row)=>p?.cells?.[cellKey(col,row)]!==undefined;
-const scoreRows=[...VALUE_ROWS.map(String),"MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"];
 
 const TABLE_SCALE_KEY="jumboDiceTableScaleV1";
 const TABLE_SCALE_LEVELS=["compact","normal","large"];
@@ -136,17 +149,29 @@ function setup(){
  app.querySelector("#openRules").onclick=showRulesGuide;
 }
 
-function columnSetup(title,buttonText,onStart,locked=false){
+function columnOptionsMarkup(locked=false){
+ return COLUMN_DEFS.map(c=>`<label class="toggle"><span class="column-option-name"><b class="column-option-symbol" aria-hidden="true">${c.headerSymbol}</b>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("");
+}
+function bindColumnOptions(){
+ app.querySelectorAll("[data-col]").forEach(input=>input.onchange=()=>{
+  const selected=new Set(state.columns);
+  input.checked?selected.add(input.dataset.col):selected.delete(input.dataset.col);
+  state.columns=normalizeColumnIds([...selected]);
+ });
+ const selectAll=app.querySelector("#selectAll");
+ if(selectAll)selectAll.onclick=()=>{state.columns=COLUMN_DEFS.map(c=>c.id);app.querySelectorAll("[data-col]").forEach(input=>{input.checked=true})};
+}
+
+function columnSetup(buttonText,onStart,locked=false){
  app.innerHTML=`${appNavMarkup("SOLO")}<section class="online-setup solo-setup">
   <header class="online-setup-heading"><span class="eyebrow">IGRAJ SAMOSTALNO</span><h1>Solo igra</h1><p>${locked?"Tvoja partija je sačuvana. Nastavi tamo gde si stao.":"Izaberi kolone i započni svoju partiju."}</p></header>
   <div class="online-setup-grid"><section class="online-setup-card create-room-card"><div class="online-card-heading"><span class="eyebrow">${locked?"PARTIJA U TOKU":"TVOJA PARTIJA"}</span><h2>${locked?"Nastavi igru":"Napravi solo igru"}</h2><p>${locked?"Kolone su zaključane do završetka ove partije.":"Tri osnovne kolone su već izabrane. Dodaj ostale po želji."}</p></div>
    <div class="online-column-heading"><div><span class="eyebrow">PODEŠAVANJA IGRE</span><h3>Kolone listića</h3></div>${locked?"":'<button class="btn" id="selectAll" type="button">Izaberi sve</button>'}</div>
-   <div class="setup-grid online-column-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span class="column-option-name"><b class="column-option-symbol" aria-hidden="true">${c.headerSymbol}</b>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("")}</div>
+   <div class="setup-grid online-column-grid">${columnOptionsMarkup(locked)}</div>
    <button class="btn primary online-submit" id="start" type="button">${buttonText}</button>${locked?'<button class="btn solo-new" id="newSolo" type="button">Nova partija</button>':""}</section>
    <aside class="online-setup-card solo-info-card"><div class="online-card-heading"><span class="eyebrow">KAKO SE IGRA</span><h2>Tvoj tempo</h2><p>Solo partija se igra lokalno i automatski čuva u ovom pregledaču.</p></div><ul><li>Bacaš šest kockica i biraš do pet za upis.</li><li>Imaš do tri bacanja po potezu.</li><li>Izabrane kockice ostaju sačuvane pri sledećem bacanju.</li><li>Popunjavaš jedan red listića u svakom potezu.</li></ul></aside></div>
   <button class="btn online-back" id="back" type="button">← Nazad</button></section>`;
- app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{const selected=new Set(state.columns);x.checked?selected.add(x.dataset.col):selected.delete(x.dataset.col);state.columns=normalizeColumnIds([...selected])});
- const selectAll=app.querySelector("#selectAll");if(selectAll)selectAll.onclick=()=>{state.columns=COLUMN_DEFS.map(c=>c.id);app.querySelectorAll("[data-col]").forEach(input=>{input.checked=true})};
+ bindColumnOptions();
  app.querySelector("#start").onclick=onStart;
  app.querySelector("#back").onclick=()=>{if(!locked||confirmLeaveGame())setup()};
  const newSolo=app.querySelector("#newSolo");if(newSolo)newSolo.onclick=()=>{if(!window.confirm("Nova partija će zameniti sačuvanu solo partiju. Nastaviti?"))return;state.soloActive=false;state.gameOver=false;state.undoHistory=[];state.columns=["down","free","up"];soloSetup()};
@@ -154,11 +179,11 @@ function columnSetup(title,buttonText,onStart,locked=false){
 
 function soloSetup(){
  if(state.soloActive&&!state.gameOver){
-   columnSetup("Solo igra u toku","Nastavi partiju",soloGame,true);
+   columnSetup("Nastavi partiju",soloGame,true);
    return;
  }
  state.columns=["down","free","up"];
- columnSetup("Solo igra","Pokreni solo igru",()=>{resetLocal();state.columns=normalizeColumnIds(state.columns);state.mode="solo";state.soloActive=true;soloGame();});
+ columnSetup("Pokreni solo igru",()=>{resetLocal();state.columns=normalizeColumnIds(state.columns);state.mode="solo";state.soloActive=true;soloGame();});
 }
 
 function onlineSetup(){
@@ -169,15 +194,14 @@ function onlineSetup(){
   <div class="online-setup-grid"><section class="online-setup-card create-room-card"><div class="online-card-heading"><span class="eyebrow">TVOJA PARTIJA</span><h2>Napravi sobu</h2><p>Izaberi kolone, pa podeli kod sa ostalim igračima.</p></div>
    <label class="online-field" for="playerName">Tvoje ime<input id="playerName" placeholder="Ime igrača" value="Igrač 1" autocomplete="nickname"></label>
    <div class="online-column-heading"><div><span class="eyebrow">PODEŠAVANJA IGRE</span><h3>Kolone listića</h3></div><button class="btn" id="selectAll" type="button">Izaberi sve</button></div>
-   <div class="setup-grid online-column-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span class="column-option-name"><b class="column-option-symbol" aria-hidden="true">${c.headerSymbol}</b>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory?"disabled":""}></label>`).join("")}</div>
+   <div class="setup-grid online-column-grid">${columnOptionsMarkup()}</div>
    <button class="btn primary online-submit" id="createRoom" type="button">Kreiraj sobu</button></section>
   <section class="online-setup-card join-room-card"><div class="online-card-heading"><span class="eyebrow">IMAŠ KOD?</span><h2>Pridruži se sobi</h2><p>Unesi kod koji ti je poslao domaćin.</p></div>
    <label class="online-field" for="roomCodeInput">Kod sobe<input id="roomCodeInput" placeholder="KOD SOBE" maxlength="8" autocomplete="off" autocapitalize="characters"></label>
    <label class="online-field" for="joinName">Tvoje ime<input id="joinName" placeholder="Ime igrača" value="Igrač 2" autocomplete="nickname"></label>
    <button class="btn online-submit" id="joinRoom" type="button">Pridruži se</button></section></div>
   <button class="btn online-back" id="back" type="button">← Nazad</button></section>`;
- app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{const selected=new Set(state.columns);x.checked?selected.add(x.dataset.col):selected.delete(x.dataset.col);state.columns=normalizeColumnIds([...selected])});
- app.querySelector("#selectAll").onclick=()=>{state.columns=COLUMN_DEFS.map(c=>c.id);app.querySelectorAll("[data-col]").forEach(input=>{input.checked=true})};
+ bindColumnOptions();
  app.querySelector("#back").onclick=setup;
  if(socket){
    app.querySelector("#createRoom").onclick=()=>socket.emit("room:create",{name:app.querySelector("#playerName").value||"Igrač 1",config:{columns:normalizeColumnIds(state.columns)}});
@@ -196,13 +220,18 @@ function updateNetworkStatus(){
  const needsSync=state.mode==="online"&&state.onlineStarted&&net.connected&&!net.synced;
  if(banner){banner.hidden=net.connected&&!needsSync;if(message)message.textContent=needsSync?"Veza je obnovljena; sinhronizujem stanje sobe…":"Veza je prekinuta. Pokušaj automatskog povezivanja je u toku.";if(reconnect){reconnect.hidden=net.connected;reconnect.disabled=net.connected;reconnect.textContent=net.connected?"Sinhronizujem…":"Poveži ponovo";}}
 }
+function acceptRoomSession(data,message=""){
+ net.roomCode=data.roomCode;net.playerId=data.playerId;net.sessionToken=data.sessionToken;
+ localStorage.setItem(SESSION_KEY,data.sessionToken);
+ if(message)alert(message+data.roomCode);
+}
 if(socket){
- socket.on("connect",()=>{net.connected=true;net.synced=false;updateNetworkStatus();const token=localStorage.getItem("jumboDiceSession");if(deploymentChecked&&token&&state.mode!=="solo")socket.emit("room:resume",{sessionToken:token});if(state.mode==="online")renderOnline()});
+ socket.on("connect",()=>{net.connected=true;net.synced=false;updateNetworkStatus();const token=localStorage.getItem(SESSION_KEY);if(deploymentChecked&&token&&state.mode!=="solo")socket.emit("room:resume",{sessionToken:token});if(state.mode==="online")renderOnline()});
  socket.on("disconnect",()=>{net.connected=false;net.synced=false;updateNetworkStatus();if(state.mode==="online")renderOnline()});
  socket.on("connect_error",()=>{net.connected=false;net.synced=false;updateNetworkStatus()});
- socket.on("room:resumed",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken)});
- socket.on("room:created",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken);alert("Soba je kreirana: "+d.roomCode);});
- socket.on("room:joined",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken);alert("Pridružen si sobi "+d.roomCode);});
+ socket.on("room:resumed",d=>acceptRoomSession(d));
+ socket.on("room:created",d=>acceptRoomSession(d,"Soba je kreirana: "));
+ socket.on("room:joined",d=>acceptRoomSession(d,"Pridružen si sobi "));
  socket.on("room:left",resetOnlineSession);
  socket.on("room:closed",d=>{resetOnlineSession();alert(d?.message||"Soba je zatvorena.")});
  socket.on("game:error",e=>alert(e.message));
@@ -248,27 +277,26 @@ function showRulesGuide(){
  if(!dialog.open)dialog.showModal();
 }
 
-function soloGame(){
- state.mode="solo";
-  app.innerHTML=`${appNavMarkup("SOLO")}<section class="match-heading"><div class="match-title"><span class="eyebrow">DOBRO DOŠAO U ARENU</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></section>
- <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill mode-status">Solo</span></div>
+function gameMarkup(online){
+ return `${appNavMarkup(online?"ONLINE":"SOLO")}<section class="match-heading"><div class="match-title"><span class="eyebrow">${online?"ONLINE ARENA":"DOBRO DOŠAO U ARENU"}</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button>${online?'<button class="btn" id="leaveRoom">Napusti partiju</button>':'<button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button>'}</div></section>
+ <div class="meta game-status"><span>Na potezu: <b>${online?escapeHtml(current().name):"Igrač 1"}</b></span><span>Bacanje <b id="count">0 od 3</b></span>${online?'<span class="live-pill"><i aria-hidden="true"></i>Uživo</span>':'<span class="live-pill mode-status">Solo</span>'}</div>
  <div class="layout ${state.columns.length===COLUMN_DEFS.length?"sheet-expanded":""}" style="--score-panel-width:${Math.min(805,Math.max(460,190+70*state.columns.length))}px">
   <div class="game-main">
-    <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">TVOJA TABELA</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
-
+    <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">${online?"TABELA PARTIJE":"TVOJA TABELA"}</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
   </div>
   <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
-    <section class="panel game-controls">
-     <div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div>
-     <div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label">TVOJE KOCKICE</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div>
-    <div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div>
-   </section>
+    <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div><div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label">TVOJE KOCKICE</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div></section>
    <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
    <div class="game-info"><section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
-   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div></section></div>
-   <section class="sidebar-card sidebar-result"><span class="eyebrow">REZULTAT</span><h2>Igrači</h2><div class="tabs" id="tabs"><button class="player-tab active">Igrač 1</button></div><p class="sidebar-note">Listić prikazuje rezultate; konačan zbir je zaključan do završetka partije.</p></section>
+   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div>${online?'<div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div>':""}</section></div>
+   <section class="sidebar-card sidebar-result"><span class="eyebrow">REZULTAT</span><h2>Igrači</h2><div class="tabs" id="tabs">${online?"":'<button class="player-tab active">Igrač 1</button>'}</div><p class="sidebar-note">Listić prikazuje rezultate; konačan zbir je zaključan do završetka partije.</p></section>
   </aside>
  </div>${rulesDialogMarkup()}`;
+}
+
+function soloGame(){
+ state.mode="solo";
+  app.innerHTML=gameMarkup(false);
  bindRulesGuide();
  bindTableScale();
  app.querySelector("#setup").onclick=soloSetup;
@@ -553,20 +581,7 @@ function renderLobbyState(s){
 }
 
 function game(){
-  app.innerHTML=`${appNavMarkup("ONLINE")}<section class="match-heading"><div class="match-title"><span class="eyebrow">ONLINE ARENA</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="leaveRoom">Napusti partiju</button></div></section>
- <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill"><i aria-hidden="true"></i>Uživo</span></div>
- <div class="layout ${state.columns.length===COLUMN_DEFS.length?"sheet-expanded":""}" style="--score-panel-width:${Math.min(805,Math.max(460,190+70*state.columns.length))}px">
-  <div class="game-main">
-    <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">TABELA PARTIJE</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
-  </div>
-  <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
-    <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div><div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label">TVOJE KOCKICE</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div></section>
-   <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
-   <div class="game-info"><section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
-   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div></section></div>
-   <section class="sidebar-card sidebar-result"><span class="eyebrow">REZULTAT</span><h2>Igrači</h2><div class="tabs" id="tabs"></div><p class="sidebar-note">Listić prikazuje rezultate; konačan zbir je zaključan do završetka partije.</p></section>
-  </aside>
- </div>${rulesDialogMarkup()}`;
+  app.innerHTML=gameMarkup(true);
  bindRulesGuide();
  bindTableScale();
  app.querySelector("#leaveRoom").onclick=leaveOnlineRoom;

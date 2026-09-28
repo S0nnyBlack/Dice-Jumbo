@@ -74,11 +74,8 @@ function requiredColumnReady(columnIds,cells){
  return columnIds.slice(0,stop).every(col=>SCORE_ROWS.every(row=>!open(cells,col,row)));
 }
 export function frontierRows(colId,cells){
- const directions={
-  n:[["1","2","3","4","5","6","MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"],["YAMB","POKER","FUL","TRILING","KENTA","MIN","MAX","6","5","4","3","2","1"]]
- }[colId];
- if(!directions)return [];
- return [...new Set(directions.map(rows=>rows.find(row=>open(cells,colId,row))).filter(Boolean))];
+ if(colId!=="n")return [];
+ return [...new Set([SCORE_ROWS,[...SCORE_ROWS].reverse()].map(rows=>rows.find(row=>open(cells,colId,row))).filter(Boolean))];
 }
 export function availableEntries(columnIds,cells,values,{crossOut=false,announcedRow=null,contraRow=null,rolls=3,manualColumn="r"}={}){
  if(!crossOut&&!validDice(values))return[];
