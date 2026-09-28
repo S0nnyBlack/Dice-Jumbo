@@ -6,7 +6,7 @@ import { randomInt } from "crypto";
 import path from "path";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
-import { normalizeColumnIds, calculateColumnSums } from "../game.js";
+import { normalizeColumnIds, calculateColumnSums, visibleCellsForPlayer } from "../game.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -210,13 +210,7 @@ function isGameOver(room) {
 }
 function buildPublicCells(player, viewerId, gameOver) {
   const isSelf = player.id === viewerId;
-  const result = {};
-  for (const [k, v] of Object.entries(player.cells)) {
-    if (gameOver) result[k] = v;
-    else if (k.includes("SUM_TOTAL")) continue;
-    else if (isSelf || (!k.includes("SUM_TOP") && !k.includes("SUM_MID"))) result[k] = v;
-  }
-  return result;
+  return visibleCellsForPlayer(player.cells, { isSelf, gameOver });
 }
 function publicState(room, viewerId) {
   const viewer = room.players.find(p => p.id === viewerId);
