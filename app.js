@@ -404,7 +404,7 @@ function renderScoreSheet(player,isSelf=true){
    html+="</tr>";
  }
  if(isSelf||state.gameOver){
-   const total=columns.reduce((acc,col)=>acc+Number(player?.cells?.[cellKey(col.id,"SUM_TOTAL")]||0),0);
+   const total=columns.reduce((acc,col)=>acc+Number(player?.cells?.[cellKey(col.id,"SUM_TOP")]||0)+Number(player?.cells?.[cellKey(col.id,"SUM_MID")]||0)+Number(player?.cells?.[cellKey(col.id,"SUM_TOTAL")]||0),0);
    html+=`<tr class="final-total"><th class="row-label">UKUPNO</th><td colspan="${columns.length}" class="final-total-value">${state.gameOver?total:"🔒"}</td></tr>`;
  }
  html+="</tbody></table>";
