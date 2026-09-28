@@ -1,16 +1,24 @@
 # Jumbo Dice
 
-Online multiplayer dice game inspired by Jamb/Yamb.
+Phase 2 adds the real score-sheet model, per-player sheets, public opponent visibility and a multiplayer-ready game state.
 
-Core rules:
-- 6 standard D6 dice are rolled.
-- At most 5 dice may be selected for scoring.
-- A turn has up to 3 rolls.
-- The player chooses which available category receives the result.
-- Each player has an individual score sheet.
-- Opponent sheets are visible, but their sum/total rows remain hidden during the match.
-- Before a match starts, the host can enable/disable optional columns.
-- Gore, Dole and Slobodna are mandatory.
-- Reference bonuses: Triling +20, Ful +30, Poker +40, Yamb +50.
+## Implemented
+- 6 dice, maximum 5 selected.
+- Up to 3 rolls.
+- Host-only column configuration.
+- Mandatory Gore, Dole and Slobodna.
+- Per-player cells and used-cell locking.
+- Opponent score sheets can be opened.
+- Opponent SUM/total rows are hidden during play.
+- Own total is visible.
 
-The scoring engine is isolated so remaining exact Jamb formulas can be finalized without rewriting the UI.
+## Scoring reference
+- Upper rows 1-6: sum matching dice.
+- Triling: selected five dice must contain three equal dice; score sum +20.
+- Ful: 3+2; score sum +30.
+- Poker: four equal; score sum +40.
+- Yamb: five equal; score sum +50.
+- Kenta: 1-5 = 66, 2-6 = 56.
+
+## Multiplayer
+The UI/state is structured per player, but this repository still needs a server-authoritative realtime transport before it should be considered online multiplayer.
