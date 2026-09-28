@@ -297,8 +297,9 @@ function renderAnnouncementUi(){
  for(const row of rows){const button=document.createElement("button");button.className="option";button.dataset.announce=row;button.textContent="Najavi · "+row;button.onclick=()=>announceRow(row);box.append(button);}
 }
 function confirmShortSelection(candidate){
- if(state.crossOutMode||state.selected.size===5)return true;
- return window.confirm("Izabrali ste "+state.selected.size+" od 5 kockica. Upis će se računati samo iz izabranih kockica. Da li želite da nastavite?");
+ if(candidate.crossOut||state.crossOutMode)return window.confirm("Precrtati polje "+candidate.row+" u koloni "+candidate.colName+"? U polje će biti upisana nula.");
+ const selectionNote=state.selected.size<5?" Izabrali ste "+state.selected.size+" od 5 kockica; rezultat se računa samo iz izabranih.":"";
+ return window.confirm("Upisati "+candidate.value+" poena u "+candidate.colName+" · "+candidate.row+"?"+selectionNote);
 }
 function commitOnlineCandidate(candidate){
  if(!net.connected||!net.synced||!confirmShortSelection(candidate))return;
