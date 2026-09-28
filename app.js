@@ -45,7 +45,7 @@ function saveSoloGame(){
 function restoreSoloGame(){
  try{
   const saved=JSON.parse(localStorage.getItem(SOLO_SAVE_KEY)||"null");
-  if(!saved||saved.version!==1||!saved.player||typeof saved.player.cells!=="object"||Array.isArray(saved.player.cells)||!Array.isArray(saved.dice)||saved.dice.some(value=>!Number.isInteger(value)||value<1||value>6))return false;
+  if(!saved||saved.version!==1||!saved.player||!saved.player.cells||typeof saved.player.cells!=="object"||Array.isArray(saved.player.cells)||!Array.isArray(saved.dice)||saved.dice.some(value=>!Number.isInteger(value)||value<1||value>6))return false;
   state.mode="solo";state.columns=normalizeColumnIds(saved.columns);state.players=[{id:"local",name:"Igrač 1",cells:saved.player.cells,crossedCells:Array.isArray(saved.player.crossedCells)?saved.player.crossedCells:[]}];
   state.currentPlayer=0;state.viewPlayer=0;state.rolls=Number.isInteger(saved.rolls)?Math.max(0,Math.min(5,saved.rolls)):0;state.dice=saved.dice.slice(0,6);
   state.selected=new Set(Array.isArray(saved.selected)?saved.selected.filter(i=>Number.isInteger(i)&&i>=0&&i<state.dice.length).slice(0,5):[]);
@@ -127,6 +127,7 @@ function onlineSetup(){
    app.querySelector("#createRoom").onclick=()=>socket.emit("room:create",{name:app.querySelector("#playerName").value||"Igrač 1",config:{columns:normalizeColumnIds(state.columns)}});
    app.querySelector("#joinRoom").onclick=()=>socket.emit("room:join",{roomCode:app.querySelector("#roomCodeInput").value,name:app.querySelector("#joinName").value||"Igrač"});
    updateNetworkStatus();
+  const token=localStorage.getItem("jumboDiceSession");if(token)socket.emit("room:resume",{sessionToken:token});
  }
 }
 
@@ -140,7 +141,7 @@ function updateNetworkStatus(){
  if(banner){banner.hidden=net.connected&&!needsSync;if(message)message.textContent=needsSync?"Veza je obnovljena; sinhronizujem stanje sobe…":"Veza je prekinuta. Pokušaj automatskog povezivanja je u toku.";if(reconnect){reconnect.hidden=net.connected;reconnect.disabled=net.connected;reconnect.textContent=net.connected?"Sinhronizujem…":"Poveži ponovo";}}
 }
 if(socket){
- socket.on("connect",()=>{net.connected=true;net.synced=false;updateNetworkStatus();const token=localStorage.getItem("jumboDiceSession");if(token)socket.emit("room:resume",{sessionToken:token});if(state.mode==="online")renderOnline()});
+ socket.on("connect",()=>{net.connected=true;net.synced=false;updateNetworkStatus();const token=localStorage.getItem("jumboDiceSession");if(token&&state.mode!=="solo")socket.emit("room:resume",{sessionToken:token});if(state.mode==="online")renderOnline()});
  socket.on("disconnect",()=>{net.connected=false;net.synced=false;updateNetworkStatus();if(state.mode==="online")renderOnline()});
  socket.on("connect_error",()=>{net.connected=false;net.synced=false;updateNetworkStatus()});
  socket.on("room:resumed",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken)});
