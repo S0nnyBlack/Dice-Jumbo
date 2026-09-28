@@ -4,7 +4,7 @@ import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,rollDice,availableEntries,upperBo
 
 const state={
  mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),undoHistory:[],columns:["down","free","up"],
- currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null
+ currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false
 };
 const app=document.getElementById("app");
 const defs=()=>state.columns.map(id=>COLUMN_DEFS.find(c=>c.id===id)).filter(Boolean);
@@ -39,6 +39,17 @@ function resetLocal(){
  state.currentPlayer=0;state.viewPlayer=0;state.pending=null;state.gameOver=false;state.soloActive=false;state.crossOutMode=false;state.announcedRow=null;state.contraTargetRow=null;
 }
 
+function gameInProgress(){
+ return (state.mode==="solo"&&state.soloActive&&!state.gameOver)||(state.mode==="online"&&state.onlineStarted&&!state.gameOver);
+}
+function confirmLeaveGame(){
+ return !gameInProgress()||window.confirm("Partija još traje. Da li želite da izađete? Solo partija će biti sačuvana.");
+}
+window.addEventListener("beforeunload",event=>{
+ if(!gameInProgress())return;
+ event.preventDefault();event.returnValue="";
+});
+
 function setup(){
  state.mode="setup";
  app.innerHTML=`<section class="panel setup">
@@ -62,7 +73,7 @@ function columnSetup(title,buttonText,onStart,locked=false){
  app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{const selected=new Set(state.columns);x.checked?selected.add(x.dataset.col):selected.delete(x.dataset.col);state.columns=normalizeColumnIds([...selected])});
  const selectAll=app.querySelector("#selectAll");if(selectAll)selectAll.onclick=()=>{state.columns=COLUMN_DEFS.map(c=>c.id);app.querySelectorAll("[data-col]").forEach(input=>{input.checked=true})};
  app.querySelector("#start").onclick=onStart;
- app.querySelector("#back").onclick=setup;
+ app.querySelector("#back").onclick=()=>{if(!locked||confirmLeaveGame())setup()};
 }
 
 function soloSetup(){
@@ -139,7 +150,7 @@ function soloGame(){
  </div>${rulesDialogMarkup()}`;
  bindRulesGuide();
  app.querySelector("#setup").onclick=soloSetup;
- app.querySelector("#home").onclick=setup;
+ app.querySelector("#home").onclick=()=>{if(confirmLeaveGame())setup()};
  app.querySelector("#roll").onclick=soloRoll;
  app.querySelector("#clear").onclick=()=>{state.selected.clear();state.pending=null;state.crossOutMode=false;renderSolo()};
  app.querySelector("#crossout").onclick=()=>{state.crossOutMode=!state.crossOutMode;if(state.crossOutMode)state.selected.clear();renderSolo()};
@@ -357,7 +368,7 @@ function renderSoloSheet(){
 
 function renderServerState(s){
  if(!s)return;
- state.mode="online";state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
+ state.mode="online";state.onlineStarted=Boolean(s.started);state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
  const idx=s.players.findIndex(p=>p.id===s.currentPlayerId);if(idx>=0)state.currentPlayer=idx;
  state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{},crossedCells:p.crossedCells||[]}));
  state.columns=normalizeColumnIds(s.config?.columns||state.columns);
