@@ -12,8 +12,8 @@ test("upper rows count only dice matching the row face",()=>{
 test("upper section bonus begins at 60",()=>{
  assert.equal(upperBonus(59),0);assert.equal(upperBonus(60),30);assert.equal(upperBonus(63),30);
 });
-test("analyse rejects selections that do not contain exactly five dice",()=>{
- assert.deepEqual(analyse([1,2,3,4]),{valid:false});assert.deepEqual(analyse([1,2,3,4,5,6]),{valid:false});
+test("analyse accepts valid selections from one to five dice and rejects larger selections",()=>{
+ assert.equal(analyse([1,2,3,4]).valid,true);assert.deepEqual(analyse([],{}),{valid:false});assert.deepEqual(analyse([1,2,3,4,5,6]),{valid:false});
 });
 test("Kenta varies with roll count and manual Kenta is always 66",()=>{
  const straight=[1,2,3,4,5];
@@ -24,6 +24,14 @@ test("Kenta varies with roll count and manual Kenta is always 66",()=>{
  assert.equal(combinationScore("KENTA",[1,2,2,4,5],{rolls:1}),null);
 });
 test("combination rows apply the documented bonuses and poker sums only four matching dice",()=>{
+ assert.equal(combinationScore("TRILING",[4,4,4]),32);
+ assert.equal(combinationScore("TRILING",[4,4,4,1]),33);
+ assert.equal(combinationScore("POKER",[4,4,4,4]),56);
+ assert.equal(combinationScore("TRILING",[4,4,4,4,4]),36);
+ assert.equal(combinationScore("POKER",[4,4,4,4,4]),56);
+ assert.equal(combinationScore("YAMB",[4,4,4,4,4]),70);
+ assert.equal(combinationScore("TRILING",[4,4,3]),null);
+ assert.equal(combinationScore("POKER",[4,4,4,3]),null);
  assert.equal(combinationScore("TRILING",[4,4,4,1,2]),35);
  assert.equal(combinationScore("FUL",[3,3,3,5,5]),49);
  assert.equal(combinationScore("POKER",[2,2,2,2,5]),48);
@@ -41,11 +49,17 @@ test("R and N columns expose their two documented frontiers",()=>{
  assert.deepEqual(frontierRows("r",cells),["6","MIN"]);
  assert.deepEqual(frontierRows("n",cells),["2","YAMB"]);
 });
-test("fewer than five dice allow numeric and MAX/MIN entries but hide combinations",()=>{
- const entries=availableEntries(["free"],{},[1,3]);
- assert.ok(entries.some(e=>e.row==="1"&&e.value===1));assert.ok(entries.some(e=>e.row==="3"&&e.value===3));
- assert.ok(entries.some(e=>e.row==="MAX"&&e.value===4));assert.ok(entries.some(e=>e.row==="MIN"&&e.value===4));
- assert.ok(!entries.some(e=>["KENTA","TRILING","FUL","POKER","YAMB"].includes(e.row)));
+test("short selections suggest Triling and Poker only after the required matching dice",()=>{
+ const three=availableEntries(["free"],{},[4,4,4]);
+ assert.ok(three.some(e=>e.row==="TRILING"&&e.value===32));
+ assert.ok(!three.some(e=>e.row==="POKER"));
+ const four=availableEntries(["free"],{},[4,4,4,4]);
+ assert.ok(four.some(e=>e.row==="TRILING"&&e.value===36));
+ assert.ok(four.some(e=>e.row==="POKER"&&e.value===56));
+ const five=availableEntries(["free"],{},[4,4,4,4,4]);
+ for(const row of ["TRILING","POKER","YAMB"])assert.ok(five.some(e=>e.row===row));
+ const unrelated=availableEntries(["free"],{},[4,4,3]);
+ assert.ok(!unrelated.some(e=>e.row==="TRILING"));
 });
 test("manual D column can only be played after the first throw",()=>{
  const dice=[1,2,3,4,5];
