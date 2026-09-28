@@ -22,3 +22,9 @@ Phase 2 adds the real score-sheet model, per-player sheets, public opponent visi
 
 ## Multiplayer
 The UI/state is structured per player, but this repository still needs a server-authoritative realtime transport before it should be considered online multiplayer.
+
+## Solo mode
+- Single-player local mode is available without an AI opponent.
+- The same 6-dice / select-up-to-5 / up-to-3-roll flow is used.
+- The player configures active columns before starting.
+- Results are stored locally in the browser for the current session.
