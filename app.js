@@ -148,7 +148,7 @@ function renderAnnouncementUi(){
  const box=app.querySelector("#announceOptions");if(!box)return;
  const isMyTurn=state.mode!=="online"||state.players[state.currentPlayer]?.id===net.playerId;
  if(!isMyTurn){box.innerHTML="";return;}
- if(state.contraTargetRow){box.textContent="Protivnik je najavio "+state.contraTargetRow+". Moraš odigrati to polje u koloni Kontra najava.";return;}
+ if(state.contraTargetRow){box.textContent=(state.mode==="online"?"Protivnik je najavio ":"Prethodno si najavio ")+state.contraTargetRow+". Moraš odigrati to polje u koloni Kontra najava.";return;}
  if(state.announcedRow){box.textContent="Najavljeno polje: "+state.announcedRow+". Ovaj potez moraš završiti isključivo u toj ćeliji kolone Najava.";return;}
  let info="";
  if(state.columns.includes("contra"))info="Kontra najava prati polje koje je protivnik najavio u prethodnom potezu. Bez najave protivnika, ćeliju možeš precrtati.";
