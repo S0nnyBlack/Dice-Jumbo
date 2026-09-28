@@ -4,10 +4,10 @@ export const COLUMN_DEFS=[
  {id:"up",name:"Gore",headerSymbol:"↑",headerLabel:"Gore",headerTitle:"Gore",mandatory:true,direction:"up"},
  {id:"announced",name:"Najava",headerSymbol:"N",headerLabel:"Najava",headerTitle:"Najava",mandatory:false,direction:"announce"},
  {id:"contra",name:"Dirigovano",headerSymbol:"D",headerLabel:"Dirigovano",headerTitle:"Dirigovano · prati polje koje je protivnik najavio",mandatory:false,direction:"contra"},
- {id:"r",name:"R",headerSymbol:"R",headerLabel:"R",headerTitle:"R · Ručna, samo posle prvog bacanja",mandatory:false,direction:"manual"},
- {id:"n",name:"N",headerSymbol:"↓↑",headerLabel:"N",headerTitle:"N · 1 naniže, Yamb naviše",mandatory:false,direction:"both-ends"},
- {id:"o",name:"O",headerSymbol:"O",headerLabel:"O",headerTitle:"O · tek nakon prethodnih kolona",mandatory:false,direction:"required"},
- {id:"m",name:"M",headerSymbol:"M",headerLabel:"M",headerTitle:"M · maksimum iz prethodnih kolona",mandatory:false,direction:"maximum"}
+ {id:"r",name:"Ručna",headerSymbol:"R",headerLabel:"Ručna",headerTitle:"Ručna · upis posle prvog bacanja",mandatory:false,direction:"manual"},
+ {id:"n",name:"Naniže–naviše",headerSymbol:"↓↑",headerLabel:"Naniže–naviše",headerTitle:"Naniže–naviše · od jedinica naniže i od Jamba naviše",mandatory:false,direction:"both-ends"},
+ {id:"o",name:"Obavezna",headerSymbol:"O",headerLabel:"Obavezna",headerTitle:"Obavezna · otključava se po završetku prethodnih kolona",mandatory:false,direction:"required"},
+ {id:"m",name:"Maksimalna",headerSymbol:"M",headerLabel:"Maksimalna",headerTitle:"Maksimalna · automatski najbolji rezultat iz prethodnih kolona",mandatory:false,direction:"maximum"}
 ];
 export function normalizeColumnIds(ids=[]){
  const requested=new Set(Array.isArray(ids)?ids:[]);

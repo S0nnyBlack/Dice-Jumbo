@@ -33,10 +33,7 @@ app.addEventListener("click",event=>{
   if(state.mode==="solo"&&state.soloActive&&!state.gameOver&&!confirmLeaveGame())return;
   onlineSetup();
  }else if(button.dataset.nav==="rules"){
-  if(app.querySelector("#rulesDialog"))return;
-  const guide=app.querySelector("#guideTitle");
-  if(guide)guide.scrollIntoView({behavior:"smooth",block:"start"});
-  else{setup();requestAnimationFrame(()=>app.querySelector("#guideTitle")?.scrollIntoView({behavior:"smooth",block:"start"}));}
+  showRulesGuide();
  }
 });
 
@@ -129,32 +126,25 @@ window.addEventListener("beforeunload",event=>{
 
 function setup(){
  state.mode="setup";
- app.innerHTML=`${appNavMarkup("POČETNA")}<section class="panel setup">
-  <div class="brand"><h1>Vreme je za jamb.</h1><p>Izaberi način igre</p></div>
- <div class="setup-card home-mode-card"><h2>Odaberi način igre</h2><div class="toolbar">
-   <button class="btn primary" id="solo">Solo igra</button>
-   <button class="btn" id="online">Online multiplayer</button>
- </div><p class="status">Solo mod je namenjen igranju jednog igrača bez protivničkog AI-ja. Online partija podržava 2–4 igrača.</p></div>
- <section class="home-guide" aria-labelledby="guideTitle">
-  <div class="home-guide-heading"><span class="guide-kicker">PRE PRVOG BACANJA</span><h2 id="guideTitle">Kako se igra jamb?</h2><p>Cilj je da kroz bacanja popuniš što više polja i osvojiš što više poena. Konačan zbir se otkriva tek kada se partija završi.</p></div>
-  <div class="guide-grid">
-   <article class="guide-card"><h3>Tok poteza</h3><ol><li>Baci svih 6 kockica. Imaš do 3 bacanja po potezu.</li><li>Posle bacanja označi kockice koje želiš da zadržiš, pa ponovo baci ostale.</li><li>Izaberi dostupno polje u tabeli i potvrdi upis. Možeš izabrati od 1 do 5 kockica; Triling traži najmanje 3 iste, Poker najmanje 4 iste, a za Kentu, Ful i Jamb treba svih 5. Upis sa manje od 5 traži potvrdu.</li><li>Umesto rezultata možeš precrtati dostupno polje. Svaki potez popunjava jedno polje.</li></ol><p class="guide-note">Ako je ostalo samo jedno polje za bodovanje, dobijaš do 5 bacanja.</p></article>
-   <article class="guide-card"><h3>Kolone</h3><ul><li><b>Dole:</b> popunjavaj redove od 1 naniže.</li><li><b>Slobodna:</b> izaberi bilo koje dostupno polje.</li><li><b>Gore:</b> popunjavaj od Jamba naviše.</li><li><b>Najava (N):</b> samo posle prvog bacanja; obavezuje te na izabrani red.</li><li><b>Dirigovano (D):</b> igraš u redu koji je prethodni igrač najavio.</li><li><b>R:</b> ručna kolona; može se igrati samo posle prvog bacanja, a Kenta vredi 66. <b>N (↓↑):</b> jedinice naniže, Jamb naviše.</li><li><b>O:</b> otključava se kada su prethodne uključene kolone popunjene. <b>M:</b> automatski uzima najveći rezultat iz prethodnih uključenih kolona.</li></ul><p class="guide-note">U solo igri su uključene osnovne kolone Dole, Slobodna i Gore; dodatne možeš izabrati pre početka.</p></article>
-   <article class="guide-card guide-scoring"><h3>Bodovanje ukratko</h3><ul class="scoring-list"><li><b>Redovi 1–6:</b> zbir kockica izabranog broja.</li><li><b>MAX / MIN:</b> zbir svih 5 izabranih kockica.</li><li><b>Kenta:</b> niz 1–5 ili 2–6; vredi 66, 56 ili 46 u zavisnosti od bacanja. U R vredi 66.</li><li><b>Triling:</b> zbir tačno tri iste kockice +20; ostale se ne računaju.</li><li><b>Ful:</b> tri iste i par, zbir +30.</li><li><b>Poker:</b> četiri iste, vrednost te četvorke +40.</li><li><b>Jamb:</b> pet istih, zbir +50.</li><li><b>Bonus:</b> +30 kada je zbir redova 1–6 najmanje 60.</li></ul></article>
-  </div>
- </section>
- </section>`;
+ app.innerHTML=`${appNavMarkup("POČETNA")}<section class="online-setup home-choice">
+  <header class="online-setup-heading"><span class="eyebrow">DOBRO DOŠAO U ARENU</span><h1>Vreme je za jamb.</h1><p>Odaberi kako želiš da igraš.</p></header>
+  <div class="mode-list"><article class="online-setup-card mode-row"><span class="mode-icon" aria-hidden="true">⚄</span><div class="mode-description"><h2>Solo igra</h2><p>Bez čekanja. Izaberi kolone i započni partiju koja se čuva u pregledaču.</p></div><button class="btn primary" id="solo" type="button">Igraj solo →</button></article>
+  <article class="online-setup-card mode-row"><span class="mode-icon mode-icon-muted" aria-hidden="true">◎</span><div class="mode-description"><h2>Online multiplayer</h2><p>Napravi sobu ili unesi kod prijatelja. Partija je za 2–4 igrača.</p></div><button class="btn" id="online" type="button">Idi na online sto →</button></article></div>
+  <div class="home-rules-teaser"><span>Prvi put igraš?</span><button class="btn" id="openRules" type="button">Pogledaj pravila igre →</button></div></section>`;
  app.querySelector("#solo").onclick=soloSetup;
  app.querySelector("#online").onclick=onlineSetup;
+ app.querySelector("#openRules").onclick=showRulesGuide;
 }
 
 function columnSetup(title,buttonText,onStart,locked=false){
- app.innerHTML=`${appNavMarkup("KOLONE")}<section class="panel setup">
-  <div class="brand"><h1>Vreme je za jamb.</h1><p>${title}</p></div>
- <div class="setup-card"><h2>Kolone</h2><p class="status">${locked?"Podešavanja su zaključana do kraja tekuće partije.":"Početno su uključene samo obavezne kolone: Gore, Dole i Slobodna. Možete uključiti ostale kolone ili izabrati sve."}</p>
- <div class="setup-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("")}</div>${locked?'<button class="btn" id="newSolo" type="button">Nova partija</button>':'<button class="btn" id="selectAll" type="button">Izaberi sve</button>'}</div>
- <button class="btn primary" id="start">${buttonText}</button><button class="btn" id="back">Nazad</button>
- </section>`;
+ app.innerHTML=`${appNavMarkup("SOLO")}<section class="online-setup solo-setup">
+  <header class="online-setup-heading"><span class="eyebrow">IGRAJ SAMOSTALNO</span><h1>Solo igra</h1><p>${locked?"Tvoja partija je sačuvana. Nastavi tamo gde si stao.":"Izaberi kolone i započni svoju partiju."}</p></header>
+  <div class="online-setup-grid"><section class="online-setup-card create-room-card"><div class="online-card-heading"><span class="eyebrow">${locked?"PARTIJA U TOKU":"TVOJA PARTIJA"}</span><h2>${locked?"Nastavi igru":"Napravi solo igru"}</h2><p>${locked?"Kolone su zaključane do završetka ove partije.":"Tri osnovne kolone su već izabrane. Dodaj ostale po želji."}</p></div>
+   <div class="online-column-heading"><div><span class="eyebrow">PODEŠAVANJA IGRE</span><h3>Kolone listića</h3></div>${locked?"":'<button class="btn" id="selectAll" type="button">Izaberi sve</button>'}</div>
+   <div class="setup-grid online-column-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span class="column-option-name"><b class="column-option-symbol" aria-hidden="true">${c.headerSymbol}</b>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory||locked?"disabled":""}></label>`).join("")}</div>
+   <button class="btn primary online-submit" id="start" type="button">${buttonText}</button>${locked?'<button class="btn solo-new" id="newSolo" type="button">Nova partija</button>':""}</section>
+   <aside class="online-setup-card solo-info-card"><div class="online-card-heading"><span class="eyebrow">KAKO SE IGRA</span><h2>Tvoj tempo</h2><p>Solo partija se igra lokalno i automatski čuva u ovom pregledaču.</p></div><ul><li>Bacaš šest kockica i biraš do pet za upis.</li><li>Imaš do tri bacanja po potezu.</li><li>Izabrane kockice ostaju sačuvane pri sledećem bacanju.</li><li>Popunjavaš jedan red listića u svakom potezu.</li></ul></aside></div>
+  <button class="btn online-back" id="back" type="button">← Nazad</button></section>`;
  app.querySelectorAll("[data-col]").forEach(x=>x.onchange=()=>{const selected=new Set(state.columns);x.checked?selected.add(x.dataset.col):selected.delete(x.dataset.col);state.columns=normalizeColumnIds([...selected])});
  const selectAll=app.querySelector("#selectAll");if(selectAll)selectAll.onclick=()=>{state.columns=COLUMN_DEFS.map(c=>c.id);app.querySelectorAll("[data-col]").forEach(input=>{input.checked=true})};
  app.querySelector("#start").onclick=onStart;
@@ -179,7 +169,7 @@ function onlineSetup(){
   <div class="online-setup-grid"><section class="online-setup-card create-room-card"><div class="online-card-heading"><span class="eyebrow">TVOJA PARTIJA</span><h2>Napravi sobu</h2><p>Izaberi kolone, pa podeli kod sa ostalim igračima.</p></div>
    <label class="online-field" for="playerName">Tvoje ime<input id="playerName" placeholder="Ime igrača" value="Igrač 1" autocomplete="nickname"></label>
    <div class="online-column-heading"><div><span class="eyebrow">PODEŠAVANJA IGRE</span><h3>Kolone listića</h3></div><button class="btn" id="selectAll" type="button">Izaberi sve</button></div>
-   <div class="setup-grid online-column-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory?"disabled":""}></label>`).join("")}</div>
+   <div class="setup-grid online-column-grid">${COLUMN_DEFS.map(c=>`<label class="toggle"><span class="column-option-name"><b class="column-option-symbol" aria-hidden="true">${c.headerSymbol}</b>${c.name}</span><input type="checkbox" data-col="${c.id}" ${state.columns.includes(c.id)?"checked":""} ${c.mandatory?"disabled":""}></label>`).join("")}</div>
    <button class="btn primary online-submit" id="createRoom" type="button">Kreiraj sobu</button></section>
   <section class="online-setup-card join-room-card"><div class="online-card-heading"><span class="eyebrow">IMAŠ KOD?</span><h2>Pridruži se sobi</h2><p>Unesi kod koji ti je poslao domaćin.</p></div>
    <label class="online-field" for="roomCodeInput">Kod sobe<input id="roomCodeInput" placeholder="KOD SOBE" maxlength="8" autocomplete="off" autocapitalize="characters"></label>
@@ -222,15 +212,40 @@ if(socket){
 function newTurn(){state.rolls=0;state.dice=[];state.selected.clear();state.pending=null;state.crossOutMode=false;state.announcedRow=null}
 
 function rulesDialogMarkup(){
- const rules={down:"Popunjava se od 1 naniže.",free:"Bira se bilo koje dostupno polje.",up:"Popunjava se od Jamba naviše.",announced:"Najavljuje se posle prvog bacanja i obavezuje na taj red.",contra:"Dirigovano prati polje koje je protivnik prethodno najavio.",r:"Ručna kolona se igra posle prvog bacanja; Kenta vredi 66.",n:"Popunjava se od jedinica naniže i od Jamba naviše.",o:"Otključava se kada su prethodne uključene kolone popunjene.",m:"Automatski uzima maksimum iz prethodnih uključenih kolona."};
- return `<dialog class="rules-dialog" id="rulesDialog" aria-labelledby="rulesTitle"><div class="rules-dialog-head"><h2 id="rulesTitle">Brza pravila</h2><button class="btn" id="closeRules" type="button" aria-label="Zatvori pravila">Zatvori</button></div><p>Za unos izaberi od 1 do 5 kockica. Triling traži najmanje 3 iste, Poker 4 iste, a Kenta, Ful i Jamb svih 5. Upis sa manje od 5 traži potvrdu.</p><h3>Kolone u ovoj partiji</h3><ul>${defs().map(column=>`<li><b>${escapeHtml(column.name)}:</b> ${rules[column.id]}</li>`).join("")}</ul><h3>Bodovanje</h3><ul><li><b>1–6:</b> zbir kockica odgovarajuće vrednosti.</li><li><b>MAX / MIN:</b> zbir svih 5 izabranih kockica.</li><li><b>Kenta:</b> niz 1–5 ili 2–6; 66 posle prvog, 56 posle drugog i 46 posle trećeg bacanja.</li><li><b>Triling:</b> zbir tačno tri iste kockice +20; ostale se ne računaju.</li><li><b>Ful / Poker / Jamb:</b> zbir +30 / vrednost četiri iste +40 / zbir +50.</li><li><b>Bonus:</b> 30 poena kada je zbir redova 1–6 najmanje 60.</li></ul><p>Precrtavanje upisuje X. Konačan zbir se prikazuje po završetku partije.</p></dialog>`;
+ return `<dialog class="rules-dialog" id="rulesDialog" aria-labelledby="rulesTitle"><div class="rules-dialog-head"><div><span class="eyebrow">PRAVILA IGRE</span><h2 id="rulesTitle">Kako se igra jamb?</h2><p>Izaberi temu sa leve strane.</p></div><button class="btn" id="closeRules" type="button" aria-label="Zatvori pravila">Zatvori</button></div>
+ <div class="rules-dialog-layout"><nav class="rules-topic-nav" role="tablist" aria-label="Teme pravila">${RULE_TOPICS.map((topic,index)=>`<button class="rules-topic-tab ${index===0?"active":""}" type="button" role="tab" id="rulesTab-${topic.id}" data-rules-topic="${topic.id}" aria-selected="${index===0}" aria-controls="rulesTopicPanel" tabindex="${index===0?0:-1}">${topic.label}</button>`).join("")}</nav>
+ <section class="rules-topic-panel" id="rulesTopicPanel" role="tabpanel" aria-labelledby="rulesTab-basics" tabindex="0">${rulesTopicMarkup("basics")}</section></div></dialog>`;
+}
+const RULE_TOPICS=[{id:"basics",label:"Početak igre"},{id:"turn",label:"Tok poteza"},{id:"columns",label:"Kolone listića"},{id:"scores",label:"Bodovanje"},{id:"special",label:"Posebna pravila"}];
+function rulesTopicMarkup(topic){
+ const card=(title,description,symbol="")=>`<article class="rules-item"><span class="rules-item-symbol" aria-hidden="true">${symbol}</span><h3>${title}</h3><p>${description}</p></article>`;
+ if(topic==="basics")return `<span class="eyebrow">POGLAVLJE 01 / 05</span><h3>Početak igre</h3><p>Jamb se igra sa šest kockica. Za rezultat biraš od jedne do pet; cilj je da popuniš listić i osvojiš što više poena.</p><div class="rules-item-grid">${card("Solo igra","Igraš samostalno. Partija se čuva u ovom pregledaču.","⚄")}${card("Online sto","U sobi igra 2–4 igrača. Domaćin bira kolone i pokreće partiju.","◎")}${card("Kolone","Dole, Slobodna i Gore su osnovne. Ostale možeš uključiti pre početka partije.","↓")}${card("Konačan zbir","Ukupan rezultat se prikazuje kada se partija završi.","Σ")}</div>`;
+ if(topic==="turn")return `<span class="eyebrow">POGLAVLJE 02 / 05</span><h3>Tok poteza</h3><p>U svakom potezu bacaš kockice, biraš koje čuvaš i upisuješ jedan rezultat.</p><div class="rules-item-grid">${card("1 · Baci kockice","Baci svih šest kockica. Imaš do tri bacanja po potezu.","1")}${card("2 · Sačuvaj izbor","Označene kockice ostaju sačuvane pri sledećem bacanju. Možeš ih ponovo osloboditi.","2")}${card("3 · Izaberi polje","Za upis izaberi 1–5 kockica. Zelena polja u listiću pokazuju dostupne upise.","3")}${card("4 · Potvrdi potez","Upiši rezultat ili precrtaj dostupno polje. Potez popunjava jedno polje.","4")}</div><div class="rules-note">Kada ostane samo jedno polje za bodovanje, dostupno je do pet bacanja.</div>`;
+ if(topic==="columns"){
+  const descriptions={down:"Od jedinica prema Jambu, redom naniže.",free:"Bilo koje dostupno polje.",up:"Od Jamba prema jedinicama, redom naviše.",announced:"Posle prvog bacanja najavljuješ red za upis.",contra:"Prati red koji je protivnik najavio u prethodnom potezu.",r:"Upis posle prvog bacanja; ručna Kenta vredi 66.",n:"Od jedinica naniže i od Jamba naviše.",o:"Otključava se po završetku prethodnih uključenih kolona.",m:"Automatski preuzima najbolji rezultat iz prethodnih kolona."};
+  return `<span class="eyebrow">POGLAVLJE 03 / 05</span><h3>Kolone listića</h3><p>Svaka kolona određuje redosled ili uslov upisa. U igri su dostupna polja označena zelenom bojom.</p><div class="rules-item-grid">${COLUMN_DEFS.map(column=>card(escapeHtml(column.name),descriptions[column.id],column.headerSymbol)).join("")}</div><div class="rules-note">Osnovne kolone su Dole, Slobodna i Gore. Ostale biraš pre početka partije.</div>`;
+ }
+ if(topic==="scores")return `<span class="eyebrow">POGLAVLJE 04 / 05</span><h3>Bodovanje</h3><p>Rezultat zavisi od izabranih kockica i reda u koji ga upisuješ.</p><div class="rules-item-grid">${card("Jedinice–šestice","Sabiraju se samo izabrane kockice sa brojem tog reda.","1–6")}${card("Maksimum / Minimum","Zbir tačno pet izabranih kockica.","±")}${card("Kenta","Niz 1–5 ili 2–6: 66, 56 ili 46 poena, prema broju bacanja.","K")}${card("Triling","Zbir tačno tri iste kockice + 20 poena.","3")}${card("Ful","Tri iste i par u pet kockica: zbir svih pet + 30.","F")}${card("Poker","Četiri iste: zbir te četiri kockice + 40.","4")}${card("Jamb","Pet istih: zbir svih pet + 50.","5")}${card("Bonus","Zbir redova 1–6 dobija 30 poena kada dostigne 60.","+")}</div>`;
+ return `<span class="eyebrow">POGLAVLJE 05 / 05</span><h3>Posebna pravila</h3><p>Neke kolone i upisi imaju dodatne uslove.</p><div class="rules-item-grid">${card("Najava","Posle prvog bacanja izaberi red. Rezultat upisuješ u taj red posle narednog bacanja.","N")}${card("Dirigovano","Igra se u redu koji je prethodni protivnik najavio. Kada je Najava popunjena, moguć je slobodan unos.","D")}${card("Ručna kolona","Upisuje se posle prvog bacanja. Kenta u ovoj koloni uvek vredi 66.","R")}${card("Obavezna i Maksimalna","Obavezna se otključava po završetku prethodnih kolona; Maksimalna se popunjava automatski.","O·M")}${card("Precrtavanje","Upisuje X umesto rezultata u dostupno polje.","X")}${card("Kratak izbor","Upis sa manje od pet izabranih kockica traži potvrdu.","1–4")}</div>`;
 }
 function bindRulesGuide(){
- const dialog=app.querySelector("#rulesDialog"),open=app.querySelector("#rulesHelp"),close=app.querySelector("#closeRules");
- if(!dialog||!open||!close)return;
- open.onclick=()=>dialog.showModal();
+ const dialog=app.querySelector("#rulesDialog"),close=app.querySelector("#closeRules");
+ if(!dialog||!close)return;
  close.onclick=()=>dialog.close();
  dialog.onclick=event=>{if(event.target===dialog)dialog.close()};
+ const tabs=[...dialog.querySelectorAll("[data-rules-topic]")];
+ function selectTopic(tab,focus=false){
+  tabs.forEach(item=>{const selected=item===tab;item.classList.toggle("active",selected);item.setAttribute("aria-selected",String(selected));item.tabIndex=selected?0:-1});
+  const panel=dialog.querySelector("#rulesTopicPanel");panel.innerHTML=rulesTopicMarkup(tab.dataset.rulesTopic);panel.setAttribute("aria-labelledby",tab.id);panel.scrollTop=0;
+  if(window.innerWidth<=820)tab.scrollIntoView({block:"nearest",inline:"center"});
+  if(focus)tab.focus();
+ }
+ tabs.forEach((tab,index)=>{tab.onclick=()=>selectTopic(tab);tab.onkeydown=event=>{if(!["ArrowDown","ArrowUp","ArrowRight","ArrowLeft","Home","End"].includes(event.key))return;event.preventDefault();const next=event.key==="Home"?0:event.key==="End"?tabs.length-1:(index+(event.key==="ArrowDown"||event.key==="ArrowRight"?1:-1)+tabs.length)%tabs.length;selectTopic(tabs[next],true)}});
+}
+function showRulesGuide(){
+ let dialog=app.querySelector("#rulesDialog");
+ if(!dialog){app.insertAdjacentHTML("beforeend",rulesDialogMarkup());bindRulesGuide();dialog=app.querySelector("#rulesDialog")}
+ if(!dialog.open)dialog.showModal();
 }
 
 function soloGame(){
@@ -309,7 +324,7 @@ function renderAnnouncementUi(){
  if(state.announcedRow){box.textContent="Najavljeno polje: "+state.announcedRow+". Ovaj potez moraš završiti isključivo u toj ćeliji kolone Najava.";return;}
  let info="";
  const cells=current()?.cells||{};
- if(state.columns.includes("r"))info="R (Ručna) se popunjava posle prvog bacanja; ručna Kenta vredi 66. ";
+ if(state.columns.includes("r"))info="Ručna kolona (R) se popunjava posle prvog bacanja; ručna Kenta vredi 66. ";
  const oIndex=state.columns.indexOf("o");
  if(oIndex>=0){const earlier=state.columns.slice(0,oIndex);const ready=earlier.every(col=>scoreRows.every(row=>cells[cellKey(col,row)]!==undefined));if(!ready)info+="Kolona O se otključava tek kada su prethodne uključene kolone popunjene. ";}
  if(state.columns.includes("m"))info+="Kolona M se automatski popunjava maksimumom iz prethodnih uključenih kolona; precrtanje se prenosi kao X. ";

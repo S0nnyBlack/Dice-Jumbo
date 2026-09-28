@@ -119,8 +119,9 @@ test("column symbols match their gameplay labels",()=>{
  const columns=Object.fromEntries(COLUMN_DEFS.map(column=>[column.id,column]));
  assert.equal(columns.announced.headerSymbol,"N");
  assert.equal(columns.contra.name,"Dirigovano");assert.equal(columns.contra.headerSymbol,"D");
- assert.equal(columns.r.direction,"manual");assert.equal(columns.r.headerTitle,"R · Ručna, samo posle prvog bacanja");
- assert.equal(columns.n.headerSymbol,"↓↑");
+ assert.equal(columns.r.direction,"manual");assert.equal(columns.r.name,"Ručna");
+ assert.equal(columns.n.name,"Naniže–naviše");assert.equal(columns.n.headerSymbol,"↓↑");
+ assert.equal(columns.o.name,"Obavezna");assert.equal(columns.m.name,"Maksimalna");
  assert.equal(columns.d,undefined);
 });
 

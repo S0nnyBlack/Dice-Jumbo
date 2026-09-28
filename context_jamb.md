@@ -142,3 +142,25 @@ Commit na `main`: [`cf13fe6e`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/c
 - Primenjena je postojeća paleta Jamb Arena bez plave: tamne kartice, svetao tekst i zelena primarna akcija. Raspored se slaže u jednu kolonu na manjim ekranima.
 - Provera: 26 od 26 lokalnih testova prolazi; vizuelno provereni desktop 1440 px i telefon 390 px bez vodoravnog pomeranja stranice.
 
+## Verzija 65 — puni nazivi dodatnih kolona (lokalno, čeka push)
+
+- Skraćenice u interfejsu su razjašnjene: R je Ručna, N (↓↑) je Naniže–naviše, O je Obavezna, a M je Maksimalna.
+- Puni nazivi se prikazuju u podešavanjima, zaglavljima listića i pravilima, dok oznake R, ↓↑, O i M ostaju prepoznatljive u uskim kolonama.
+- Pravila upisa i bodovanja nisu menjana. Izmena ostaje lokalna dok se ne prikupe ostale sitne promene za zajednički push.
+
+## Verzija 66 — solo meni u istom dizajnu kao Online sto (lokalno, čeka push)
+
+- Početni solo ekran sada koristi isti raspored, tamne kartice, tipografiju i zelenu primarnu akciju kao početni ekran Online sto.
+- Izbor svih devet kolona u solo i online meniju prikazuje iste simbole uz puna imena; obe liste koriste isti stil.
+- Postojeća solo partija prikazuje dugme za nastavak, zaključane kolone i odvojenu akciju za novu partiju uz postojeću potvrdu.
+- Provera: 26 od 26 lokalnih testova prolazi; vizuelno provereni desktop 1440 px i telefon 390 px bez vodoravnog pomeranja stranice.
+- Nije urađen push na zahtev korisnika; čeka se još manjih izmena za zajednički commit.
+
+## Verzija 67 — pravila po temama i širok izbor igre
+
+- Po izboru korisnika, početni ekran sada prikazuje dva široka reda za Solo igru i Online sto, sa opisima i jasnim dugmadima.
+- Pravila koriste izabrani predlog „Pravila po temama”: pet tema, kartice sa objašnjenjima i posebne poruke za važna ograničenja. Na telefonu se teme pomeraju vodoravno i izabrana tema ostaje vidljiva.
+- Pravila se mogu otvoriti sa početnog ekrana i tokom partije; otvaranje i zatvaranje ne prekida solo igru. Tabovi podržavaju izbor tastaturom.
+- Provera: 26 od 26 lokalnih testova prolazi. U pregledniku su provereni desktop 1440 px i telefon 390 px bez horizontalnog pomeranja stranice, promena teme i otvaranje pravila tokom solo partije.
+- Verzije 65, 66 i 67 šalju se zajedno na `main`, prema naknadnom zahtevu korisnika.
+

@@ -10,12 +10,14 @@ jamb.arena je veb aplikacija za Jamb sa lokalnom solo partijom i online partijam
 - Upis sa manje od pet izabranih kockica je dozvoljen uz potvrdu. Triling traži najmanje tri iste, Poker najmanje četiri iste; Kenta, Ful i Jamb zahtevaju pet kockica.
 - Dostupna polja su istaknuta u tabeli. Polje se može precrtati.
 - Igrač vidi pravila i ograničenja kolona tokom partije.
+- Pravila su podeljena na pet tema: početak igre, tok poteza, kolone, bodovanje i posebna pravila. Otvaraju se bez prekida tekuće partije.
 - Solo partija se automatski čuva u pregledaču i nastavlja posle osvežavanja; može se vratiti poslednji upis ili precrtavanje. Sa svakim novim Render buildom briše se prethodna solo partija i stari online token, dok se podešavanja tabele čuvaju.
 - U online partiji domaćin može da vrati poslednji potez za celu sobu.
 - Status poteza, bacanja i obaveznih najava prikazuje se iznad table; aktivna pravila otvaraju se bez napuštanja igre.
 - Veličina tabele može se menjati tokom igre i pamti se u pregledaču.
 - Pre izlaska iz aktivne partije prikazuje se potvrda; pri prekidu veze online unos se zaključava do sinhronizacije i dostupan je ručni pokušaj povezivanja.
 - Konačan zbir se prikazuje tek po završetku partije.
+- Početni ekran nudi dva široka izbora za Solo igru i Online sto, sa kratkim opisom svakog režima.
 - Kada je uključeno svih devet kolona, listić koristi raspoloživu širinu desktop ekrana, a Brzi izbor i Aktivnost stoje levo od njega na širokim ekranima. Na telefonu se tabela pomera unutar svog okvira.
 - Mobilni prikaz stavlja kockice i kontrole iznad tabele, uz veće dodirne površine, podršku za bezbedne margine ekrana i landscape orijentaciju.
 
@@ -23,7 +25,7 @@ jamb.arena je veb aplikacija za Jamb sa lokalnom solo partijom i online partijam
 
 ### Solo
 
-Partija se igra lokalno u pregledaču, bez protivnika kojim upravlja računar. Pre početka su uključene tri osnovne kolone: **Dole**, **Slobodna** i **Gore**. Ostale kolone mogu se uključiti pojedinačno ili dugmetom **Izaberi sve**.
+Partija se igra lokalno u pregledaču, bez protivnika kojim upravlja računar. Solo meni koristi isti raspored kartica i oznaka kolona kao Online sto. Pre početka su uključene tri osnovne kolone: **Dole**, **Slobodna** i **Gore**. Ostale kolone mogu se uključiti pojedinačno ili dugmetom **Izaberi sve**.
 
 ### Online
 
@@ -47,10 +49,10 @@ Dodatne kolone su opcione:
 
 - **Najava** — bira se posle prvog bacanja i obavezuje igrača na najavljeni red.
 - **Dirigovano (D)** — prati polje koje je protivnik najavio u prethodnom potezu. Ako nema najave, slobodan unos je moguć kada je kolona Najava popunjena.
-- **R** — ručna kolona; može se igrati samo posle prvog bacanja. Ručna Kenta vredi 66.
-- **N (↓↑)** — popunjava se od jedinica naniže i od Jamba naviše.
-- **O** — otključava se kada su popunjene sve prethodne uključene kolone.
-- **M** — automatski upisuje najveći rezultat iz prethodnih uključenih kolona. Precrtavanja u odgovarajućim poljima prvih šest kolona prenose se u M.
+- **Ručna (R)** — može se igrati samo posle prvog bacanja. Ručna Kenta vredi 66.
+- **Naniže–naviše (↓↑)** — popunjava se od jedinica naniže i od Jamba naviše.
+- **Obavezna (O)** — otključava se kada su popunjene sve prethodne uključene kolone.
+- **Maksimalna (M)** — automatski upisuje najveći rezultat iz prethodnih uključenih kolona. Precrtavanja u odgovarajućim poljima prvih šest kolona prenose se u M.
 
 Kolone se prikazuju u standardnom redosledu bez obzira na redosled kojim su uključene u podešavanjima.
 
