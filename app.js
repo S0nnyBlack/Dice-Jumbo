@@ -236,7 +236,7 @@ function soloGame(){
  state.mode="solo";
   app.innerHTML=`${appNavMarkup("SOLO")}<section class="match-heading"><div class="match-title"><span class="eyebrow">DOBRO DOŠAO U ARENU</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></section>
  <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill mode-status">Solo</span></div>
- <div class="layout">
+ <div class="layout ${state.columns.length===COLUMN_DEFS.length?"sheet-expanded":""}">
   <div class="game-main">
     <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">TVOJA TABELA</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
 
@@ -248,8 +248,8 @@ function soloGame(){
     <div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div>
    </section>
    <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
-   <section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
-   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div></section>
+   <div class="game-info"><section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
+   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div></section></div>
    <section class="sidebar-card sidebar-result"><span class="eyebrow">REZULTAT</span><h2>Igrači</h2><div class="tabs" id="tabs"><button class="player-tab active">Igrač 1</button></div><p class="sidebar-note">Listić prikazuje rezultate; konačan zbir je zaključan do završetka partije.</p></section>
   </aside>
  </div>${rulesDialogMarkup()}`;
@@ -510,23 +510,44 @@ function renderServerState(s){
 }
 function renderLobbyState(s){
  const canStart=s.players.length>=2&&s.players.every(player=>player.connected);
- app.innerHTML=appNavMarkup("ONLINE SOBA")+'<section class="panel setup"><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>Soba '+s.roomCode+'</p></div><div class="setup-card"><h2>Igrači ('+s.players.length+'/4)</h2><div class="status">'+s.players.map(p=>escapeHtml(p.name)+(p.id===s.hostId?' · host':'')+(p.connected?'':' · offline')).join('<br>')+'</div><p class="status">'+(s.players.length<2?'Čeka se još jedan igrač.':canStart?'Soba je spremna za početak.':'Čeka se da se svi igrači povežu.')+'</p>'+(s.hostId===net.playerId?'<button class="btn primary" id="startOnline" '+(canStart?'':'disabled')+'>Pokreni partiju</button>':'<p class="status">Čeka se da host pokrene partiju.</p>')+'</div><button class="btn" id="back">Napusti sobu</button></section>';
+ const slots=Array.from({length:4},(_,index)=>{
+  const player=s.players[index];
+  if(!player)return '<div class="lobby-player is-empty"><span class="lobby-avatar" aria-hidden="true">•</span><span>Čeka igrača...</span></div>';
+  const initials=player.name.trim().slice(0,2).toUpperCase()||"I";
+  return `<div class="lobby-player ${player.id===s.hostId?"is-host":""} ${player.connected?"":"is-offline"}"><span class="lobby-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div><strong>${escapeHtml(player.name)}${player.id===s.hostId?" ★":""}</strong><small>${player.connected?"Povezan":"Van mreže"}</small></div></div>`;
+ }).join("");
+ const status=s.players.length<2?"Čeka se još jedan igrač.":canStart?"Soba je spremna za početak.":"Čeka se da se svi igrači povežu.";
+ app.innerHTML=`${appNavMarkup("ONLINE SOBA")}<section class="online-lobby"><div class="lobby-heading"><div><span class="eyebrow">ONLINE STO</span><h1>Tvoja soba</h1></div><span class="lobby-count">${s.players.length}/4 igrača</span></div>
+  <div class="lobby-code-card"><span>Kod sobe</span><strong class="lobby-code">${escapeHtml(s.roomCode)}</strong><p>Podeli kod sa drugim igračima</p><button class="btn lobby-copy" id="copyRoomCode" type="button">Kopiraj kod</button><div class="lobby-copy-status" id="copyStatus" role="status"></div></div>
+  <div class="lobby-players" aria-label="Mesta za igrače">${slots}</div>
+  ${s.hostId===net.playerId?`<button class="btn primary lobby-start" id="startOnline" ${canStart?"":"disabled"}>Počni igru</button>`:'<p class="lobby-wait">Čeka se da domaćin pokrene partiju.</p>'}
+  <p class="lobby-wait">${status}</p><button class="btn lobby-leave" id="back" type="button">← Napusti sobu</button></section>`;
  app.querySelector("#back").onclick=leaveOnlineRoom;
+ app.querySelector("#copyRoomCode").onclick=async()=>{
+  const copyStatus=app.querySelector("#copyStatus");
+  try{
+   let copied=false;
+   if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(s.roomCode);copied=true;}catch{}}
+   if(!copied){const input=document.createElement("textarea");input.value=s.roomCode;document.body.append(input);input.select();copied=document.execCommand("copy");input.remove();}
+   if(!copied)throw new Error("copy failed");
+   if(copyStatus)copyStatus.textContent="Kod je kopiran.";
+  }catch{if(copyStatus)copyStatus.textContent="Kopiranje nije uspelo; označi kod iznad.";}
+ };
  const start=app.querySelector("#startOnline");if(start)start.onclick=()=>socket?.emit("room:start");
 }
 
 function game(){
   app.innerHTML=`${appNavMarkup("ONLINE")}<section class="match-heading"><div class="match-title"><span class="eyebrow">ONLINE ARENA</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="leaveRoom">Napusti partiju</button></div></section>
  <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill"><i aria-hidden="true"></i>Uživo</span></div>
- <div class="layout">
+ <div class="layout ${state.columns.length===COLUMN_DEFS.length?"sheet-expanded":""}">
   <div class="game-main">
     <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">TABELA PARTIJE</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
   </div>
   <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
     <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div><div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label">TVOJE KOCKICE</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div></section>
    <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
-   <section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
-   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div></section>
+   <div class="game-info"><section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
+   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div></section></div>
    <section class="sidebar-card sidebar-result"><span class="eyebrow">REZULTAT</span><h2>Igrači</h2><div class="tabs" id="tabs"></div><p class="sidebar-note">Listić prikazuje rezultate; konačan zbir je zaključan do završetka partije.</p></section>
   </aside>
  </div>${rulesDialogMarkup()}`;

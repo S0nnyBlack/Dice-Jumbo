@@ -16,7 +16,8 @@ jamb.arena je veb aplikacija za Jamb sa lokalnom solo partijom i online partijam
 - Veličina tabele može se menjati tokom igre i pamti se u pregledaču.
 - Pre izlaska iz aktivne partije prikazuje se potvrda; pri prekidu veze online unos se zaključava do sinhronizacije i dostupan je ručni pokušaj povezivanja.
 - Konačan zbir se prikazuje tek po završetku partije.
-- Mobilni prikaz stavlja tabelu ispred kockica i kontrola, uz veće dodirne površine, podršku za bezbedne margine ekrana i landscape orijentaciju. Široka tabela može da se pomera horizontalno kako bi polja ostala čitljiva.
+- Kada je uključeno svih devet kolona, listić koristi raspoloživu širinu desktop ekrana, a Brzi izbor i Aktivnost stoje levo od njega na širokim ekranima. Na telefonu se tabela pomera unutar svog okvira.
+- Mobilni prikaz stavlja kockice i kontrole iznad tabele, uz veće dodirne površine, podršku za bezbedne margine ekrana i landscape orijentaciju.
 
 ## Režimi igre
 
@@ -26,7 +27,7 @@ Partija se igra lokalno u pregledaču, bez protivnika kojim upravlja računar. P
 
 ### Online
 
-- Kreiranje sobe i pridruživanje putem koda sobe.
+- Kreiranje sobe i pridruživanje putem koda sobe. Čekaonica prikazuje veliki kod sa dugmetom za kopiranje i četiri mesta sa statusom igrača.
 - Igra za 2–4 igrača; domaćin pokreće partiju i bira aktivne kolone.
 - Server upravlja bacanjima, redosledom poteza, unosom rezultata i proverom pravila.
 - Tabele drugih igrača mogu se pregledati; ukupni rezultat ostaje sakriven do završetka partije.

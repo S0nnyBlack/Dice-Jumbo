@@ -125,4 +125,13 @@ Commit na `main`: [`cf13fe6e`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/c
 - Dugme za početak partije je dostupno tek kada su najmanje dva igrača povezana i svi učesnici online.
 - Provera: 26 od 26 lokalnih testova prolazi. U pregledniku je potvrđeno da online raspored, položaj tabele i fokus kockice ostaju isti posle serverskih promena stanja; napuštanje partije vraća početni ekran i briše stari token.
 - Naknadna provera je otkrila trku u integracionom testu: `state` je mogao da stigne odmah posle `room:resumed`, pre nego što test počne da ga sluša. Slušanje oba događaja sada počinje pre zahteva za obnovu sesije; lokalni `npm test` prolazi sa istom komandom koju koristi GitHub Actions.
+- Commit za stabilizaciju testa: [`9e911e52`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/9e911e5286b45e8f46cccd48371c272e942e2d6e).
+
+## Verzija 63 — puni listić i meni online sobe
+
+- Kada je uključeno svih devet kolona, listić koristi širinu desktop ekrana i prikazuje se bez unutrašnjeg horizontalnog pomeranja na proveravanim širinama od 1191 do 1605 px. Na telefonu tabela i dalje može da se pomera u sopstvenom okviru, bez pomeranja cele stranice.
+- Kartice Brzi izbor i Aktivnost stoje levo od listića na širokom desktop ekranu, umesto u desnom panelu. Na manjim ekranima raspored se slaže vertikalno.
+- Meni online sobe dobio je izdvojen prikaz koda i kopiranja, četiri mesta za igrače sa stanjem veze, jasnu akciju za početak partije i izlazak iz sobe.
+- Boje menija sobe prate prethodni brif Jamb Arena: ugljenosiva pozadina i kartice, svetao tekst i zelena aktivna stanja. Pravila igre i uslov za početak online partije nisu menjani.
+- Provera: 26 od 26 testova prolazi lokalno (`npm test`). U pregledniku su provereni prikazi listića na 320, 1191, 1210, 1211 i 1605 px; čekaonica je proverena sa dva povezana igrača na 390 i 1440 px, uključujući kopiranje koda.
 
