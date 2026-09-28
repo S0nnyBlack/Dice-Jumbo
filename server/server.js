@@ -338,7 +338,7 @@ io.on("connection", socket => {
     }
     for (const [k, v] of Object.entries(totals)) player.cells[k] = v;
 
-    room.contraTargetRow = player.announcedRow || null;
+    room.contraTargetRow = room.config.columns.includes("contra") ? (player.announcedRow || null) : null;
     player.announcedRow = null;
     const idx = room.players.findIndex(p => p.id === player.id);
     room.currentPlayerId = room.players[(idx + 1) % room.players.length].id;
