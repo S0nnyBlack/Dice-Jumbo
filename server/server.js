@@ -4,16 +4,22 @@ import cors from "cors";
 import { Server } from "socket.io";
 import { randomInt } from "crypto";
 import path from "path";
+import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { normalizeColumnIds } from "../game.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicRoot = path.resolve(__dirname, "..");
+let deploymentId = process.env.RENDER_GIT_COMMIT || "local";
+try {
+  const buildInfo = JSON.parse(readFileSync(path.join(publicRoot, "deployment-version.json"), "utf8"));
+  if (typeof buildInfo.id === "string" && buildInfo.id) deploymentId = buildInfo.id;
+} catch {}
 
 const app = express();
 app.use(cors());
-app.get("/health", (_, res) => res.json({ ok: true, service: "jumbo-dice-server" }));
+app.get("/health", (_, res) => res.json({ ok: true, service: "jumbo-dice-server", deploymentId }));
 app.get("/", (_, res) => res.sendFile(path.join(publicRoot, "index.html")));
 app.get("/app.js", (_, res) => res.sendFile(path.join(publicRoot, "app.js")));
 app.get("/game.js", (_, res) => res.sendFile(path.join(publicRoot, "game.js")));
@@ -24,6 +30,11 @@ const io = new Server(httpServer, { cors: { origin: "*", methods: ["GET", "POST"
 
 const rooms = new Map();
 const sessions = new Map();
+function wipeVolatileGameState() {
+  rooms.clear();
+  sessions.clear();
+}
+wipeVolatileGameState();
 const MAX_PLAYERS = 4;
 const MIN_PLAYERS = 2;
 const COMBO_ROWS = ["KENTA", "TRILING", "FUL", "POKER", "YAMB"];
@@ -462,3 +473,19 @@ io.on("connection", socket => {
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, "0.0.0.0", () => console.log(`Jumbo Dice server listening on ${PORT}`));
+
+let shuttingDown = false;
+function shutdownAndWipe(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${signal}: brisanje aktivnih soba i sesija.`);
+  wipeVolatileGameState();
+  const forceExit = setTimeout(() => process.exit(1), 10_000);
+  forceExit.unref();
+  io.close(() => {
+    clearTimeout(forceExit);
+    process.exit(0);
+  });
+}
+process.once("SIGTERM", () => shutdownAndWipe("SIGTERM"));
+process.once("SIGINT", () => shutdownAndWipe("SIGINT"));
