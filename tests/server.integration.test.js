@@ -230,3 +230,75 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
   }
 });
 
+test("malformed requests stay safe and players can leave lobby and active rooms", async () => {
+  const port = await freePort();
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const child = spawn(process.execPath, ["server/server.js"], {
+    env: { ...process.env, PORT: String(port) }, stdio: "ignore"
+  });
+  const sockets = [];
+  try {
+    await waitForHealth(`${baseUrl}/health`, child);
+    const host = await connect(baseUrl);
+    const guest = await connect(baseUrl);
+    sockets.push(host, guest);
+
+    const invalidName = waitFor(host, "game:error", error => error.message === "Ime igrača mora biti tekst.");
+    host.emit("room:create", { name: { toString: null } });
+    await invalidName;
+    const invalidCode = waitFor(guest, "game:error", error => error.message === "Kod sobe mora biti tekst.");
+    guest.emit("room:join", { roomCode: { toString: null } });
+    await invalidCode;
+
+    const createdWait = waitFor(host, "room:created");
+    host.emit("room:create", { name: "Host" });
+    const created = await createdWait;
+    const joinedWait = waitFor(guest, "room:joined");
+    guest.emit("room:join", { roomCode: created.roomCode, name: "Gost" });
+    await joinedWait;
+
+    const hostAlone = waitFor(host, "state", state => state.players.length === 1);
+    const guestLeft = waitFor(guest, "room:left");
+    guest.emit("room:leave");
+    await Promise.all([hostAlone, guestLeft]);
+
+    const hostLeft = waitFor(host, "room:left");
+    host.emit("room:leave");
+    await hostLeft;
+    const newRoomWait = waitFor(host, "room:created");
+    host.emit("room:create", { name: "New host" });
+    const newRoom = await newRoomWait;
+    const rejoinedWait = waitFor(guest, "room:joined");
+    guest.emit("room:join", { roomCode: newRoom.roomCode, name: "Gost" });
+    const rejoined = await rejoinedWait;
+    const transferredHost = waitFor(guest, "state", state => state.hostId === rejoined.playerId && state.players.length === 1);
+    const originalHostLeft = waitFor(host, "room:left");
+    host.emit("room:leave");
+    await Promise.all([transferredHost, originalHostLeft]);
+    const hostRejoined = waitFor(host, "room:joined");
+    host.emit("room:join", { roomCode: newRoom.roomCode, name: "Host" });
+    await hostRejoined;
+    const startedWait = waitFor(host, "state", state => state.started);
+    guest.emit("room:start");
+    await startedWait;
+
+    const closedHost = waitFor(host, "room:closed");
+    const closedGuest = waitFor(guest, "room:closed");
+    guest.emit("room:leave");
+    await Promise.all([closedHost, closedGuest]);
+    assert.equal((await (await fetch(`${baseUrl}/health`)).json()).ok, true);
+
+    const afterClose = waitFor(host, "room:created");
+    host.emit("room:create", { name: "Host again" });
+    await afterClose;
+  } finally {
+    for (const socket of sockets) socket.disconnect();
+    child.kill("SIGTERM");
+    await new Promise(resolve => {
+      if (child.exitCode !== null) return resolve();
+      child.once("exit", resolve);
+      setTimeout(resolve, 2000);
+    });
+  }
+});
+

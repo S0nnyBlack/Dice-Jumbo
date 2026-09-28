@@ -25,10 +25,11 @@ app.addEventListener("click",event=>{
  const button=event.target.closest("[data-nav]");
  if(!button)return;
  if(button.dataset.nav==="play"){
+  if(state.mode==="online"&&net.roomCode){leaveOnlineRoom();return;}
   if(state.mode==="solo"&&state.soloActive&&!state.gameOver&&!confirmLeaveGame())return;
   setup();
  }else if(button.dataset.nav==="online"){
-  if(state.mode==="online"&&state.onlineStarted)return;
+  if(state.mode==="online"&&net.roomCode)return;
   if(state.mode==="solo"&&state.soloActive&&!state.gameOver&&!confirmLeaveGame())return;
   onlineSetup();
  }else if(button.dataset.nav==="rules"){
@@ -108,6 +109,18 @@ function gameInProgress(){
 }
 function confirmLeaveGame(){
  return !gameInProgress()||window.confirm(state.mode==="solo"?"Solo partija još traje. Napredak će biti sačuvan. Da li želite da izađete?":"Online partija još traje. Možete se ponovo povezati nakon izlaska. Da li želite da izađete?");
+}
+function resetOnlineSession(){
+ try{localStorage.removeItem(SESSION_KEY);}catch{}
+ net.roomCode=null;net.playerId=null;net.sessionToken=null;net.server=null;net.synced=false;
+ state.onlineStarted=false;state.crossOutMode=false;state.selected.clear();
+ setup();
+}
+function leaveOnlineRoom(){
+ if(state.onlineStarted&&!window.confirm("Napuštanjem aktivne partije soba će se zatvoriti za sve igrače. Nastaviti?"))return;
+ if(!net.roomCode){setup();return;}
+ if(net.connected)socket?.emit("room:leave");
+ else resetOnlineSession();
 }
 window.addEventListener("beforeunload",event=>{
  if(!gameInProgress())return;
@@ -199,6 +212,8 @@ if(socket){
  socket.on("room:resumed",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken)});
  socket.on("room:created",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken);alert("Soba je kreirana: "+d.roomCode);});
  socket.on("room:joined",d=>{net.roomCode=d.roomCode;net.playerId=d.playerId;net.sessionToken=d.sessionToken;localStorage.setItem("jumboDiceSession",d.sessionToken);alert("Pridružen si sobi "+d.roomCode);});
+ socket.on("room:left",resetOnlineSession);
+ socket.on("room:closed",d=>{resetOnlineSession();alert(d?.message||"Soba je zatvorena.")});
  socket.on("game:error",e=>alert(e.message));
  socket.on("state",s=>{net.server=s;net.synced=true;if(state.mode!=="solo")renderServerState(s);updateNetworkStatus()});
 }
@@ -419,6 +434,8 @@ function renderSolo(){
 
 function renderScoreSheet(player,isSelf=true){
  const sheet=app.querySelector("#sheet");if(!sheet)return;
+ const scrollTop=sheet.parentElement.scrollTop,scrollLeft=sheet.parentElement.scrollLeft;
+ const focusedCell=document.activeElement?.dataset?.cell;
  const columns=defs();
  const rows=[
    {id:"1",label:"Jedinice",type:"normal"},{id:"2",label:"Dvojke",type:"normal"},{id:"3",label:"Trojke",type:"normal"},
@@ -458,6 +475,8 @@ function renderScoreSheet(player,isSelf=true){
  }
  html+="</tbody></table>";
  sheet.innerHTML=html;
+ sheet.parentElement.scrollTop=scrollTop;sheet.parentElement.scrollLeft=scrollLeft;
+ if(focusedCell){const cell=[...sheet.querySelectorAll("[data-cell]")].find(item=>item.dataset.cell===focusedCell&&item.tabIndex===0);cell?.focus({preventScroll:true});}
  sheet.querySelectorAll("[data-choice]").forEach(cell=>{
    const choose=()=>{
      const option=choices[Number(cell.dataset.choice)];
@@ -486,17 +505,18 @@ function renderServerState(s){
   const ownIndex=state.players.findIndex(p=>p.id===net.playerId);
   state.viewPlayer=viewedIndex>=0?viewedIndex:ownIndex>=0?ownIndex:0;
  state.columns=normalizeColumnIds(s.config?.columns||state.columns);
- if(s.started){game();renderOnline();}
+ if(s.started){if(!app.querySelector("#dice"))game();renderOnline();}
  else renderLobbyState(s);
 }
 function renderLobbyState(s){
- app.innerHTML=appNavMarkup("ONLINE SOBA")+'<section class="panel setup"><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>Soba '+s.roomCode+'</p></div><div class="setup-card"><h2>Igrači ('+s.players.length+'/4)</h2><div class="status">'+s.players.map(p=>escapeHtml(p.name)+(p.id===s.hostId?' · host':'')+(p.connected?'':' · offline')).join('<br>')+'</div><p class="status">'+(s.players.length<2?'Čeka se još jedan igrač.':'Soba je spremna za početak.')+'</p>'+(s.hostId===net.playerId?'<button class="btn primary" id="startOnline" '+(s.players.length<2?'disabled':'')+'>Pokreni partiju</button>':'<p class="status">Čeka se da host pokrene partiju.</p>')+'</div><button class="btn" id="back">Početni ekran</button></section>';
- app.querySelector("#back").onclick=setup;
+ const canStart=s.players.length>=2&&s.players.every(player=>player.connected);
+ app.innerHTML=appNavMarkup("ONLINE SOBA")+'<section class="panel setup"><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>Soba '+s.roomCode+'</p></div><div class="setup-card"><h2>Igrači ('+s.players.length+'/4)</h2><div class="status">'+s.players.map(p=>escapeHtml(p.name)+(p.id===s.hostId?' · host':'')+(p.connected?'':' · offline')).join('<br>')+'</div><p class="status">'+(s.players.length<2?'Čeka se još jedan igrač.':canStart?'Soba je spremna za početak.':'Čeka se da se svi igrači povežu.')+'</p>'+(s.hostId===net.playerId?'<button class="btn primary" id="startOnline" '+(canStart?'':'disabled')+'>Pokreni partiju</button>':'<p class="status">Čeka se da host pokrene partiju.</p>')+'</div><button class="btn" id="back">Napusti sobu</button></section>';
+ app.querySelector("#back").onclick=leaveOnlineRoom;
  const start=app.querySelector("#startOnline");if(start)start.onclick=()=>socket?.emit("room:start");
 }
 
 function game(){
-  app.innerHTML=`${appNavMarkup("ONLINE")}<section class="match-heading"><div class="match-title"><span class="eyebrow">ONLINE ARENA</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button></div></section>
+  app.innerHTML=`${appNavMarkup("ONLINE")}<section class="match-heading"><div class="match-title"><span class="eyebrow">ONLINE ARENA</span><h1>Vreme je za jamb.</h1><p>Baci kockice, složi kombinaciju i popuni svoju tabelu.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="leaveRoom">Napusti partiju</button></div></section>
  <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill"><i aria-hidden="true"></i>Uživo</span></div>
  <div class="layout">
   <div class="game-main">
@@ -512,6 +532,7 @@ function game(){
  </div>${rulesDialogMarkup()}`;
  bindRulesGuide();
  bindTableScale();
+ app.querySelector("#leaveRoom").onclick=leaveOnlineRoom;
  const reconnect=app.querySelector("#reconnect");if(reconnect)reconnect.onclick=()=>{reconnect.disabled=true;reconnect.textContent="Povezivanje…";socket?.connect()};
  updateNetworkStatus();
  app.querySelector("#roll").onclick=()=>{if(!net.connected||!net.synced)return;state.crossOutMode=false;socket?.emit("turn:roll")};
@@ -523,6 +544,7 @@ function game(){
 
 function renderOnline(){
  const d=app.querySelector("#dice");if(!d)return;
+ const focusedDie=document.activeElement?.matches?.("#dice .die")?document.activeElement.dataset.i:null;
  const isMyTurn=state.players[state.currentPlayer]?.id===net.playerId;
   const viewingSelf=state.players[state.viewPlayer]?.id===net.playerId;
  const canAct=isMyTurn&&net.connected&&net.synced;
@@ -564,6 +586,7 @@ function renderOnline(){
  }
  renderAnnouncementUi();
   renderScoreSheet(state.players[state.viewPlayer],state.players[state.viewPlayer]?.id===net.playerId);
+ if(focusedDie!==null)d.querySelector(`[data-i="${focusedDie}"]`)?.focus({preventScroll:true});
 }
 
 async function startApp(){

@@ -94,6 +94,8 @@ Provera: 25 od 25 testova prolazi lokalno. Pregledani su solo prikazi na desktop
 
 ## Verzija 60 — uža tabela, centrirani rezultati i prilagodljiv raspored
 
+Commit na `main`: [`3babad66`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/3babad66868dc5b602da8374f6fdf0078cf19ab3).
+
 - Desktop sadržaj je sužen tako da kolone za upis zauzimaju manje prostora, uz istu širinu panela kockica.
 - Minimalna širina tabele zavisi od broja uključenih kolona; kada ih je mnogo, pomera se samo tabela.
 - Vrednosti i predloženi rezultati su vodoravno i uspravno centrirani u svakom polju.
@@ -103,10 +105,21 @@ Provera: 25 od 25 testova prolazi lokalno. Pregledani su solo prikazi na desktop
 
 ## Verzija 61 — ispravka Trilinga
 
+Commit na `main`: [`03f1102f`](https://github.com/S0nnyBlack/Dice-Jumbo/commit/03f1102ff9c4954ec8d8699f937647dddda56247).
+
 - Triling računa zbir tačno tri iste kockice; četvrta i peta izabrana kockica ne povećavaju rezultat.
 - Bonus od 20 poena ostaje uz zbir tri iste kockice.
 - Solo predlozi i online upis koriste istu funkciju za bodovanje, pa rezultat ostaje jednak u oba režima.
 - Pravila na sajtu i u README dokumentu su usklađena sa obračunom.
 - Kockice koje igrač označi ostaju označene i nakon sledećeg bacanja, u solo i online partiji, dok ih igrač sam ne isključi ili se potez ne završi.
 - Provera: 25 od 25 lokalnih testova prolazi, uključujući slučajeve sa tri, četiri i pet istih kockica i čuvanje izbora pri ponovnom bacanju. U pregledniku je potvrđeno da solo kockica zadržava vrednost, oznaku „Sačuvana” i `aria-pressed="true"` posle ponovnog bacanja.
+
+## Verzija 62 — bezbedni online zahtevi i upravljanje sobom
+
+- Server odbija neispravna imena i kodove sobe bez prekida rada; Socket.IO događaji bez objekta zahteva više ne izazivaju grešku pri raspakivanju.
+- Napuštanje čekaonice uklanja igrača i njegovu sesiju. Ako domaćin ode, sledeći igrač postaje domaćin. Napuštanje započete partije zatvara sobu za sve učesnike.
+- Kada su svi igrači nepovezani, napuštena soba i njene sesije brišu se posle 30 minuta.
+- Online ekran čuva postojeći raspored pri promeni stanja, položaj skrolovane tabele i fokus izabrane kockice.
+- Dugme za početak partije je dostupno tek kada su najmanje dva igrača povezana i svi učesnici online.
+- Provera: 26 od 26 lokalnih testova prolazi. U pregledniku je potvrđeno da online raspored, položaj tabele i fokus kockice ostaju isti posle serverskih promena stanja; napuštanje partije vraća početni ekran i briše stari token.
 

@@ -31,6 +31,7 @@ Partija se igra lokalno u pregledaču, bez protivnika kojim upravlja računar. P
 - Server upravlja bacanjima, redosledom poteza, unosom rezultata i proverom pravila.
 - Tabele drugih igrača mogu se pregledati; ukupni rezultat ostaje sakriven do završetka partije.
 - Aplikacija podržava povratak igrača u postojeću sesiju nakon prekida veze.
+- Izlazak iz sobe pre početka uklanja igrača i oslobađa sesiju. Ako igrač napusti započetu partiju, soba se zatvara za sve učesnike. Potpuno napuštene sobe se brišu posle 30 minuta.
 
 ## Kolone
 

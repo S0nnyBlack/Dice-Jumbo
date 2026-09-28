@@ -38,6 +38,7 @@ function wipeVolatileGameState() {
 wipeVolatileGameState();
 const MAX_PLAYERS = 4;
 const MIN_PLAYERS = 2;
+const ABANDONED_ROOM_MS = 30 * 60 * 1000;
 const COMBO_ROWS = ["KENTA", "TRILING", "FUL", "POKER", "YAMB"];
 const TOP_ROWS = ["1", "2", "3", "4", "5", "6"];
 
@@ -220,10 +221,37 @@ function getRoomBySocket(socketId) {
 }
 function getPlayer(room, socketId) { return room?.players.find(p => p.socketId === socketId) || null; }
 function sessionToken() { return randomInt(100000000, 999999999).toString(36) + Date.now().toString(36); }
+function fields(payload) { return payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {}; }
+function disposeRoom(room) {
+  if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
+  room.cleanupTimer = null;
+  for (const player of room.players) sessions.delete(player.token);
+  rooms.delete(room.code);
+}
+function scheduleRoomCleanup(room) {
+  if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
+  room.cleanupTimer = setTimeout(() => {
+    room.cleanupTimer = null;
+    if (room.players.every(player => !player.connected)) disposeRoom(room);
+  }, ABANDONED_ROOM_MS);
+  room.cleanupTimer.unref();
+}
+function closeStartedRoom(room) {
+  for (const player of room.players) {
+    const participant = player.socketId && io.sockets.sockets.get(player.socketId);
+    if (participant) {
+      participant.emit("room:closed", { message: "Partija je završena jer je igrač napustio sobu." });
+      participant.leave(room.code);
+    }
+  }
+  disposeRoom(room);
+}
 
 io.on("connection", socket => {
-  socket.on("room:create", ({ name = "Igrač 1", config = {} } = {}) => {
+  socket.on("room:create", payload => {
     if (getRoomBySocket(socket.id)) return emitError(socket, "Već ste u sobi.");
+    const { name = "Igrač 1", config = {} } = fields(payload);
+    if (typeof name !== "string") return emitError(socket, "Ime igrača mora biti tekst.");
     const columns = normalizeColumnIds(config?.columns);
     const player = {
       id: randomInt(100000, 999999999).toString(),
@@ -247,7 +275,8 @@ io.on("connection", socket => {
       dice: [],
       selection: [],
       contraTargetRow: null,
-      history: []
+      history: [],
+      cleanupTimer: null
     };
     rooms.set(room.code, room);
     sessions.set(player.token, { roomCode: room.code, playerId: player.id });
@@ -256,9 +285,12 @@ io.on("connection", socket => {
     broadcast(room);
   });
 
-  socket.on("room:join", ({ roomCode, name } = {}) => {
+  socket.on("room:join", payload => {
     if (getRoomBySocket(socket.id)) return emitError(socket, "Već ste u sobi.");
-    const room = rooms.get(String(roomCode || "").trim().toUpperCase());
+    const { roomCode, name } = fields(payload);
+    if (typeof roomCode !== "string") return emitError(socket, "Kod sobe mora biti tekst.");
+    if (name !== undefined && typeof name !== "string") return emitError(socket, "Ime igrača mora biti tekst.");
+    const room = rooms.get(roomCode.trim().toUpperCase());
     if (!room) return emitError(socket, "Soba ne postoji.");
     if (room.started) return emitError(socket, "Partija je već počela.");
     if (room.players.length >= MAX_PLAYERS) return emitError(socket, "Soba je puna.");
@@ -278,6 +310,21 @@ io.on("connection", socket => {
     sessions.set(player.token, { roomCode: room.code, playerId: player.id });
     socket.join(room.code);
     socket.emit("room:joined", { roomCode: room.code, playerId: player.id, sessionToken: player.token });
+    broadcast(room);
+  });
+
+  socket.on("room:leave", () => {
+    const room = getRoomBySocket(socket.id);
+    const player = getPlayer(room, socket.id);
+    if (!room || !player) return socket.emit("room:left");
+    if (room.started) return closeStartedRoom(room);
+    sessions.delete(player.token);
+    room.players = room.players.filter(member => member.id !== player.id);
+    socket.leave(room.code);
+    socket.emit("room:left");
+    if (!room.players.length) return disposeRoom(room);
+    if (room.hostId === player.id) room.hostId = room.players[0].id;
+    room.currentPlayerId = room.hostId;
     broadcast(room);
   });
 
@@ -329,7 +376,8 @@ io.on("connection", socket => {
     broadcast(room);
   });
 
-  socket.on("turn:announce", ({ row } = {}) => {
+  socket.on("turn:announce", payload => {
+    const { row } = fields(payload);
     const room = getRoomBySocket(socket.id);
     const player = getPlayer(room, socket.id);
     if (!room || !player || !room.started) return;
@@ -349,7 +397,8 @@ io.on("connection", socket => {
     broadcast(room);
   });
 
-  socket.on("turn:commit", ({ columnId, row, crossOut = false } = {}) => {
+  socket.on("turn:commit", payload => {
+    const { columnId, row, crossOut = false } = fields(payload);
     const room = getRoomBySocket(socket.id);
     const player = getPlayer(room, socket.id);
     if (!room || !player || !room.started) return;
@@ -407,7 +456,8 @@ io.on("connection", socket => {
     broadcast(room);
   });
 
-  socket.on("room:resume", ({ sessionToken: token } = {}) => {
+  socket.on("room:resume", payload => {
+    const { sessionToken: token } = fields(payload);
     const session = sessions.get(token);
     const currentRoom = getRoomBySocket(socket.id);
     if (currentRoom) {
@@ -423,6 +473,8 @@ io.on("connection", socket => {
     if (!player) return emitError(socket, "Igrač nije pronađen.");
     player.socketId = socket.id;
     player.connected = true;
+    if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
+    room.cleanupTimer = null;
     socket.join(room.code);
     socket.emit("room:resumed", { roomCode: room.code, playerId: player.id, sessionToken: token });
     broadcast(room);
@@ -435,6 +487,7 @@ io.on("connection", socket => {
       player.connected = false;
       player.socketId = null;
       broadcast(room);
+      if (room.players.every(member => !member.connected)) scheduleRoomCleanup(room);
     }
   });
 });
