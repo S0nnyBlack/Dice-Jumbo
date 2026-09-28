@@ -277,7 +277,8 @@ function updateTurnStatus(isMyTurn=true){
  if(state.announcedRow){status.textContent="Obavezna najava: "+state.announcedRow;status.dataset.state="required";return;}
  if(!isMyTurn){status.textContent="Čeka se potez protivnika";status.dataset.state="waiting";return;}
  if(state.rolls===0){status.textContent="Baci kockice da započneš potez";status.dataset.state="ready";return;}
- if(state.rolls>=(state.maxRolls||maxRollsForLocal())){status.textContent="Izaberi dostupno polje za upis";status.dataset.state="ready";return;}
+ const maxRolls=state.mode==="online"?(state.maxRolls||3):maxRollsForLocal();
+ if(state.rolls>=maxRolls){status.textContent="Izaberi dostupno polje za upis";status.dataset.state="ready";return;}
  status.textContent="Izaberi kockice ili polje za upis";status.dataset.state="ready";
 }
 function renderSolo(){
