@@ -74,11 +74,30 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     host.emit("room:create", { name: "Host" });
     const created = await createdWait;
 
-    const guest = await connect(baseUrl);
+    const duplicateRoomError = waitFor(host, "game:error", error => error.message === "Već ste u sobi.");
+    host.emit("room:create", { name: "Host again" });
+    await duplicateRoomError;
+
+    let guest = await connect(baseUrl);
     sockets.push(guest);
     const joinedWait = waitFor(guest, "room:joined");
     guest.emit("room:join", { roomCode: created.roomCode, name: "Gost" });
     const joined = await joinedWait;
+    const duplicateJoinError = waitFor(guest, "game:error", error => error.message === "Već ste u sobi.");
+    guest.emit("room:join", { roomCode: created.roomCode, name: "Gost again" });
+    await duplicateJoinError;
+
+    const offlineState = waitFor(host, "state", state => state.players.some(player => player.id === joined.playerId && !player.connected));
+    guest.disconnect();
+    await offlineState;
+    const offlineStartError = waitFor(host, "game:error", error => error.message === "Svi igrači moraju biti povezani pre početka partije.");
+    host.emit("room:start");
+    await offlineStartError;
+    guest = await connect(baseUrl);
+    sockets.push(guest);
+    const preStartResume = waitFor(guest, "room:resumed");
+    guest.emit("room:resume", { sessionToken: joined.sessionToken });
+    await preStartResume;
 
     const startedWait = waitFor(host, "state", state => state.started);
     host.emit("room:start");
@@ -89,6 +108,11 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     const firstRollWait = waitFor(host, "state", state => state.rolls === 1 && state.dice.length === 6);
     host.emit("turn:roll");
     const firstRoll = await firstRollWait;
+    const invalidSelectionError = waitFor(host, "game:error", error => error.message === "Izbor kockica mora biti lista indeksa.");
+    host.emit("turn:select", { indices: null });
+    await invalidSelectionError;
+    const stillHealthy = await fetch(`${baseUrl}/health`);
+    assert.equal(stillHealthy.ok, true);
     const heldIndex = 0;
 
     const selectionWait = waitFor(host, "state", state => state.selection.includes(heldIndex));
@@ -205,3 +229,4 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     });
   }
 });
+

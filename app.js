@@ -468,10 +468,14 @@ function renderSoloSheet(){
 
 function renderServerState(s){
  if(!s)return;
+  const viewedPlayerId=state.players[state.viewPlayer]?.id;
  if((s.dice||[]).length>0&&s.rolls>state.rolls){state.diceRollAnimation=true;setTimeout(()=>{state.diceRollAnimation=false},240)}
  state.mode="online";state.onlineStarted=Boolean(s.started);state.hostId=s.hostId||null;state.onlineUndoAvailable=s.canUndo===true;state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
  const idx=s.players.findIndex(p=>p.id===s.currentPlayerId);if(idx>=0)state.currentPlayer=idx;
  state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{},crossedCells:p.crossedCells||[]}));
+  const viewedIndex=state.players.findIndex(p=>p.id===viewedPlayerId);
+  const ownIndex=state.players.findIndex(p=>p.id===net.playerId);
+  state.viewPlayer=viewedIndex>=0?viewedIndex:ownIndex>=0?ownIndex:0;
  state.columns=normalizeColumnIds(s.config?.columns||state.columns);
  if(s.started){game();renderOnline();}
  else renderLobbyState(s);
@@ -511,6 +515,7 @@ function game(){
 function renderOnline(){
  const d=app.querySelector("#dice");if(!d)return;
  const isMyTurn=state.players[state.currentPlayer]?.id===net.playerId;
+  const viewingSelf=state.players[state.viewPlayer]?.id===net.playerId;
  const canAct=isMyTurn&&net.connected&&net.synced;
  updateNetworkStatus();
  d.innerHTML=state.dice.map((v,i)=>diceButtonMarkup(v,i,state.selected.has(i),!canAct||state.gameOver||state.rolls===0)).join("");
@@ -528,25 +533,27 @@ function renderOnline(){
  if(roll){roll.disabled=!canAct||state.gameOver||state.rolls>=(state.maxRolls||3);roll.textContent=state.rolls>=(state.maxRolls||3)?"Bacanja iskorišćena":state.rolls===0?"Baci kockice":"Baci ponovo";}
  if(clear)clear.disabled=!canAct||state.gameOver||state.rolls===0;
  if(crossout){crossout.disabled=!canAct||state.gameOver||state.rolls===0;crossout.classList.toggle("crossout-active",state.crossOutMode);crossout.textContent=state.crossOutMode?"Otkaži precrtavanje":"Precrtaj polje (0)";}
- const tabs=app.querySelector("#tabs");tabs.innerHTML=state.players.map((p,i)=>'<button class="player-tab '+(i===state.currentPlayer?'active':'')+'">'+escapeHtml(p.name)+'</button>').join("");
+  const tabs=app.querySelector("#tabs");tabs.innerHTML=state.players.map((p,i)=>'<button type="button" class="player-tab '+(i===state.viewPlayer?'active':'')+'" data-player="'+i+'" aria-pressed="'+String(i===state.viewPlayer)+'">'+escapeHtml(p.name)+(i===state.currentPlayer?' · na potezu':'')+'</button>').join("");
+  tabs.querySelectorAll("[data-player]").forEach(button=>button.onclick=()=>{state.viewPlayer=Number(button.dataset.player);renderOnline()});
  const box=app.querySelector("#options");
  if(box){
    let hint="";
    if(state.gameOver)hint="Partija je završena. Konačan rezultat je prikazan na tabeli.";
    else if(!canAct)hint=net.connected?"Sinhronizujem stanje sobe…":"Veza je prekinuta. Sačekaj ponovno povezivanje.";
    else if(!isMyTurn)hint="Sačekaj svoj potez.";
+    else if(!viewingSelf)hint="Prikazana je tabela drugog igrača. Izaberi svoje ime za upis rezultata.";
    else if(state.rolls===0)hint="Prvo baci kockice. Za bodovanje izaberi 1–5 kockica.";
    else if(state.crossOutMode)hint="Izaberi dostupno polje koje želiš da precrtaš. U polje će biti upisana 0.";
    else if(state.selected.size===0)hint="Izaberi 1–5 kockica za bodovanje ili označi kockice za sledeće bacanje.";
    else hint=`Izabrano: ${state.selected.size}/5. Sa manje od 5 kockica prikazaće se upozorenje pri upisu.`;
-   const ops=state.gameOver||!canAct?[]:soloCandidates();
+    const ops=state.gameOver||!canAct||!viewingSelf?[]:soloCandidates();
    const cards=ops.map((o,i)=>'<button class="option" data-op="'+i+'"><b>'+escapeHtml(o.colName)+' · '+escapeHtml(o.row)+'</b><span>'+o.value+'</span></button>').join("");
    const empty=!state.gameOver&&canAct&&state.rolls>0&&!state.crossOutMode&&state.selected.size>0&&!ops.length?"Nema dostupnih polja za izabrani rezultat.":"";
    box.innerHTML='<span class="status">'+hint+'</span>'+(cards||(empty?'<span class="status options-empty">'+empty+'</span>':""));
    box.querySelectorAll("[data-op]").forEach(b=>b.onclick=()=>commitOnlineCandidate(ops[+b.dataset.op]));
  }
  renderAnnouncementUi();
- renderSoloSheet();
+  renderScoreSheet(state.players[state.viewPlayer],state.players[state.viewPlayer]?.id===net.playerId);
 }
 
 async function startApp(){
@@ -567,3 +574,4 @@ async function startApp(){
  if(restoreSoloGame())soloGame();else setup();
 }
 startApp();
+

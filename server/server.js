@@ -255,6 +255,7 @@ function sessionToken() { return randomInt(100000000, 999999999).toString(36) + 
 
 io.on("connection", socket => {
   socket.on("room:create", ({ name = "Igrač 1", config = {} } = {}) => {
+    if (getRoomBySocket(socket.id)) return emitError(socket, "Već ste u sobi.");
     const columns = normalizeColumnIds(config?.columns);
     const player = {
       id: randomInt(100000, 999999999).toString(),
@@ -288,6 +289,7 @@ io.on("connection", socket => {
   });
 
   socket.on("room:join", ({ roomCode, name } = {}) => {
+    if (getRoomBySocket(socket.id)) return emitError(socket, "Već ste u sobi.");
     const room = rooms.get(String(roomCode || "").trim().toUpperCase());
     if (!room) return emitError(socket, "Soba ne postoji.");
     if (room.started) return emitError(socket, "Partija je već počela.");
@@ -317,6 +319,7 @@ io.on("connection", socket => {
     if (!room || !player) return;
     if (room.hostId !== player.id) return emitError(socket, "Samo host može pokrenuti partiju.");
     if (room.players.length < MIN_PLAYERS) return emitError(socket, "Potrebna su najmanje 2 igrača.");
+    if (room.players.some(p => !p.connected)) return emitError(socket, "Svi igrači moraju biti povezani pre početka partije.");
     if (room.started) return;
     room.started = true;
     room.currentPlayerId = room.players[0].id;
@@ -346,11 +349,13 @@ io.on("connection", socket => {
     broadcast(room);
   });
 
-  socket.on("turn:select", ({ indices = [] } = {}) => {
+  socket.on("turn:select", payload => {
     const room = getRoomBySocket(socket.id);
     const player = getPlayer(room, socket.id);
     if (!room || !player || room.currentPlayerId !== player.id) return;
     if (room.rolls === 0) return emitError(socket, "Prvo bacite kockice.");
+    const indices = payload?.indices === undefined ? [] : payload.indices;
+    if (!Array.isArray(indices)) return emitError(socket, "Izbor kockica mora biti lista indeksa.");
     const clean = [...new Set(indices)].filter(i => Number.isInteger(i) && i >= 0 && i < 6);
     if (clean.length > 5) return emitError(socket, "Najviše 5 kockica možete zadržati.");
     room.selection = clean;
@@ -437,6 +442,14 @@ io.on("connection", socket => {
 
   socket.on("room:resume", ({ sessionToken: token } = {}) => {
     const session = sessions.get(token);
+    const currentRoom = getRoomBySocket(socket.id);
+    if (currentRoom) {
+      const currentPlayer = getPlayer(currentRoom, socket.id);
+      if (session?.roomCode !== currentRoom.code || session?.playerId !== currentPlayer?.id) return emitError(socket, "Već ste u sobi.");
+      socket.emit("room:resumed", { roomCode: currentRoom.code, playerId: currentPlayer.id, sessionToken: token });
+      broadcast(currentRoom);
+      return;
+    }
     const room = session && rooms.get(session.roomCode);
     if (!room) return emitError(socket, "Sesija nije pronađena.");
     const player = room.players.find(p => p.id === session.playerId);
@@ -477,3 +490,4 @@ function shutdownAndWipe(signal) {
 }
 process.once("SIGTERM", () => shutdownAndWipe("SIGTERM"));
 process.once("SIGINT", () => shutdownAndWipe("SIGINT"));
+
