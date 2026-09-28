@@ -218,15 +218,22 @@ function bindRulesGuide(){
 function soloGame(){
  state.mode="solo";
  app.innerHTML=`${appNavMarkup("SOLO")}<section class="match-heading"><div class="match-title"><span class="eyebrow">PARTIJA UŽIVO</span><h1>Jamb sto</h1><p>Baci kockice. Sačuvaj kombinaciju. Upiši rezultat.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></section>
- <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill mode-status">Solo</span><span class="turn-status" id="turnStatus" role="status"></span></div>
+ <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill mode-status">Solo</span></div>
  <div class="layout">
- <section class="panel game-controls">
-  <div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">6 kockica · do 3 bacanja</span></div>
-  <div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div>
-  <div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div>
-  <div class="options" id="options"></div><div class="options" id="announceOptions"></div>
- </section>
- <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Izaberi označeno polje za upis.</p></div><div class="tabs"><button class="player-tab active">Igrač 1</button></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
+  <div class="game-main">
+   <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Izaberi označeno polje za upis.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
+   <section class="panel game-controls">
+    <div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">6 kockica · do 3 bacanja</span></div>
+    <div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div>
+    <div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div>
+   </section>
+  </div>
+  <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
+   <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
+   <section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
+   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div></section>
+   <section class="sidebar-card sidebar-result"><span class="eyebrow">REZULTAT</span><h2>Igrači</h2><div class="tabs" id="tabs"><button class="player-tab active">Igrač 1</button></div><p class="sidebar-note">Listić prikazuje rezultate; konačan zbir je zaključan do završetka partije.</p></section>
+  </aside>
  </div>${rulesDialogMarkup()}`;
  bindRulesGuide();
  bindTableScale();
@@ -476,7 +483,19 @@ function renderLobbyState(s){
 
 function game(){
  app.innerHTML=`${appNavMarkup("ONLINE")}<section class="match-heading"><div class="match-title"><span class="eyebrow">PARTIJA UŽIVO</span><h1>Jamb sto</h1><p>Baci kockice. Sačuvaj kombinaciju. Upiši rezultat.</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button></div></section>
- <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill"><i aria-hidden="true"></i>Uživo</span><span class="turn-status" id="turnStatus" role="status"></span></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div><div class="layout"><section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">6 kockica · do 3 bacanja</span></div><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Izaberi označeno polje za upis.</p></div><div class="tabs" id="tabs"></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
+ <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0 od 3</b></span><span class="live-pill"><i aria-hidden="true"></i>Uživo</span></div>
+ <div class="layout">
+  <div class="game-main">
+   <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">REZULTAT</span><h2>Jamb listić</h2><p>Izaberi označeno polje za upis.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
+   <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Kockice</h2></div><span class="rolls-label">6 kockica · do 3 bacanja</span></div><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div></section>
+  </div>
+  <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
+   <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
+   <section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
+   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div><div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div></section>
+   <section class="sidebar-card sidebar-result"><span class="eyebrow">REZULTAT</span><h2>Igrači</h2><div class="tabs" id="tabs"></div><p class="sidebar-note">Listić prikazuje rezultate; konačan zbir je zaključan do završetka partije.</p></section>
+  </aside>
+ </div>${rulesDialogMarkup()}`;
  bindRulesGuide();
  bindTableScale();
  const reconnect=app.querySelector("#reconnect");if(reconnect)reconnect.onclick=()=>{reconnect.disabled=true;reconnect.textContent="Povezivanje…";socket?.connect()};
