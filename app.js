@@ -15,6 +15,26 @@ const selectedValues=()=>[...state.selected].map(i=>state.dice[i]);
 const isFilled=(p,col,row)=>p?.cells?.[cellKey(col,row)]!==undefined;
 const scoreRows=[...VALUE_ROWS.map(String),"MAX","MIN","KENTA","TRILING","FUL","POKER","YAMB"];
 
+const TABLE_SCALE_KEY="jumboDiceTableScaleV1";
+const TABLE_SCALE_LEVELS=["compact","normal","large"];
+let tableScale="normal";
+try{const savedScale=localStorage.getItem(TABLE_SCALE_KEY);if(TABLE_SCALE_LEVELS.includes(savedScale))tableScale=savedScale;}catch{}
+function applyTableScale(){
+ document.body.dataset.sheetScale=tableScale;
+ const button=app.querySelector("#tableScale");if(!button)return;
+ const labels={compact:"Tabela −",normal:"Tabela",large:"Tabela +"};
+ const descriptions={compact:"Manja tabela",normal:"Standardna veličina tabele",large:"Veća tabela"};
+ button.textContent=labels[tableScale];button.setAttribute("aria-label",descriptions[tableScale]);button.setAttribute("aria-pressed",String(tableScale==="large"));
+}
+function bindTableScale(){
+ const button=app.querySelector("#tableScale");if(!button)return;
+ button.onclick=()=>{
+  tableScale=TABLE_SCALE_LEVELS[(TABLE_SCALE_LEVELS.indexOf(tableScale)+1)%TABLE_SCALE_LEVELS.length];
+  try{localStorage.setItem(TABLE_SCALE_KEY,tableScale);}catch{}
+  applyTableScale();
+ };
+ applyTableScale();
+}
 const SOLO_SAVE_KEY="jumboDiceSoloSaveV1";
 function saveSoloGame(){
  if(!state.soloActive||state.mode!=="solo")return;
@@ -138,7 +158,7 @@ function bindRulesGuide(){
 
 function soloGame(){
  state.mode="solo";
- app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">SOLO</span></h1><p>6 kockica · do 3 bacanja (5 u završnom potezu)</p></div><div class="toolbar"><button class="btn" id="rulesHelp">Pravila</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></header>
+ app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">SOLO</span></h1><p>6 kockica · do 3 bacanja (5 u završnom potezu)</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="rulesHelp">Pravila</button><button class="btn" id="setup">Podešavanja</button><button class="btn" id="home">Početni ekran</button></div></header>
  <div class="meta game-status"><span>Na potezu: <b>Igrač 1</b></span><span>Bacanje <b id="count">0/3</b></span><span class="turn-status" id="turnStatus" role="status"></span></div>
  <div class="layout">
  <section class="panel game-controls">
@@ -149,6 +169,7 @@ function soloGame(){
  <section class="panel game-score"><div class="tabs"><button class="player-tab active">Igrač 1</button></div><div class="sheet-wrap"><div id="sheet"></div></div></section>
  </div>${rulesDialogMarkup()}`;
  bindRulesGuide();
+ bindTableScale();
  app.querySelector("#setup").onclick=soloSetup;
  app.querySelector("#home").onclick=()=>{if(confirmLeaveGame())setup()};
  app.querySelector("#roll").onclick=soloRoll;
@@ -394,9 +415,10 @@ function renderLobbyState(s){
 }
 
 function game(){
- app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja</p></div><div class="toolbar"><button class="btn" id="rulesHelp">Pravila</button></div></header>
+ app.innerHTML=`<header><div class="brand"><h1>Jumbo Dice <span class="mode-badge">ONLINE</span></h1><p>6 kockica · najviše 5 za rezultat · do 3 bacanja</p></div><div class="toolbar"><button class="btn" id="tableScale">Tabela</button><button class="btn" id="rulesHelp">Pravila</button></div></header>
  <div class="meta game-status"><span>Na potezu: <b>${escapeHtml(current().name)}</b></span><span>Bacanje <b id="count">0/3</b></span></div><div class="layout"><section class="panel game-controls"><div class="dice-grid" id="dice"></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button></div><div class="options" id="options"></div><div class="options" id="announceOptions"></div></section><section class="panel game-score"><div class="tabs" id="tabs"></div><div class="sheet-wrap"><div id="sheet"></div></div></section></div>${rulesDialogMarkup()}`;
  bindRulesGuide();
+ bindTableScale();
  app.querySelector("#roll").onclick=()=>{state.crossOutMode=false;socket?.emit("turn:roll")};
  app.querySelector("#clear").onclick=()=>{state.selected.clear();state.crossOutMode=false;socket?.emit("turn:select",{indices:[]})};
  app.querySelector("#crossout").onclick=()=>{state.crossOutMode=!state.crossOutMode;if(state.crossOutMode){state.selected.clear();socket?.emit("turn:select",{indices:[]})}renderOnline()};
