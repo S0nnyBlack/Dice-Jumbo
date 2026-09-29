@@ -147,6 +147,12 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     const afterCommit = await commitWait;
     assert.equal(afterCommit.rolls, 0);
 
+    const undoUnavailableError = waitFor(host, "game:error", error => error.message === "Vraćanje poteza nije dostupno u online partiji.");
+    host.emit("turn:undo");
+    await undoUnavailableError;
+    assert.equal(afterCommit.currentPlayerId, joined.playerId, "online undo cannot roll back a committed turn");
+    assert.equal(afterCommit.players[0].cells[`free::${face}`], face, "the committed score remains in place");
+
     const nonTurnError = waitFor(host, "game:error", error => error.message === "Nije vaš potez.");
     host.emit("turn:roll");
     await nonTurnError;
