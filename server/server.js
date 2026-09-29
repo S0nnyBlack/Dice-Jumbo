@@ -138,6 +138,7 @@ function publicState(room, viewerId) {
     maxRolls: activePlayer ? maxRollsForTurn(room, activePlayer) : 3,
     dice: [...room.dice],
     selection: [...room.selection],
+    turnHistory: room.turnHistory.map(entry => ({ ...entry })),
     announcedRow: viewer?.announcedRow || null,
     contraTargetRow: room.currentPlayerId === viewerId ? room.contraTargetRow : null,
     config: room.config,
@@ -215,6 +216,7 @@ io.on("connection", socket => {
       dice: [],
       selection: [],
       contraTargetRow: null,
+      turnHistory: [],
       cleanupTimer: null
     };
     rooms.set(room.code, room);
@@ -271,6 +273,7 @@ io.on("connection", socket => {
     room.dice = [];
     room.selection = [];
     room.contraTargetRow = null;
+    room.turnHistory = [];
     for (const p of room.players) p.announcedRow = null;
     broadcast(room);
   });
@@ -359,6 +362,8 @@ io.on("connection", socket => {
     }
     for (const [k, v] of Object.entries(totals)) player.cells[k] = v;
 
+    room.turnHistory.push({playerId:player.id,columnId,row,value:result.value,crossOut:isCrossOut});
+    if (room.turnHistory.length > 12) room.turnHistory.shift();
     room.contraTargetRow = room.config.columns.includes("contra") ? (player.announcedRow || null) : null;
     player.announcedRow = null;
     const idx = room.players.findIndex(p => p.id === player.id);
