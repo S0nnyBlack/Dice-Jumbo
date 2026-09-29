@@ -22,5 +22,7 @@ test("English covers navigation, rules, score sheet and dynamic turns", () => {
   assert.equal(translateText("2 od 3", "en"), "2 of 3");
   assert.equal(translateText("Dostupno polje: Dole, Jedinice, 5 poena", "en"), "Available cell: Down, Ones, 5 points");
   assert.equal(translateText("Nije vaš potez.", "en"), "It is not your turn.");
+  assert.equal(translateText("Igrač 3", "en"), "Player 3");
+  assert.equal(translateText("Precrtati polje 1 u koloni Dole? U polje će biti upisana nula.", "en"), "Cross out cell 1 in column Down? The cell will score zero.");
 });
 
