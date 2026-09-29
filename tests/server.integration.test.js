@@ -334,3 +334,53 @@ test("malformed requests stay safe and players can leave lobby and active rooms"
   }
 });
 
+
+test("online M requires a maximum score and remains manually playable", async () => {
+  const port = await freePort();
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const child = spawn(process.execPath, ["server/server.js"], {
+    env: { ...process.env, PORT: String(port) }, stdio: "ignore"
+  });
+  const sockets = [];
+  try {
+    await waitForHealth(`${baseUrl}/health`, child);
+    const host = await connect(baseUrl);
+    const guest = await connect(baseUrl);
+    sockets.push(host, guest);
+    const createdWait = waitFor(host, "room:created");
+    host.emit("room:create", { name: "Host", config: { columns: ["m"] } });
+    const created = await createdWait;
+    const joinedWait = waitFor(guest, "room:joined");
+    guest.emit("room:join", { roomCode: created.roomCode, name: "Guest" });
+    await joinedWait;
+    const startedWait = waitFor(host, "state", state => state.started);
+    host.emit("room:start");
+    const started = await startedWait;
+    assert.ok(started.config.columns.includes("m"));
+    assert.equal(started.players[0].cells["m::1"], undefined, "M is not filled automatically");
+
+    const rolledWait = waitFor(host, "state", state => state.rolls === 1);
+    host.emit("turn:roll");
+    const rolled = await rolledWait;
+    const face = String(rolled.dice[0]);
+    const selectedWait = waitFor(host, "state", state => state.selection.includes(0));
+    host.emit("turn:select", { indices: [0] });
+    await selectedWait;
+    const rejectedWait = waitFor(host, "game:error", error => error.message === "Kolona M prihvata samo najveći mogući rezultat za izabrani red.");
+    host.emit("turn:commit", { columnId: "m", row: face });
+    await rejectedWait;
+    const crossedWait = waitFor(host, "state", state => state.players[0].cells[`m::${face}`] === 0);
+    host.emit("turn:commit", { columnId: "m", row: face, crossOut: true });
+    const crossed = await crossedWait;
+    assert.ok(crossed.players[0].crossedCells.includes(`m::${face}`));
+    assert.equal(crossed.currentPlayerId, crossed.players[1].id);
+  } finally {
+    for (const socket of sockets) socket.disconnect();
+    child.kill("SIGTERM");
+    await new Promise(resolve => {
+      if (child.exitCode !== null) return resolve();
+      child.once("exit", resolve);
+      setTimeout(resolve, 2000);
+    });
+  }
+});

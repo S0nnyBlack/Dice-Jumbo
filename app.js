@@ -277,11 +277,11 @@ function rulesTopicMarkup(topic){
  if(topic==="basics")return `<span class="eyebrow">POGLAVLJE 01 / 05</span><h3>Početak igre</h3><p>Jamb se igra sa šest kockica. Za rezultat biraš od jedne do pet; cilj je da popuniš listić i osvojiš što više poena.</p><div class="rules-item-grid">${card("Solo igra","Igraš samostalno. Partija se čuva u ovom pregledaču.","⚄")}${card("Online sto","U sobi igra 2–4 igrača. Domaćin bira kolone i pokreće partiju.","◎")}${card("Kolone","Dole, Slobodna i Gore su osnovne. Ostale možeš uključiti pre početka partije.","↓")}${card("Konačan zbir","Ukupan rezultat se prikazuje kada se partija završi.","Σ")}</div>`;
  if(topic==="turn")return `<span class="eyebrow">POGLAVLJE 02 / 05</span><h3>Tok poteza</h3><p>U svakom potezu bacaš kockice, biraš koje čuvaš i upisuješ jedan rezultat.</p><div class="rules-item-grid">${card("1 · Baci kockice","Baci svih šest kockica. Imaš do tri bacanja po potezu.","1")}${card("2 · Sačuvaj izbor","Označene kockice ostaju sačuvane pri sledećem bacanju. Možeš ih ponovo osloboditi.","2")}${card("3 · Izaberi polje","Za upis izaberi 1–5 kockica. Zelena polja u listiću pokazuju dostupne upise.","3")}${card("4 · Potvrdi potez","Upiši rezultat ili precrtaj dostupno polje. Potez popunjava jedno polje.","4")}</div><div class="rules-note">Kada ostane samo jedno polje za bodovanje, dostupno je do pet bacanja.</div>`;
  if(topic==="columns"){
-  const descriptions={down:"Od jedinica prema Jambu, redom naniže.",free:"Bilo koje dostupno polje.",up:"Od Jamba prema jedinicama, redom naviše.",announced:"Posle prvog bacanja najavljuješ red za upis.",contra:"Prati red koji je protivnik najavio u prethodnom potezu.",r:"Upis posle prvog bacanja; ručna Kenta vredi 66.",n:"Od jedinica naniže i od Jamba naviše.",o:"Otključava se po završetku prethodnih uključenih kolona.",m:"Automatski preuzima najbolji rezultat iz prethodnih kolona."};
+  const descriptions={down:"Od jedinica prema Jambu, redom naniže.",free:"Bilo koje dostupno polje.",up:"Od Jamba prema jedinicama, redom naviše.",announced:"Posle prvog bacanja najavljuješ red za upis.",contra:"Prati red koji je protivnik najavio u prethodnom potezu.",r:"Upis posle prvog bacanja; ručna Kenta vredi 66.",n:"Od jedinica naniže i od Jamba naviše.",o:"Otključava se po završetku prethodnih uključenih kolona.",m:"Upisuje se samo najveći mogući rezultat za izabrani red."};
   return `<span class="eyebrow">POGLAVLJE 03 / 05</span><h3>Kolone listića</h3><p>Svaka kolona određuje redosled ili uslov upisa. U igri su dostupna polja označena zelenom bojom.</p><div class="rules-item-grid">${COLUMN_DEFS.map(column=>card(escapeHtml(column.name),descriptions[column.id],column.headerSymbol)).join("")}</div><div class="rules-note">Osnovne kolone su Dole, Slobodna i Gore. Ostale biraš pre početka partije.</div>`;
  }
  if(topic==="scores")return `<span class="eyebrow">POGLAVLJE 04 / 05</span><h3>Bodovanje</h3><p>Rezultat zavisi od izabranih kockica i reda u koji ga upisuješ.</p><div class="rules-item-grid">${card("Jedinice–šestice","Sabiraju se samo izabrane kockice sa brojem tog reda.","1–6")}${card("Maksimum / Minimum","Dostupni su samo kada označiš tačno pet kockica; upisuje se zbir tih pet.","±")}${card("Kenta","Niz 1–5 ili 2–6: 66, 56 ili 46 poena, prema broju bacanja.","K")}${card("Triling","Zbir tačno tri iste kockice + 20 poena.","3")}${card("Ful","Tri iste i par u pet kockica: zbir svih pet + 30.","F")}${card("Poker","Četiri iste: zbir te četiri kockice + 40.","4")}${card("Jamb","Pet istih: zbir svih pet + 50.","5")}${card("Bonus","Zbir redova 1–6 dobija 30 poena kada dostigne 60.","+")}</div>`;
- return `<span class="eyebrow">POGLAVLJE 05 / 05</span><h3>Posebna pravila</h3><p>Neke kolone i upisi imaju dodatne uslove.</p><div class="rules-item-grid">${card("Najava","Posle prvog bacanja izaberi red. Rezultat upisuješ u taj red posle narednog bacanja.","N")}${card("Dirigovano","Igra se u redu koji je prethodni protivnik najavio. Kada je Najava popunjena, moguć je slobodan unos.","D")}${card("Ručna kolona","Upisuje se posle prvog bacanja. Kenta u ovoj koloni uvek vredi 66.","R")}${card("Obavezna i Maksimalna","Obavezna se otključava po završetku prethodnih kolona; Maksimalna se popunjava automatski.","O·M")}${card("Precrtavanje","Upisuje X umesto rezultata u dostupno polje.","X")}${card("Kratak izbor","Upis sa manje od pet izabranih kockica traži potvrdu.","1–4")}</div>`;
+ return `<span class="eyebrow">POGLAVLJE 05 / 05</span><h3>Posebna pravila</h3><p>Neke kolone i upisi imaju dodatne uslove.</p><div class="rules-item-grid">${card("Najava","Posle prvog bacanja izaberi red. Rezultat upisuješ u taj red posle narednog bacanja.","N")}${card("Dirigovano","Igra se u redu koji je prethodni protivnik najavio. Kada je Najava popunjena, moguć je slobodan unos.","D")}${card("Ručna kolona","Upisuje se posle prvog bacanja. Kenta u ovoj koloni uvek vredi 66.","R")}${card("Obavezna i Maksimalna","Obavezna se otključava po završetku prethodnih kolona; u Maksimalnu se upisuje samo najveći mogući rezultat.","O·M")}${card("Precrtavanje","Upisuje X umesto rezultata u dostupno polje.","X")}${card("Kratak izbor","Upis sa manje od pet izabranih kockica traži potvrdu.","1–4")}</div>`;
 }
 function bindRulesGuide(){
  const dialog=app.querySelector("#rulesDialog"),close=app.querySelector("#closeRules");
@@ -336,7 +336,7 @@ function soloGame(){
 
 function maxRollsForLocal(){
  const player=current();
- const remaining=defs().filter(col=>col.id!=="m").reduce((total,col)=>total+scoreRows.filter(row=>!isFilled(player,col.id,row)).length,0);
+ const remaining=defs().reduce((total,col)=>total+scoreRows.filter(row=>!isFilled(player,col.id,row)).length,0);
  return remaining===1?5:3;
 }
 function soloRoll(){
@@ -381,7 +381,7 @@ function renderAnnouncementUi(){
  if(state.columns.includes("r"))info="Ručna kolona (R) se popunjava posle prvog bacanja; ručna Kenta vredi 66. ";
  const oIndex=state.columns.indexOf("o");
  if(oIndex>=0){const earlier=state.columns.slice(0,oIndex);const ready=earlier.every(col=>scoreRows.every(row=>cells[cellKey(col,row)]!==undefined));if(!ready)info+="Kolona O se otključava tek kada su prethodne uključene kolone popunjene. ";}
- if(state.columns.includes("m"))info+="Kolona M se automatski popunjava maksimumom iz prethodnih uključenih kolona; precrtanje se prenosi kao X. ";
+ if(state.columns.includes("m"))info+="Kolona M prihvata samo najveći mogući rezultat za izabrani red. ";
  if(state.columns.includes("contra")){const full=state.columns.includes("announced")&&scoreRows.every(row=>cells[cellKey("announced",row)]!==undefined);info+=(full?"Kolona Najava je popunjena, pa se Dirigovano može igrati slobodno. ":"Dirigovano prati polje koje je protivnik najavio u prethodnom potezu. Bez najave protivnika, ćeliju možeš precrtati. "); }
  if(!state.columns.includes("announced")){box.textContent=info;return;}
  if(state.rolls===0){box.textContent=(info?info+" ":"")+"Najavu možeš izabrati samo posle prvog bacanja; izbor te obavezuje na baš to polje.";return;}
@@ -403,18 +403,7 @@ function commitOnlineCandidate(candidate){
 
 
 function refreshLocalDerived(player){
- const columns=state.columns;
- const maxIndex=columns.indexOf("m");
- if(maxIndex>=0){
-   const sources=columns.slice(0,maxIndex),firstSix=sources.slice(0,6);
-   for(const row of scoreRows){
-     if(isFilled(player,"m",row)||!sources.length||!sources.every(col=>isFilled(player,col,row)))continue;
-     const crossed=firstSix.some(col=>player.crossedCells.includes(cellKey(col,row)));
-     player.cells[cellKey("m",row)]=crossed?0:Math.max(...sources.map(col=>Number(player.cells[cellKey(col,row)]||0)));
-     if(crossed)player.crossedCells.push(cellKey("m",row));
-   }
- }
- for(const col of columns){
+ for(const col of state.columns){
    const sums=calculateColumnSums(player.cells,col);
    for(const [row,value] of Object.entries(sums))player.cells[cellKey(col,row)]=value;
  }

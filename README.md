@@ -51,7 +51,7 @@ Dodatne kolone su opcione:
 - **Ručna (R)** — može se igrati samo posle prvog bacanja. Ručna Kenta vredi 66.
 - **Naniže–naviše (↓↑)** — popunjava se od jedinica naniže i od Jamba naviše.
 - **Obavezna (O)** — otključava se kada su popunjene sve prethodne uključene kolone.
-- **Maksimalna (M)** — automatski upisuje najveći rezultat iz prethodnih uključenih kolona. Precrtavanja u odgovarajućim poljima prvih šest kolona prenose se u M.
+- **Maksimalna (M)** — igrač upisuje rezultat samo kada izabrane kockice daju najveći mogući rezultat za taj red. Primeri: pet jedinica u redu 1 (5), tri šestice za Triling (38), tri šestice i dve petice za Ful (58). Polje se može precrtati.
 
 Kolone se prikazuju u standardnom redosledu bez obzira na redosled kojim su uključene u podešavanjima.
 
