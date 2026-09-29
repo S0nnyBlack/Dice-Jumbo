@@ -24,6 +24,7 @@ app.get("/", (_, res) => res.sendFile(path.join(publicRoot, "index.html")));
 app.get("/app.js", (_, res) => res.sendFile(path.join(publicRoot, "app.js")));
 app.get("/game.js", (_, res) => res.sendFile(path.join(publicRoot, "game.js")));
 app.get("/invite.js", (_, res) => res.sendFile(path.join(publicRoot, "invite.js")));
+app.get("/i18n.js", (_, res) => res.sendFile(path.join(publicRoot, "i18n.js")));
 app.get("/styles.css", (_, res) => res.sendFile(path.join(publicRoot, "styles.css")));
 app.get("/arena.css", (_, res) => res.sendFile(path.join(publicRoot, "arena.css")));
 
