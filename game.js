@@ -32,6 +32,23 @@ export function calculateColumnSums(cells={},columnId){
   SUM_TOTAL:COMBINATION_ROWS.reduce((total,row)=>total+value(row),0)
  };
 }
+export function summarizeFinalResults(players=[],columnIds=[]){
+ return players.map(player=>{
+  const columns=columnIds.map(columnId=>{
+   const sums=calculateColumnSums(player.cells||{},columnId);
+   return {columnId,points:sums.SUM_TOP+sums.SUM_MID+sums.SUM_TOTAL};
+  });
+  const total=columns.reduce((points,column)=>points+column.points,0);
+  const bestColumn=columns.reduce((best,column)=>!best||column.points>best.points?column:best,null);
+  return {
+   id:player.id,
+   name:player.name,
+   total,
+   bestColumn,
+   crossedCells:[...(player.crossedCells||[])]
+  };
+ }).sort((a,b)=>b.total-a.total);
+}
 export const upperBonus=total=>total>=60?30:0;
 export function counts(v){return v.reduce((m,x)=>(m[x]=(m[x]||0)+1,m),{})}
 export function upperScore(v,face){return v.filter(x=>x===face).reduce((a,b)=>a+b,0)}

@@ -15,7 +15,7 @@ jamb.arena je veb aplikacija za Jamb sa lokalnom solo partijom i online partijam
 - Status poteza, bacanja i obaveznih najava prikazuje se iznad table; aktivna pravila otvaraju se bez napuštanja igre.
 - Veličina tabele može se menjati tokom igre i pamti se u pregledaču.
 - Pre izlaska iz aktivne partije prikazuje se potvrda; pri prekidu veze online unos se zaključava do sinhronizacije i dostupan je ručni pokušaj povezivanja.
-- Konačan zbir se prikazuje tek po završetku partije.
+- Konačan zbir i završni pregled sa najboljom kolonom i precrtanim poljima prikazuju se tek po završetku partije.
 - Početni ekran nudi dva široka izbora za Solo igru i Online sto, sa kratkim opisom svakog režima.
 - Na širokim desktop ekranima Brzi izbor i Aktivnost stoje levo od listića i kada je uključeno manje kolona. Širina listića prati broj kolona, a sve kolone ostaju vidljive bez pomeranja kada ima dovoljno mesta. Na telefonu se tabela pomera unutar svog okvira.
 - Mobilni prikaz stavlja listić iznad kontrola; polja su kompaktnija i mogu se pomerati vodoravno, a šest kockica ostaje kvadratnog oblika. Podržane su bezbedne margine ekrana i landscape orijentacija.
@@ -28,11 +28,11 @@ Partija se igra lokalno u pregledaču, bez protivnika kojim upravlja računar. S
 
 ### Online
 
-- Kreiranje sobe i pridruživanje putem koda sobe. Čekaonica prikazuje veliki kod sa dugmetom za kopiranje i četiri mesta sa statusom igrača.
+- Kreiranje sobe i pridruživanje putem koda ili linka. Link za poziv unapred popunjava kod sobe; igrač zatim unosi ime i pridružuje se. Čekaonica prikazuje veliki kod, dugmad za kopiranje i četiri mesta sa statusom igrača.
 - Početni ekran Online sto prikazuje odvojene kartice za kreiranje i pridruživanje; domaćin bira kolone pre kreiranja sobe.
 - Igra za 2–4 igrača; domaćin pokreće partiju i bira aktivne kolone.
 - Server upravlja bacanjima, redosledom poteza, unosom rezultata i proverom pravila.
-- Tabele drugih igrača mogu se pregledati; ukupni rezultat ostaje sakriven do završetka partije.
+- Tabele drugih igrača mogu se pregledati; istorija prikazuje nedavne završene poteze, dok ukupni rezultat ostaje sakriven do završetka partije.
 - Aplikacija podržava povratak igrača u postojeću sesiju nakon prekida veze.
 - Izlazak iz sobe pre početka uklanja igrača i oslobađa sesiju. Ako igrač napusti započetu partiju, soba se zatvara za sve učesnike. Potpuno napuštene sobe se brišu posle 30 minuta.
 

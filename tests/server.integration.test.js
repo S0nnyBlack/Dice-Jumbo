@@ -107,6 +107,7 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     const started = await startedWait;
     assert.equal(started.currentPlayerId, created.playerId);
     assert.deepEqual(started.config.columns, ["down", "free", "up"]);
+    assert.deepEqual(started.turnHistory, []);
 
     const firstRollWait = waitFor(host, "state", state => state.rolls === 1 && state.dice.length === 6);
     const guestSeesFirstRoll = waitFor(guest, "state", state => state.currentPlayerId === created.playerId && state.rolls === 1 && state.dice.length === 6);
@@ -143,9 +144,13 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     const commitWait = waitFor(host, "state", state =>
       state.currentPlayerId === joined.playerId && state.players[0].cells[`free::${face}`] === face
     );
+    const guestSeesHistory = waitFor(guest, "state", state => state.turnHistory?.length === 1);
     host.emit("turn:commit", { columnId: "free", row: String(face) });
-    const afterCommit = await commitWait;
+    const [afterCommit, guestHistoryState] = await Promise.all([commitWait, guestSeesHistory]);
     assert.equal(afterCommit.rolls, 0);
+    const expectedMove = { playerId: created.playerId, columnId: "free", row: String(face), value: face, crossOut: false };
+    assert.deepEqual(afterCommit.turnHistory, [expectedMove]);
+    assert.deepEqual(guestHistoryState.turnHistory, [expectedMove], "all players see committed moves");
 
     const undoUnavailableError = waitFor(host, "game:error", error => error.message === "Vraćanje poteza nije dostupno u online partiji.");
     host.emit("turn:undo");
@@ -177,6 +182,7 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     assert.equal(resumed.playerId, joined.playerId);
     const resumedState = await resumedStateWait;
     assert.equal(resumedState.rolls, 1);
+    assert.deepEqual(resumedState.turnHistory, [expectedMove], "history survives reconnection");
 
     const index = resumedState.dice.findIndex((_, i) => i === 0);
     const chooseWait = waitFor(resumedSocket, "state", state => state.selection.includes(index));
@@ -232,6 +238,8 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     }
 
     assert.equal(turnState.gameOver, true, "the game ends after all required cells are filled");
+    assert.ok(turnState.turnHistory.length <= 12, "recent turn history stays bounded");
+    assert.ok(turnState.turnHistory.some(move => move.crossOut), "cross-outs appear in turn history");
     for (const player of turnState.players) {
       assert.notEqual(player.cells["free::SUM_TOP"], undefined);
       assert.notEqual(player.cells["free::SUM_MID"], undefined);
