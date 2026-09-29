@@ -93,35 +93,6 @@ function calculateEntry(room, player, col, row, selected, crossOut = false) {
   if (value === 0) return { ok: false, error: "Rezultat 0 se ne upisuje; izaberite precrtavanje polja." };
   return { ok: true, value };
 }
-function captureTurnState(room){
-  return {
-    players: room.players.map(player => ({
-      cells: { ...player.cells },
-      crossedCells: [...(player.crossedCells || [])],
-      announcedRow: player.announcedRow || null
-    })),
-    currentPlayerId: room.currentPlayerId,
-    rolls: room.rolls,
-    dice: [...room.dice],
-    selection: [...room.selection],
-    contraTargetRow: room.contraTargetRow
-  };
-}
-function restoreTurnState(room, snapshot){
-  snapshot.players.forEach((saved, index) => {
-    const player = room.players[index];
-    if (!player) return;
-    player.cells = { ...saved.cells };
-    player.crossedCells = [...saved.crossedCells];
-    player.announcedRow = saved.announcedRow;
-  });
-  room.currentPlayerId = snapshot.currentPlayerId;
-  room.rolls = snapshot.rolls;
-  room.dice = [...snapshot.dice];
-  room.selection = [...snapshot.selection];
-  room.contraTargetRow = snapshot.contraTargetRow;
-}
-
 function updateMaximumColumn(room, player) {
   const maxIndex = room.config.columns.indexOf("m");
   if (maxIndex < 0) return;
@@ -169,7 +140,6 @@ function publicState(room, viewerId) {
     selection: [...room.selection],
     announcedRow: viewer?.announcedRow || null,
     contraTargetRow: room.currentPlayerId === viewerId ? room.contraTargetRow : null,
-    canUndo: room.history.length > 0,
     config: room.config,
     players: room.players.map(p => ({
       id: p.id,
@@ -245,7 +215,6 @@ io.on("connection", socket => {
       dice: [],
       selection: [],
       contraTargetRow: null,
-      history: [],
       cleanupTimer: null
     };
     rooms.set(room.code, room);
@@ -302,7 +271,6 @@ io.on("connection", socket => {
     room.dice = [];
     room.selection = [];
     room.contraTargetRow = null;
-    room.history = [];
     for (const p of room.players) p.announcedRow = null;
     broadcast(room);
   });
@@ -380,8 +348,6 @@ io.on("connection", socket => {
     const result = calculateEntry(room, player, columnId, row, selectedValues, isCrossOut);
     if (!result.ok) return emitError(socket, result.error);
 
-    room.history.push(captureTurnState(room));
-    if (room.history.length > 50) room.history.shift();
     player.cells[key(columnId, row)] = result.value;
     if (isCrossOut) player.crossedCells.push(key(columnId, row));
     updateMaximumColumn(room, player);
@@ -407,11 +373,7 @@ io.on("connection", socket => {
     const room = getRoomBySocket(socket.id);
     const player = getPlayer(room, socket.id);
     if (!room || !player || !room.started) return;
-    if (room.hostId !== player.id) return emitError(socket, "Samo domaćin može da vrati poslednji potez.");
-    const snapshot = room.history.pop();
-    if (!snapshot) return emitError(socket, "Nema poteza koji može da se vrati.");
-    restoreTurnState(room, snapshot);
-    broadcast(room);
+    emitError(socket, "Vraćanje poteza nije dostupno u online partiji.");
   });
 
   socket.on("room:resume", payload => {

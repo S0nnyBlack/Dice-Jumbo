@@ -4,7 +4,7 @@ import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,SCORE_ROWS as scoreRows,rollDice,
 
 const state={
  mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),diceRollAnimation:false,undoHistory:[],columns:["down","free","up"],
- currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false,hostId:null,onlineUndoAvailable:false
+ currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false,hostId:null,
 };
 const app=document.getElementById("app");
 const DIE_PIPS={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
@@ -285,7 +285,7 @@ function gameMarkup(online){
     <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">${online?"TABELA PARTIJE":"TVOJA TABELA"}</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
   </div>
   <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
-    <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow" id="diceTurnLabel">${online?"TRENUTNO BACANJE":"TVOJ POTEZ"}</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div><div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label" id="diceOwnerLabel">${online?escapeHtml(current().name).toLocaleUpperCase("sr-Latn")+" · KOCKICE":"TVOJE KOCKICE"}</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div></section>
+    <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow" id="diceTurnLabel">${online?"TRENUTNO BACANJE":"TVOJ POTEZ"}</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div><div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label" id="diceOwnerLabel">${online?escapeHtml(current().name).toLocaleUpperCase("sr-Latn")+" · KOCKICE":"TVOJE KOCKICE"}</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button>${online?"":'<button class="btn" id="undo" disabled>Vrati potez</button>'}</div></section>
    <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
    <div class="game-info"><section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
    <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div>${online?'<div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div>':""}</section></div>
@@ -542,7 +542,7 @@ function renderServerState(s){
  if(!s)return;
   const viewedPlayerId=state.players[state.viewPlayer]?.id;
  if((s.dice||[]).length>0&&s.rolls>state.rolls){state.diceRollAnimation=true;setTimeout(()=>{state.diceRollAnimation=false},240)}
- state.mode="online";state.onlineStarted=Boolean(s.started);state.hostId=s.hostId||null;state.onlineUndoAvailable=s.canUndo===true;state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
+ state.mode="online";state.onlineStarted=Boolean(s.started);state.hostId=s.hostId||null;state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
  const idx=s.players.findIndex(p=>p.id===s.currentPlayerId);if(idx>=0)state.currentPlayer=idx;
  state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{},crossedCells:p.crossedCells||[]}));
   const viewedIndex=state.players.findIndex(p=>p.id===viewedPlayerId);
@@ -590,7 +590,6 @@ function game(){
  app.querySelector("#roll").onclick=()=>{if(!net.connected||!net.synced)return;state.crossOutMode=false;socket?.emit("turn:roll")};
  app.querySelector("#clear").onclick=()=>{state.selected.clear();state.crossOutMode=false;socket?.emit("turn:select",{indices:[]})};
  app.querySelector("#crossout").onclick=()=>{state.crossOutMode=!state.crossOutMode;if(state.crossOutMode){state.selected.clear();socket?.emit("turn:select",{indices:[]})}renderOnline()};
- app.querySelector("#undo").onclick=()=>{if(!net.connected||!net.synced||!state.onlineUndoAvailable||state.hostId!==net.playerId)return;if((state.rolls>0||state.announcedRow)&&!window.confirm("Vraćanjem poteza odbaciće se trenutni potez. Nastaviti?"))return;socket?.emit("turn:undo")};
  renderOnline();
 }
 
@@ -621,7 +620,6 @@ function renderOnline(){
  }
  updateTurnStatus(canAct);
  const roll=app.querySelector("#roll"),clear=app.querySelector("#clear"),crossout=app.querySelector("#crossout");
- const undo=app.querySelector("#undo");if(undo){undo.disabled=!net.connected||!net.synced||state.hostId!==net.playerId||!state.onlineUndoAvailable;undo.title=state.hostId===net.playerId?"Vrati poslednji potez cele sobe":"Samo domaćin može da vrati potez";}
  if(roll){roll.disabled=!canAct||state.gameOver||state.rolls>=(state.maxRolls||3);roll.textContent=state.rolls>=(state.maxRolls||3)?"Bacanja iskorišćena":state.rolls===0?"Baci kockice":"Baci ponovo";}
  if(clear)clear.disabled=!canAct||state.gameOver||state.rolls===0;
  if(crossout){crossout.disabled=!canAct||state.gameOver||state.rolls===0;crossout.classList.toggle("crossout-active",state.crossOutMode);crossout.textContent=state.crossOutMode?"Otkaži precrtavanje":"Precrtaj polje (0)";}

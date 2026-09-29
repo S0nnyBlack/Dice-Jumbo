@@ -373,3 +373,40 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
   .main-nav button { font-size: 10px; }
   .lobby-players { grid-template-columns: 1fr; }
 }
+
+
+/* Compact mobile sheet cells and square dice; preserve the existing palette and controls. */
+@media (max-width: 640px) {
+  .premium-sheet.sheet { min-width: max(100%, var(--sheet-min-width)); }
+  .premium-sheet .label-col { width: 56px; }
+  .premium-sheet .data-col { width: 46px; }
+  .layout > .game-main { order: 0; }
+  .layout > .game-sidebar > .game-controls { order: 1; }
+  .dice-grid, .game-sidebar > .game-controls .dice-grid {
+    grid-template-columns: repeat(3, 56px);
+    justify-content: center;
+    gap: 12px 10px;
+  }
+  .die, .game-sidebar > .game-controls .die {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    min-height: 56px;
+    aspect-ratio: 1;
+  }
+}
+@media (max-width: 380px) {
+  .premium-sheet .label-col { width: 52px; }
+  .premium-sheet .data-col { width: 42px; }
+  .dice-grid, .game-sidebar > .game-controls .dice-grid {
+    grid-template-columns: repeat(3, 50px);
+    gap: 10px 8px;
+  }
+  .die, .game-sidebar > .game-controls .die {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    min-height: 50px;
+    aspect-ratio: 1;
+  }
+}
