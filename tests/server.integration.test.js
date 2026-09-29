@@ -109,8 +109,14 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     assert.deepEqual(started.config.columns, ["down", "free", "up"]);
 
     const firstRollWait = waitFor(host, "state", state => state.rolls === 1 && state.dice.length === 6);
+    const guestSeesFirstRoll = waitFor(guest, "state", state => state.currentPlayerId === created.playerId && state.rolls === 1 && state.dice.length === 6);
     host.emit("turn:roll");
-    const firstRoll = await firstRollWait;
+    const [firstRoll, observedFirstRoll] = await Promise.all([firstRollWait, guestSeesFirstRoll]);
+    assert.deepEqual(observedFirstRoll.dice, firstRoll.dice, "opponents see the active player's dice");
+    assert.equal(observedFirstRoll.maxRolls, firstRoll.maxRolls, "opponents see the active player's roll limit");
+    const nonTurnRollError = waitFor(guest, "game:error", error => error.message === "Nije vaš potez.");
+    guest.emit("turn:roll");
+    await nonTurnRollError;
     const invalidSelectionError = waitFor(host, "game:error", error => error.message === "Izbor kockica mora biti lista indeksa.");
     host.emit("turn:select", { indices: null });
     await invalidSelectionError;
@@ -119,12 +125,17 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     const heldIndex = 0;
 
     const selectionWait = waitFor(host, "state", state => state.selection.includes(heldIndex));
+    const guestSeesSelection = waitFor(guest, "state", state => state.currentPlayerId === created.playerId && state.selection.includes(heldIndex));
     host.emit("turn:select", { indices: [heldIndex] });
-    await selectionWait;
+    const [selectedState, observedSelection] = await Promise.all([selectionWait, guestSeesSelection]);
+    assert.deepEqual(observedSelection.selection, selectedState.selection, "opponents see which dice the active player holds");
 
     const rerollWait = waitFor(host, "state", state => state.rolls === 2);
+    const guestSeesReroll = waitFor(guest, "state", state => state.currentPlayerId === created.playerId && state.rolls === 2);
     host.emit("turn:roll");
-    const reroll = await rerollWait;
+    const [reroll, observedReroll] = await Promise.all([rerollWait, guestSeesReroll]);
+    assert.deepEqual(observedReroll.dice, reroll.dice, "opponents see the active player's reroll");
+    assert.deepEqual(observedReroll.selection, reroll.selection, "opponents see held dice after the reroll");
     assert.equal(reroll.dice[heldIndex], firstRoll.dice[heldIndex]);
     assert.deepEqual(reroll.selection, [heldIndex], "saved dice stay selected after reroll");
 
