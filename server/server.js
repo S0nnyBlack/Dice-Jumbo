@@ -23,6 +23,7 @@ app.get("/health", (_, res) => res.json({ ok: true, service: "jumbo-dice-server"
 app.get("/", (_, res) => res.sendFile(path.join(publicRoot, "index.html")));
 app.get("/app.js", (_, res) => res.sendFile(path.join(publicRoot, "app.js")));
 app.get("/game.js", (_, res) => res.sendFile(path.join(publicRoot, "game.js")));
+app.get("/invite.js", (_, res) => res.sendFile(path.join(publicRoot, "invite.js")));
 app.get("/styles.css", (_, res) => res.sendFile(path.join(publicRoot, "styles.css")));
 app.get("/arena.css", (_, res) => res.sendFile(path.join(publicRoot, "arena.css")));
 
