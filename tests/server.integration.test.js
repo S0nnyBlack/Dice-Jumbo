@@ -70,6 +70,9 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
     const arenaStyles = await fetch(`${baseUrl}/arena.css`);
     assert.equal(arenaStyles.status, 200);
     assert.match(await arenaStyles.text(), /--green: #81b64c/);
+    const inviteModule = await fetch(`${baseUrl}/invite.js`);
+    assert.equal(inviteModule.status, 200);
+    assert.match(await inviteModule.text(), /export function readInviteCode/);
 
     const host = await connect(baseUrl);
     sockets.push(host);
