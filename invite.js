@@ -6,6 +6,17 @@ export function readInviteCode(search=""){
  return validRoomCode.test(code)?code:"";
 }
 
+
+export function parseRoomInput(input=""){
+ const value=String(input).trim();
+ if(validRoomCode.test(value.toUpperCase()))return value.toUpperCase();
+ try{
+  const url=new URL(value);
+  if(url.protocol!=="https:"&&url.protocol!=="http:")return "";
+  return readInviteCode(url.search);
+ }catch{return "";}
+}
+
 export function buildInviteUrl(pageUrl,roomCode){
  const code=String(roomCode).trim().toUpperCase();
  if(!validRoomCode.test(code))throw new TypeError("Nevažeći kod sobe.");
