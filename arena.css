@@ -410,3 +410,23 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
     aspect-ratio: 1;
   }
 }
+
+/* Recent turns and the final recap use the existing sidebar card palette. */
+.lobby-share-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.turn-history { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.turn-history h3, .end-recap h3 { margin: 0 0 8px; color: var(--ink); font-size: 13px; }
+.turn-history p, .end-recap p { margin: 4px 0; color: var(--muted-ink); font-size: 11px; line-height: 1.5; }
+.turn-history ol, .end-recap ol, .end-recap ul { margin: 0; padding: 0; list-style: none; }
+.turn-history ol { max-height: 190px; overflow-y: auto; }
+.turn-history li { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 2px 8px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 11px; }
+.turn-history li strong { color: var(--ink); }
+.turn-history li span { grid-column: 1; color: var(--muted-ink); }
+.turn-history li b { grid-column: 2; grid-row: 1 / 3; align-self: center; color: var(--green); }
+.end-recap:not([hidden]) { margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line); }
+.end-recap > ol > li { padding: 9px 0; border-top: 1px solid var(--line); }
+.recap-player { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.recap-player b { color: var(--green); white-space: nowrap; }
+.end-recap details { color: var(--muted-ink); font-size: 11px; }
+.end-recap summary { cursor: pointer; }
+.end-recap ul { margin: 6px 0 0 10px; }
+.end-recap ul li { padding: 2px 0; }
