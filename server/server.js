@@ -155,6 +155,7 @@ function buildPublicCells(player, viewerId, gameOver) {
 }
 function publicState(room, viewerId) {
   const viewer = room.players.find(p => p.id === viewerId);
+  const activePlayer = room.players.find(p => p.id === room.currentPlayerId);
   const gameOver = isGameOver(room);
   return {
     roomCode: room.code,
@@ -162,10 +163,10 @@ function publicState(room, viewerId) {
     gameOver,
     hostId: room.hostId,
     currentPlayerId: room.currentPlayerId,
-    rolls: room.currentPlayerId === viewerId ? room.rolls : 0,
-    maxRolls: room.currentPlayerId === viewerId && viewer ? maxRollsForTurn(room, viewer) : 3,
-    dice: room.currentPlayerId === viewerId ? room.dice : [],
-    selection: room.currentPlayerId === viewerId ? room.selection : [],
+    rolls: room.rolls,
+    maxRolls: activePlayer ? maxRollsForTurn(room, activePlayer) : 3,
+    dice: [...room.dice],
+    selection: [...room.selection],
     announcedRow: viewer?.announcedRow || null,
     contraTargetRow: room.currentPlayerId === viewerId ? room.contraTargetRow : null,
     canUndo: room.history.length > 0,
