@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds, COLUMN_DEFS, calculateColumnSums, visibleCellsForPlayer } from "../game.js";
+import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds, COLUMN_DEFS, calculateColumnSums, visibleCellsForPlayer, summarizeFinalResults } from "../game.js";
 
 test("rollDice returns the requested number of valid die values",()=>{
  const dice=rollDice(6);assert.equal(dice.length,6);
@@ -147,3 +147,16 @@ test("online subtotals are private to their owner until the game ends",()=>{
  }
 });
 
+
+test("final recap ranks players and identifies their strongest column after applying all three sums",()=>{
+ const players=[
+  {id:"a",name:"Ana",cells:{"free::1":3,"free::MAX":20,"free::MIN":10,"free::TRILING":29},crossedCells:["down::YAMB"]},
+  {id:"b",name:"Bojan",cells:{"free::1":2,"free::MAX":10,"free::MIN":5},crossedCells:[]}
+ ];
+ const results=summarizeFinalResults(players,["down","free"]);
+ assert.equal(results[0].id,"a");
+ assert.equal(results[0].total,62);
+ assert.deepEqual(results[0].bestColumn,{columnId:"free",points:62});
+ assert.deepEqual(results[0].crossedCells,["down::YAMB"]);
+ assert.equal(results[1].total,12);
+});
