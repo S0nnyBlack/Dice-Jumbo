@@ -1,7 +1,7 @@
 const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:false,synced:false,roomCode:null,playerId:null,sessionToken:null,server:null};
 import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,SCORE_ROWS as scoreRows,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums,summarizeFinalResults}from"./game.js";
-import{readInviteCode,buildInviteUrl}from"./invite.js";
+import{readInviteCode,parseRoomInput,buildInviteUrl}from"./invite.js";
 import{LANGUAGE_KEY,detectLanguage,translateText,createDomTranslator}from"./i18n.js";
 
 const state={
@@ -211,22 +211,22 @@ function onlineSetup(){
  state.mode="setup-online";
  state.columns=["down","free","up"];
  app.innerHTML=`${appNavMarkup("ONLINE STO")}<section class="online-setup">
-  <header class="online-setup-heading"><span class="eyebrow">IGRAJ SA DRUGIMA</span><h1>Online sto</h1><p>Napravi sobu ili se pridruži prijateljima pomoću koda.</p><div id="network" class="online-network" role="status">Povezivanje sa serverom…</div></header>
-  <div class="online-setup-grid"><section class="online-setup-card create-room-card"><div class="online-card-heading"><span class="eyebrow">TVOJA PARTIJA</span><h2>Napravi sobu</h2><p>Izaberi kolone, pa podeli kod sa ostalim igračima.</p></div>
+  <header class="online-setup-heading"><span class="eyebrow">IGRAJ SA DRUGIMA</span><h1>Online sto</h1><p>Napravi sobu ili se pridruži prijateljima pomoću linka ili koda.</p><div id="network" class="online-network" role="status">Povezivanje sa serverom…</div></header>
+  <div class="online-setup-grid"><section class="online-setup-card create-room-card"><div class="online-card-heading"><span class="eyebrow">TVOJA PARTIJA</span><h2>Napravi sobu</h2><p>Izaberi kolone, pa podeli link sobe sa ostalim igračima.</p></div>
    <label class="online-field" for="playerName">Tvoje ime<input id="playerName" placeholder="Ime igrača" value="${language==="en"?"Player 1":"Igrač 1"}" autocomplete="nickname"></label>
    <div class="online-column-heading"><div><span class="eyebrow">PODEŠAVANJA IGRE</span><h3>Kolone listića</h3></div><button class="btn" id="selectAll" type="button">Izaberi sve</button></div>
    <div class="setup-grid online-column-grid">${columnOptionsMarkup()}</div>
    <button class="btn primary online-submit" id="createRoom" type="button">Kreiraj sobu</button></section>
-  <section class="online-setup-card join-room-card"><div class="online-card-heading"><span class="eyebrow">IMAŠ KOD?</span><h2>Pridruži se sobi</h2><p>Unesi kod koji ti je poslao domaćin.</p></div>
-   <label class="online-field" for="roomCodeInput">Kod sobe<input id="roomCodeInput" placeholder="KOD SOBE" maxlength="8" autocomplete="off" autocapitalize="characters" value="${escapeHtml(invitedRoomCode())}"></label>
+  <section class="online-setup-card join-room-card"><div class="online-card-heading"><span class="eyebrow">IMAŠ POZIVNICU?</span><h2>Pridruži se sobi</h2><p>Unesi kod ili nalepi link koji ti je poslao domaćin.</p></div>
+   <label class="online-field" for="roomCodeInput">Kod ili link<input id="roomCodeInput" placeholder="KOD ILI LINK" autocomplete="off" autocapitalize="characters" value="${escapeHtml(invitedRoomCode())}"></label>
    <label class="online-field" for="joinName">Tvoje ime<input id="joinName" placeholder="Ime igrača" value="${language==="en"?"Player 2":"Igrač 2"}" autocomplete="nickname"></label>
-   <button class="btn online-submit" id="joinRoom" type="button">Pridruži se</button></section></div>
+   <button class="btn online-submit" id="joinRoom" type="button">Pridruži se sobi</button></section></div>
   <button class="btn online-back" id="back" type="button">← Nazad</button></section>`;
  bindColumnOptions();
  app.querySelector("#back").onclick=setup;
  if(socket){
    app.querySelector("#createRoom").onclick=()=>socket.emit("room:create",{name:app.querySelector("#playerName").value||"Igrač 1",config:{columns:normalizeColumnIds(state.columns)}});
-   app.querySelector("#joinRoom").onclick=()=>socket.emit("room:join",{roomCode:app.querySelector("#roomCodeInput").value,name:app.querySelector("#joinName").value||"Igrač"});
+   app.querySelector("#joinRoom").onclick=()=>socket.emit("room:join",{roomCode:parseRoomInput(app.querySelector("#roomCodeInput").value),name:app.querySelector("#joinName").value||"Igrač"});
    updateNetworkStatus();
   const token=localStorage.getItem(SESSION_KEY);if(deploymentChecked&&token&&!invitedRoomCode())socket.emit("room:resume",{sessionToken:token});
  }
@@ -623,7 +623,7 @@ function renderLobbyState(s){
  }).join("");
  const status=s.players.length<2?"Čeka se još jedan igrač.":canStart?"Soba je spremna za početak.":"Čeka se da se svi igrači povežu.";
  app.innerHTML=`${appNavMarkup("ONLINE SOBA")}<section class="online-lobby"><div class="lobby-heading"><div><span class="eyebrow">ONLINE STO</span><h1>Tvoja soba</h1></div><span class="lobby-count">${s.players.length}/4 igrača</span></div>
-  <div class="lobby-code-card"><span>Kod sobe</span><strong class="lobby-code">${escapeHtml(s.roomCode)}</strong><p>Podeli kod ili link sa drugim igračima</p><div class="lobby-share-actions"><button class="btn lobby-copy" id="copyRoomCode" type="button">Kopiraj kod</button><button class="btn lobby-copy" id="copyInviteLink" type="button">Kopiraj link za partiju</button></div><div class="lobby-copy-status" id="copyStatus" role="status"></div></div>
+  <div class="lobby-code-card"><span>Kod sobe</span><strong class="lobby-code">${escapeHtml(s.roomCode)}</strong><p>Podeli link sobe sa drugim igračima</p><div class="lobby-share-actions"><button class="btn lobby-copy" id="copyRoomCode" type="button">Kopiraj link sobe</button></div><div class="lobby-copy-status" id="copyStatus" role="status"></div></div>
   <div class="lobby-players" aria-label="Mesta za igrače">${slots}</div>
   ${s.hostId===net.playerId?`<button class="btn primary lobby-start" id="startOnline" ${canStart?"":"disabled"}>Počni igru</button>`:'<p class="lobby-wait">Čeka se da domaćin pokrene partiju.</p>'}
   <p class="lobby-wait">${status}</p><button class="btn lobby-leave" id="back" type="button">← Napusti sobu</button></section>`;
@@ -638,8 +638,8 @@ function renderLobbyState(s){
    if(copyStatus)copyStatus.textContent=successMessage;
   }catch{if(copyStatus)copyStatus.textContent="Kopiranje nije uspelo. Pokušaj ponovo.";}
  }
- app.querySelector("#copyRoomCode").onclick=()=>copyLobbyText(s.roomCode,"Kod je kopiran.");
- app.querySelector("#copyInviteLink").onclick=()=>copyLobbyText(buildInviteUrl(window.location.href,s.roomCode),"Link za partiju je kopiran.");
+ app.querySelector("#copyRoomCode").onclick=()=>copyLobbyText(buildInviteUrl(window.location.href,s.roomCode),"Link sobe je kopiran.");
+ 
  const start=app.querySelector("#startOnline");if(start)start.onclick=()=>socket?.emit("room:start");
 }
 
