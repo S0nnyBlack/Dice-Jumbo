@@ -1,10 +1,11 @@
 const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:false,synced:false,roomCode:null,playerId:null,sessionToken:null,server:null};
-import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,SCORE_ROWS as scoreRows,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums}from"./game.js";
+import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,SCORE_ROWS as scoreRows,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums,summarizeFinalResults}from"./game.js";
+import{readInviteCode,buildInviteUrl}from"./invite.js";
 
 const state={
  mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),diceRollAnimation:false,undoHistory:[],columns:["down","free","up"],
- currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false,hostId:null,
+ currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false,hostId:null,turnHistory:[],
 };
 const app=document.getElementById("app");
 const DIE_PIPS={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
@@ -81,6 +82,7 @@ function bindTableScale(){
 const SOLO_SAVE_KEY="jumboDiceSoloSaveV1";
 const SESSION_KEY="jumboDiceSession";
 const DEPLOYMENT_ID_KEY="jumboDiceDeploymentIdV1";
+const invitedRoomCode=()=>readInviteCode(window.location.search);
 let deploymentChecked=false;
 function saveSoloGame(){
  if(!state.soloActive||state.mode!=="solo")return;
@@ -178,6 +180,7 @@ function columnSetup(buttonText,onStart,locked=false){
 }
 
 function soloSetup(){
+ if(!state.soloActive)restoreSoloGame();
  if(state.soloActive&&!state.gameOver){
    columnSetup("Nastavi partiju",soloGame,true);
    return;
@@ -197,7 +200,7 @@ function onlineSetup(){
    <div class="setup-grid online-column-grid">${columnOptionsMarkup()}</div>
    <button class="btn primary online-submit" id="createRoom" type="button">Kreiraj sobu</button></section>
   <section class="online-setup-card join-room-card"><div class="online-card-heading"><span class="eyebrow">IMAŠ KOD?</span><h2>Pridruži se sobi</h2><p>Unesi kod koji ti je poslao domaćin.</p></div>
-   <label class="online-field" for="roomCodeInput">Kod sobe<input id="roomCodeInput" placeholder="KOD SOBE" maxlength="8" autocomplete="off" autocapitalize="characters"></label>
+   <label class="online-field" for="roomCodeInput">Kod sobe<input id="roomCodeInput" placeholder="KOD SOBE" maxlength="8" autocomplete="off" autocapitalize="characters" value="${escapeHtml(invitedRoomCode())}"></label>
    <label class="online-field" for="joinName">Tvoje ime<input id="joinName" placeholder="Ime igrača" value="Igrač 2" autocomplete="nickname"></label>
    <button class="btn online-submit" id="joinRoom" type="button">Pridruži se</button></section></div>
   <button class="btn online-back" id="back" type="button">← Nazad</button></section>`;
@@ -207,7 +210,7 @@ function onlineSetup(){
    app.querySelector("#createRoom").onclick=()=>socket.emit("room:create",{name:app.querySelector("#playerName").value||"Igrač 1",config:{columns:normalizeColumnIds(state.columns)}});
    app.querySelector("#joinRoom").onclick=()=>socket.emit("room:join",{roomCode:app.querySelector("#roomCodeInput").value,name:app.querySelector("#joinName").value||"Igrač"});
    updateNetworkStatus();
-  const token=localStorage.getItem(SESSION_KEY);if(deploymentChecked&&token)socket.emit("room:resume",{sessionToken:token});
+  const token=localStorage.getItem(SESSION_KEY);if(deploymentChecked&&token&&!invitedRoomCode())socket.emit("room:resume",{sessionToken:token});
  }
 }
 
@@ -223,10 +226,15 @@ function updateNetworkStatus(){
 function acceptRoomSession(data,message=""){
  net.roomCode=data.roomCode;net.playerId=data.playerId;net.sessionToken=data.sessionToken;
  localStorage.setItem(SESSION_KEY,data.sessionToken);
+ if(invitedRoomCode()){
+  const url=new URL(window.location.href);
+  url.searchParams.delete("room");
+  window.history.replaceState(null,"",url.pathname+url.search+url.hash);
+ }
  if(message)alert(message+data.roomCode);
 }
 if(socket){
- socket.on("connect",()=>{net.connected=true;net.synced=false;updateNetworkStatus();const token=localStorage.getItem(SESSION_KEY);if(deploymentChecked&&token&&state.mode!=="solo")socket.emit("room:resume",{sessionToken:token});if(state.mode==="online")renderOnline()});
+ socket.on("connect",()=>{net.connected=true;net.synced=false;updateNetworkStatus();const token=localStorage.getItem(SESSION_KEY);if(deploymentChecked&&token&&state.mode!=="solo"&&!invitedRoomCode())socket.emit("room:resume",{sessionToken:token});if(state.mode==="online")renderOnline()});
  socket.on("disconnect",()=>{net.connected=false;net.synced=false;updateNetworkStatus();if(state.mode==="online")renderOnline()});
  socket.on("connect_error",()=>{net.connected=false;net.synced=false;updateNetworkStatus()});
  socket.on("room:resumed",d=>acceptRoomSession(d));
@@ -254,7 +262,7 @@ function rulesTopicMarkup(topic){
   const descriptions={down:"Od jedinica prema Jambu, redom naniže.",free:"Bilo koje dostupno polje.",up:"Od Jamba prema jedinicama, redom naviše.",announced:"Posle prvog bacanja najavljuješ red za upis.",contra:"Prati red koji je protivnik najavio u prethodnom potezu.",r:"Upis posle prvog bacanja; ručna Kenta vredi 66.",n:"Od jedinica naniže i od Jamba naviše.",o:"Otključava se po završetku prethodnih uključenih kolona.",m:"Automatski preuzima najbolji rezultat iz prethodnih kolona."};
   return `<span class="eyebrow">POGLAVLJE 03 / 05</span><h3>Kolone listića</h3><p>Svaka kolona određuje redosled ili uslov upisa. U igri su dostupna polja označena zelenom bojom.</p><div class="rules-item-grid">${COLUMN_DEFS.map(column=>card(escapeHtml(column.name),descriptions[column.id],column.headerSymbol)).join("")}</div><div class="rules-note">Osnovne kolone su Dole, Slobodna i Gore. Ostale biraš pre početka partije.</div>`;
  }
- if(topic==="scores")return `<span class="eyebrow">POGLAVLJE 04 / 05</span><h3>Bodovanje</h3><p>Rezultat zavisi od izabranih kockica i reda u koji ga upisuješ.</p><div class="rules-item-grid">${card("Jedinice–šestice","Sabiraju se samo izabrane kockice sa brojem tog reda.","1–6")}${card("Maksimum / Minimum","Zbir tačno pet izabranih kockica.","±")}${card("Kenta","Niz 1–5 ili 2–6: 66, 56 ili 46 poena, prema broju bacanja.","K")}${card("Triling","Zbir tačno tri iste kockice + 20 poena.","3")}${card("Ful","Tri iste i par u pet kockica: zbir svih pet + 30.","F")}${card("Poker","Četiri iste: zbir te četiri kockice + 40.","4")}${card("Jamb","Pet istih: zbir svih pet + 50.","5")}${card("Bonus","Zbir redova 1–6 dobija 30 poena kada dostigne 60.","+")}</div>`;
+ if(topic==="scores")return `<span class="eyebrow">POGLAVLJE 04 / 05</span><h3>Bodovanje</h3><p>Rezultat zavisi od izabranih kockica i reda u koji ga upisuješ.</p><div class="rules-item-grid">${card("Jedinice–šestice","Sabiraju se samo izabrane kockice sa brojem tog reda.","1–6")}${card("Maksimum / Minimum","Dostupni su samo kada označiš tačno pet kockica; upisuje se zbir tih pet.","±")}${card("Kenta","Niz 1–5 ili 2–6: 66, 56 ili 46 poena, prema broju bacanja.","K")}${card("Triling","Zbir tačno tri iste kockice + 20 poena.","3")}${card("Ful","Tri iste i par u pet kockica: zbir svih pet + 30.","F")}${card("Poker","Četiri iste: zbir te četiri kockice + 40.","4")}${card("Jamb","Pet istih: zbir svih pet + 50.","5")}${card("Bonus","Zbir redova 1–6 dobija 30 poena kada dostigne 60.","+")}</div>`;
  return `<span class="eyebrow">POGLAVLJE 05 / 05</span><h3>Posebna pravila</h3><p>Neke kolone i upisi imaju dodatne uslove.</p><div class="rules-item-grid">${card("Najava","Posle prvog bacanja izaberi red. Rezultat upisuješ u taj red posle narednog bacanja.","N")}${card("Dirigovano","Igra se u redu koji je prethodni protivnik najavio. Kada je Najava popunjena, moguć je slobodan unos.","D")}${card("Ručna kolona","Upisuje se posle prvog bacanja. Kenta u ovoj koloni uvek vredi 66.","R")}${card("Obavezna i Maksimalna","Obavezna se otključava po završetku prethodnih kolona; Maksimalna se popunjava automatski.","O·M")}${card("Precrtavanje","Upisuje X umesto rezultata u dostupno polje.","X")}${card("Kratak izbor","Upis sa manje od pet izabranih kockica traži potvrdu.","1–4")}</div>`;
 }
 function bindRulesGuide(){
@@ -288,8 +296,8 @@ function gameMarkup(online){
     <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow" id="diceTurnLabel">${online?"TRENUTNO BACANJE":"TVOJ POTEZ"}</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div><div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label" id="diceOwnerLabel">${online?escapeHtml(current().name).toLocaleUpperCase("sr-Latn")+" · KOCKICE":"TVOJE KOCKICE"}</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button>${online?"":'<button class="btn" id="undo" disabled>Vrati potez</button>'}</div></section>
    <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
    <div class="game-info"><section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
-   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div>${online?'<div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div>':""}</section></div>
-   <section class="sidebar-card sidebar-result"><span class="eyebrow">REZULTAT</span><h2>Igrači</h2><div class="tabs" id="tabs">${online?"":'<button class="player-tab active">Igrač 1</button>'}</div><p class="sidebar-note">Listić prikazuje rezultate; konačan zbir je zaključan do završetka partije.</p></section>
+   <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div>${online?'<div class="turn-history" id="turnHistory"></div>':""}${online?'<div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div>':""}</section></div>
+   <section class="sidebar-card sidebar-result"><span class="eyebrow">REZULTAT</span><h2>Igrači</h2><div class="tabs" id="tabs">${online?"":'<button class="player-tab active">Igrač 1</button>'}</div><p class="sidebar-note">Listić prikazuje rezultate; konačan zbir je zaključan do završetka partije.</p><div class="end-recap" id="endRecap" hidden></div></section>
   </aside>
  </div>${rulesDialogMarkup()}`;
 }
@@ -436,6 +444,40 @@ function renderDiceSummary(maxRolls){
   const holdLine=app.querySelector("#holdLine");
   if(holdLine)holdLine.textContent=state.rolls===0?"Baci kockice za početak poteza":state.selected.size?`Sačuvano ${state.selected.size} od 6 kockica`:"Klikni kockice koje želiš da zadržiš";
 }
+function scoreRowLabel(row){
+ return row==="YAMB"?"Jamb":row;
+}
+function renderTurnHistory(){
+ const box=app.querySelector("#turnHistory");if(!box)return;
+ const moves=state.turnHistory.slice(-6).reverse();
+ box.innerHTML='<h3>Poslednji potezi</h3>'+(moves.length?'<ol>'+moves.map(move=>{
+  const name=state.players.find(player=>player.id===move.playerId)?.name||"Igrač";
+  const column=COLUMN_DEFS.find(def=>def.id===move.columnId)?.name||move.columnId;
+  const field=escapeHtml(scoreRowLabel(move.row)+" · "+column);
+  return '<li><strong>'+escapeHtml(name)+'</strong><span>'+(move.crossOut?"Precrtano: ":"")+field+'</span><b>'+(move.crossOut?"×":Number(move.value))+'</b></li>';
+ }).join("")+'</ol>':'<p>Upisani potezi će se pojaviti ovde.</p>');
+}
+function renderEndRecap(){
+ const box=app.querySelector("#endRecap");if(!box)return;
+ box.hidden=!state.gameOver;
+ if(!state.gameOver){box.innerHTML="";return;}
+ const ranked=summarizeFinalResults(state.players,state.columns);
+ const note=app.querySelector(".sidebar-result .sidebar-note");
+ if(note)note.textContent="Partija je završena. Konačni rezultati su otključani.";
+ const leaders=ranked.filter(player=>player.total===ranked[0]?.total);
+ const winnerText=state.mode==="online"?(leaders.length>1?"Pobednici: ":"Pobednik: ")+leaders.map(player=>player.name).join(", "):"Tvoja partija je završena.";
+ box.innerHTML='<h3>Završni pregled</h3><p>'+escapeHtml(winnerText)+'</p><ol>'+ranked.map(player=>{
+  const best=player.bestColumn;
+  const bestName=COLUMN_DEFS.find(def=>def.id===best?.columnId)?.name||"—";
+  const crosses=player.crossedCells.map(cell=>{
+   const [columnId,row]=cell.split("::");
+   const column=COLUMN_DEFS.find(def=>def.id===columnId)?.name||columnId;
+   return '<li>'+escapeHtml(scoreRowLabel(row)+" · "+column)+'</li>';
+  }).join("");
+  return '<li><div class="recap-player"><strong>'+escapeHtml(player.name)+'</strong><b>'+player.total+' poena</b></div><p>Najbolja kolona: '+escapeHtml(bestName)+(best?' ('+best.points+')':'')+'</p><details><summary>Precrtana polja ('+player.crossedCells.length+')</summary>'+(crosses?'<ul>'+crosses+'</ul>':'<p>Nema precrtanih polja.</p>')+'</details></li>';
+ }).join("")+'</ol>';
+}
+
 function renderSolo(){
  const dice=app.querySelector("#dice");if(!dice)return;
   dice.innerHTML=(state.dice.length?state.dice:Array(6).fill(0)).map((v,i)=>diceButtonMarkup(v,i,state.selected.has(i),!state.rolls||state.gameOver)).join("");
@@ -473,6 +515,7 @@ function renderSolo(){
  }
  renderAnnouncementUi();
  renderSoloSheet();
+ renderEndRecap();
  saveSoloGame();
 }
 
@@ -542,7 +585,7 @@ function renderServerState(s){
  if(!s)return;
   const viewedPlayerId=state.players[state.viewPlayer]?.id;
  if((s.dice||[]).length>0&&s.rolls>state.rolls){state.diceRollAnimation=true;setTimeout(()=>{state.diceRollAnimation=false},240)}
- state.mode="online";state.onlineStarted=Boolean(s.started);state.hostId=s.hostId||null;state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;
+ state.mode="online";state.onlineStarted=Boolean(s.started);state.hostId=s.hostId||null;state.gameOver=Boolean(s.gameOver);state.rolls=s.rolls;state.maxRolls=s.maxRolls||3;state.dice=s.dice||[];state.selected=new Set(s.selection||[]);state.announcedRow=s.announcedRow||null;state.contraTargetRow=s.contraTargetRow||null;state.turnHistory=Array.isArray(s.turnHistory)?s.turnHistory:[];
  const idx=s.players.findIndex(p=>p.id===s.currentPlayerId);if(idx>=0)state.currentPlayer=idx;
  state.players=s.players.map(p=>({id:p.id,name:p.name,cells:p.cells||{},crossedCells:p.crossedCells||[]}));
   const viewedIndex=state.players.findIndex(p=>p.id===viewedPlayerId);
@@ -562,21 +605,23 @@ function renderLobbyState(s){
  }).join("");
  const status=s.players.length<2?"Čeka se još jedan igrač.":canStart?"Soba je spremna za početak.":"Čeka se da se svi igrači povežu.";
  app.innerHTML=`${appNavMarkup("ONLINE SOBA")}<section class="online-lobby"><div class="lobby-heading"><div><span class="eyebrow">ONLINE STO</span><h1>Tvoja soba</h1></div><span class="lobby-count">${s.players.length}/4 igrača</span></div>
-  <div class="lobby-code-card"><span>Kod sobe</span><strong class="lobby-code">${escapeHtml(s.roomCode)}</strong><p>Podeli kod sa drugim igračima</p><button class="btn lobby-copy" id="copyRoomCode" type="button">Kopiraj kod</button><div class="lobby-copy-status" id="copyStatus" role="status"></div></div>
+  <div class="lobby-code-card"><span>Kod sobe</span><strong class="lobby-code">${escapeHtml(s.roomCode)}</strong><p>Podeli kod ili link sa drugim igračima</p><div class="lobby-share-actions"><button class="btn lobby-copy" id="copyRoomCode" type="button">Kopiraj kod</button><button class="btn lobby-copy" id="copyInviteLink" type="button">Kopiraj link za partiju</button></div><div class="lobby-copy-status" id="copyStatus" role="status"></div></div>
   <div class="lobby-players" aria-label="Mesta za igrače">${slots}</div>
   ${s.hostId===net.playerId?`<button class="btn primary lobby-start" id="startOnline" ${canStart?"":"disabled"}>Počni igru</button>`:'<p class="lobby-wait">Čeka se da domaćin pokrene partiju.</p>'}
   <p class="lobby-wait">${status}</p><button class="btn lobby-leave" id="back" type="button">← Napusti sobu</button></section>`;
  app.querySelector("#back").onclick=leaveOnlineRoom;
- app.querySelector("#copyRoomCode").onclick=async()=>{
+ async function copyLobbyText(value,successMessage){
   const copyStatus=app.querySelector("#copyStatus");
   try{
    let copied=false;
-   if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(s.roomCode);copied=true;}catch{}}
-   if(!copied){const input=document.createElement("textarea");input.value=s.roomCode;document.body.append(input);input.select();copied=document.execCommand("copy");input.remove();}
+   if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(value);copied=true;}catch{}}
+   if(!copied){const input=document.createElement("textarea");input.value=value;document.body.append(input);input.select();copied=document.execCommand("copy");input.remove();}
    if(!copied)throw new Error("copy failed");
-   if(copyStatus)copyStatus.textContent="Kod je kopiran.";
-  }catch{if(copyStatus)copyStatus.textContent="Kopiranje nije uspelo; označi kod iznad.";}
- };
+   if(copyStatus)copyStatus.textContent=successMessage;
+  }catch{if(copyStatus)copyStatus.textContent="Kopiranje nije uspelo. Pokušaj ponovo.";}
+ }
+ app.querySelector("#copyRoomCode").onclick=()=>copyLobbyText(s.roomCode,"Kod je kopiran.");
+ app.querySelector("#copyInviteLink").onclick=()=>copyLobbyText(buildInviteUrl(window.location.href,s.roomCode),"Link za partiju je kopiran.");
  const start=app.querySelector("#startOnline");if(start)start.onclick=()=>socket?.emit("room:start");
 }
 
@@ -643,7 +688,9 @@ function renderOnline(){
    box.querySelectorAll("[data-op]").forEach(b=>b.onclick=()=>commitOnlineCandidate(ops[+b.dataset.op]));
  }
  renderAnnouncementUi();
-  renderScoreSheet(state.players[state.viewPlayer],state.players[state.viewPlayer]?.id===net.playerId);
+ renderTurnHistory();
+ renderScoreSheet(state.players[state.viewPlayer],state.players[state.viewPlayer]?.id===net.playerId);
+ renderEndRecap();
  if(focusedDie!==null)d.querySelector(`[data-i="${focusedDie}"]`)?.focus({preventScroll:true});
 }
 
@@ -662,7 +709,9 @@ async function startApp(){
   }
  }catch(error){console.warn("Verzija servera nije proverena; sačuvana partija je zadržana.",error);}
  deploymentChecked=true;
- if(restoreSoloGame())soloGame();else setup();
+ if(invitedRoomCode())onlineSetup();
+ else if(restoreSoloGame())soloGame();
+ else setup();
 }
 startApp();
 
