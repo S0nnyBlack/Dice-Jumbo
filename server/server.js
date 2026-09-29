@@ -6,7 +6,7 @@ import { randomInt } from "crypto";
 import path from "path";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
-import { normalizeColumnIds, calculateColumnSums, visibleCellsForPlayer, combinationScore, SCORE_ROWS, COMBINATION_ROWS, VALUE_ROWS, upperScore, sum, directionOrder, frontierRows as gameFrontierRows } from "../game.js";
+import { normalizeColumnIds, calculateColumnSums, visibleCellsForPlayer, combinationScore, SCORE_ROWS, COMBINATION_ROWS, VALUE_ROWS, upperScore, sum, maximumRowScore, directionOrder, frontierRows as gameFrontierRows } from "../game.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,7 +75,6 @@ function calculateEntry(room, player, col, row, selected, crossOut = false) {
   if (col === "n" && !frontierRows(col, player).includes(row)) return { ok: false, error: "Kolona mora pratiti otvoreni redosled." };
   if (col === "o" && !requiredColumnReady(room, player)) return { ok: false, error: "Kolona O se otključava kada se popune prethodne kolone." };
   if (col === "r" && room.rolls !== 1) return { ok: false, error: "Ručna kolona se popunjava posle prvog bacanja." };
-  if (col === "m") return { ok: false, error: "Kolona M se izračunava iz prethodnih kolona." };
 
   if (crossOut) return { ok: true, value: 0 };
   if (!Array.isArray(selected) || selected.length < 1 || selected.length > 5 || !selected.every(value => Number.isInteger(value) && value >= 1 && value <= 6)) {
@@ -93,26 +92,12 @@ function calculateEntry(room, player, col, row, selected, crossOut = false) {
     if (value === null) return { ok: false, error: "Izabrane kockice ne ispunjavaju uslov za ovu kombinaciju." };
   }
   if (value === 0) return { ok: false, error: "Rezultat 0 se ne upisuje; izaberite precrtavanje polja." };
+  if (col === "m" && value !== maximumRowScore(row)) return { ok: false, error: "Kolona M prihvata samo najveći mogući rezultat za izabrani red." };
   return { ok: true, value };
-}
-function updateMaximumColumn(room, player) {
-  const maxIndex = room.config.columns.indexOf("m");
-  if (maxIndex < 0) return;
-  const sources = room.config.columns.slice(0, maxIndex);
-  const firstSix = sources.slice(0, 6);
-  for (const row of SCORE_ROWS) {
-    if (!emptyCell(player, "m", row)) continue;
-    if (!sources.length || !sources.every(col => !emptyCell(player, col, row))) continue;
-    const isCrossed = firstSix.some(col => (player.crossedCells || []).includes(key(col, row)));
-    const value = isCrossed ? 0 : Math.max(...sources.map(col => Number(player.cells[key(col, row)] || 0)));
-    player.cells[key("m", row)] = value;
-    if (isCrossed) player.crossedCells.push(key("m", row));
-  }
 }
 function maxRollsForTurn(room, player) {
   let remaining = 0;
   for (const col of room.config.columns) {
-    if (col === "m") continue;
     for (const row of SCORE_ROWS) if (emptyCell(player, col, row)) remaining++;
   }
   return remaining === 1 ? 5 : 3;
@@ -348,14 +333,12 @@ io.on("connection", socket => {
     const selectedValues = room.selection.map(i => room.dice[i]);
     if (columnId === "o" && !requiredColumnReady(room, player)) return emitError(socket, "Kolona O se otključava kada se popune prethodne kolone.");
     if (columnId === "r" && room.rolls !== 1) return emitError(socket, "Ručna kolona se popunjava posle prvog bacanja.");
-    if (columnId === "m") return emitError(socket, "Kolona M se izračunava iz prethodnih kolona.");
     if (columnId === "n" && !frontierRows(columnId, player).includes(row)) return emitError(socket, "Kolona mora pratiti otvoreni redosled.");
     const result = calculateEntry(room, player, columnId, row, selectedValues, isCrossOut);
     if (!result.ok) return emitError(socket, result.error);
 
     player.cells[key(columnId, row)] = result.value;
     if (isCrossOut) player.crossedCells.push(key(columnId, row));
-    updateMaximumColumn(room, player);
 
     const totals = {};
     for (const col of room.config.columns) {

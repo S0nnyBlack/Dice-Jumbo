@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds, COLUMN_DEFS, calculateColumnSums, visibleCellsForPlayer, summarizeFinalResults } from "../game.js";
+import { analyse, availableEntries, combinationScore, directionOrder, frontierRows, rollDice, upperBonus, upperScore, normalizeColumnIds, COLUMN_DEFS, calculateColumnSums, visibleCellsForPlayer, summarizeFinalResults, maximumRowScore } from "../game.js";
 
 test("rollDice returns the requested number of valid die values",()=>{
  const dice=rollDice(6);assert.equal(dice.length,6);
@@ -96,8 +96,21 @@ test("contra can be played freely once the enabled announcement column is full",
  const cells=Object.fromEntries(rows.map(row=>["announced::"+row,0]));
  assert.ok(availableEntries(["announced","contra"],cells,[1]).some(e=>e.colId==="contra"));
 });
-test("M column is derived and is not directly selectable",()=>{
- assert.equal(availableEntries(["m"],{},[1,2,3,4,5]).length,0);
+test("M column accepts only theoretical maximum scores for each row",()=>{
+ const expected={"1":5,"2":10,"3":15,"4":20,"5":25,"6":30,MAX:30,MIN:30,KENTA:66,TRILING:38,FUL:58,POKER:64,YAMB:80};
+ for(const [row,score] of Object.entries(expected))assert.equal(maximumRowScore(row),score);
+ const entries=(dice,rolls=1)=>availableEntries(["m"],{},dice,{rolls});
+ assert.ok(entries([1,1,1,1,1]).some(entry=>entry.row==="1"&&entry.value===5));
+ assert.ok(entries([6,6,6]).some(entry=>entry.row==="TRILING"&&entry.value===38));
+ assert.ok(entries([6,6,6,5,5]).some(entry=>entry.row==="FUL"&&entry.value===58));
+ assert.ok(entries([6,6,6,6]).some(entry=>entry.row==="POKER"&&entry.value===64));
+ assert.ok(entries([6,6,6,6,6]).some(entry=>entry.row==="YAMB"&&entry.value===80));
+ assert.ok(entries([2,3,4,5,6],1).some(entry=>entry.row==="KENTA"&&entry.value===66));
+ assert.ok(!entries([2,3,4,5,6],2).some(entry=>entry.row==="KENTA"));
+ assert.ok(!entries([5,5,5]).some(entry=>entry.row==="TRILING"));
+ assert.ok(!entries([6,6,6,4,4]).some(entry=>entry.row==="FUL"));
+ assert.ok(entries([1],1).every(entry=>entry.row!=="1"));
+ assert.ok(availableEntries(["m"],{},[],{crossOut:true}).some(entry=>entry.row==="1"&&entry.crossOut));
 });
 test("announced score is restricted to its declared row",()=>{
  const entries=availableEntries(["free","announced"],{},[2,2,2,3,3],{announcedRow:"FUL"});

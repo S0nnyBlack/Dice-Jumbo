@@ -7,7 +7,7 @@ export const COLUMN_DEFS=[
  {id:"r",name:"Ručna",headerSymbol:"R",headerLabel:"Ručna",headerTitle:"Ručna · upis posle prvog bacanja",mandatory:false,direction:"manual"},
  {id:"n",name:"Naniže–naviše",headerSymbol:"↓↑",headerLabel:"Naniže–naviše",headerTitle:"Naniže–naviše · od jedinica naniže i od Jamba naviše",mandatory:false,direction:"both-ends"},
  {id:"o",name:"Obavezna",headerSymbol:"O",headerLabel:"Obavezna",headerTitle:"Obavezna · otključava se po završetku prethodnih kolona",mandatory:false,direction:"required"},
- {id:"m",name:"Maksimalna",headerSymbol:"M",headerLabel:"Maksimalna",headerTitle:"Maksimalna · automatski najbolji rezultat iz prethodnih kolona",mandatory:false,direction:"maximum"}
+ {id:"m",name:"Maksimalna",headerSymbol:"M",headerLabel:"Maksimalna",headerTitle:"Maksimalna · upis samo najvećeg mogućeg rezultata",mandatory:false,direction:"maximum"}
 ];
 export function normalizeColumnIds(ids=[]){
  const requested=new Set(Array.isArray(ids)?ids:[]);
@@ -16,6 +16,8 @@ export function normalizeColumnIds(ids=[]){
 export const VALUE_ROWS=[1,2,3,4,5,6];
 export const COMBINATION_ROWS=["KENTA","TRILING","FUL","POKER","YAMB"];
 export const SCORE_ROWS=[...VALUE_ROWS.map(String),"MAX","MIN",...COMBINATION_ROWS];
+const MAXIMUM_ROW_SCORES={"1":5,"2":10,"3":15,"4":20,"5":25,"6":30,MAX:30,MIN:30,KENTA:66,TRILING:38,FUL:58,POKER:64,YAMB:80};
+export const maximumRowScore=row=>MAXIMUM_ROW_SCORES[row]??null;
 export const rollDie=()=>Math.floor(Math.random()*6)+1;
 export const rollDice=(n=6)=>Array.from({length:n},rollDie);
 export const sum=v=>v.reduce((a,b)=>a+b,0);
@@ -101,7 +103,6 @@ export function availableEntries(columnIds,cells,values,{crossOut=false,announce
  const announcedFull=columnIds.includes("announced")&&SCORE_ROWS.every(row=>!open(cells,"announced",row));
  for(const colId of columnIds){
   if(restricted&&colId!==restricted.column)continue;
-  if(colId==="m")continue;
   if(colId==="o"&&!requiredColumnReady(columnIds,cells))continue;
   if(colId===manualColumn&&rolls!==1)continue;
   if(!restricted&&colId==="announced"&&!crossOut)continue;
@@ -117,7 +118,7 @@ export function availableEntries(columnIds,cells,values,{crossOut=false,announce
    if(VALUE_ROWS.map(String).includes(row))value=upperScore(values,Number(row));
    else if((row==="MAX"||row==="MIN")&&values.length===5)value=sum(values);
    else value=combinationScore(row,values,{rolls,manual:colId===manualColumn});
-   if(value!==null&&value!==undefined&&value!==0)out.push({colId,colName:column.name,row,value});
+   if(value!==null&&value!==undefined&&value!==0&&(colId!=="m"||value===maximumRowScore(row)))out.push({colId,colName:column.name,row,value});
   }
  }
  return out;
