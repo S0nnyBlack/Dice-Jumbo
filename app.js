@@ -285,7 +285,7 @@ function gameMarkup(online){
     <section class="panel game-score"><div class="score-heading"><div><span class="eyebrow">${online?"TABELA PARTIJE":"TVOJA TABELA"}</span><h2>Jamb listić</h2><p>Zelena polja su dostupna za upis. Izaberi rezultat u tabeli ili na desnoj strani.</p></div></div><div class="sheet-wrap"><div id="sheet"></div></div><p class="sheet-foot">↓ Redom naniže · ↑ Redom naviše</p></section>
   </div>
   <aside class="panel game-sidebar" aria-label="Status i pomoć za partiju">
-    <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow">TVOJ POTEZ</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div><div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label">TVOJE KOCKICE</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div></section>
+    <section class="panel game-controls"><div class="section-heading"><div><span class="eyebrow" id="diceTurnLabel">${online?"TRENUTNO BACANJE":"TVOJ POTEZ"}</span><h2>Bacanje kockica</h2></div><span class="rolls-label">6 kockica</span></div><div class="roll-visual"><span>Bacanja u ovom potezu</span><span class="roll-meter" id="rollMeter" aria-hidden="true"></span></div><div class="dice-tray"><span class="dice-label" id="diceOwnerLabel">${online?escapeHtml(current().name).toLocaleUpperCase("sr-Latn")+" · KOCKICE":"TVOJE KOCKICE"}</span><div class="dice-grid" id="dice" role="group" aria-label="Šest kockica; izaberi kockice koje čuvaš"></div><p class="hold-line" id="holdLine">Baci kockice za početak poteza</p></div><div class="toolbar"><button class="btn primary" id="roll">Baci / ponovo baci</button><button class="btn" id="clear">Poništi izbor</button><button class="btn" id="crossout">Precrtaj polje (0)</button><button class="btn" id="undo" disabled>Vrati potez</button></div></section>
    <section class="sidebar-card sidebar-turn"><span class="eyebrow">TRENUTNI POTEZ</span><h2>Na potezu</h2><div class="turn-status" id="turnStatus" role="status"></div></section>
    <div class="game-info"><section class="sidebar-card sidebar-quick"><span class="eyebrow">BRZI IZBOR</span><h2>Dostupni upisi</h2><div class="options sidebar-options" id="options"></div></section>
    <section class="sidebar-card sidebar-activity"><span class="eyebrow">AKTIVNOST</span><h2>Najava i veza</h2><div class="options activity-options" id="announceOptions"></div>${online?'<div class="connection-status" id="connectionStatus" role="status" hidden><span id="connectionMessage"></span><button class="btn" id="reconnect" type="button">Poveži ponovo</button></div>':""}</section></div>
@@ -597,9 +597,12 @@ function game(){
 function renderOnline(){
  const d=app.querySelector("#dice");if(!d)return;
  const focusedDie=document.activeElement?.matches?.("#dice .die")?document.activeElement.dataset.i:null;
- const isMyTurn=state.players[state.currentPlayer]?.id===net.playerId;
-  const viewingSelf=state.players[state.viewPlayer]?.id===net.playerId;
+ const activePlayer=state.players[state.currentPlayer];
+ const isMyTurn=activePlayer?.id===net.playerId;
+ const viewingSelf=state.players[state.viewPlayer]?.id===net.playerId;
  const canAct=isMyTurn&&net.connected&&net.synced;
+ const diceOwnerLabel=app.querySelector("#diceOwnerLabel");
+ if(diceOwnerLabel)diceOwnerLabel.textContent=activePlayer?activePlayer.name.toLocaleUpperCase("sr-Latn")+" · KOCKICE":"KOCKICE";
  updateNetworkStatus();
   d.innerHTML=(state.dice.length?state.dice:Array(6).fill(0)).map((v,i)=>diceButtonMarkup(v,i,state.selected.has(i),!canAct||state.gameOver||state.rolls===0)).join("");
  d.querySelectorAll(".die").forEach(b=>b.onclick=()=>{
@@ -611,6 +614,11 @@ function renderOnline(){
  });
  const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls} od ${state.maxRolls||3}`;
   renderDiceSummary(state.maxRolls||3);
+ const holdLine=app.querySelector("#holdLine");
+ if(holdLine&&!isMyTurn){
+   const name=activePlayer?.name||"Aktivni igrač";
+   holdLine.textContent=state.rolls===0?"Čeka se prvo bacanje igrača "+name:state.selected.size?name+" čuva "+state.selected.size+" od 6 kockica":"Bacanje igrača "+name+" · kockice su prikazane uživo";
+ }
  updateTurnStatus(canAct);
  const roll=app.querySelector("#roll"),clear=app.querySelector("#clear"),crossout=app.querySelector("#crossout");
  const undo=app.querySelector("#undo");if(undo){undo.disabled=!net.connected||!net.synced||state.hostId!==net.playerId||!state.onlineUndoAvailable;undo.title=state.hostId===net.playerId?"Vrati poslednji potez cele sobe":"Samo domaćin može da vrati potez";}
