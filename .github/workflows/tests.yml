@@ -19,6 +19,7 @@ jobs:
           node-version: 20
       - run: npm install --no-audit --no-fund
       - run: node --check app.js
+      - run: node --check i18n.js
       - run: node --check game.js
       - run: node --check server/server.js
       - run: npm test

@@ -2,12 +2,29 @@ const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:false,synced:false,roomCode:null,playerId:null,sessionToken:null,server:null};
 import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,SCORE_ROWS as scoreRows,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums,summarizeFinalResults}from"./game.js";
 import{readInviteCode,buildInviteUrl}from"./invite.js";
+import{LANGUAGE_KEY,detectLanguage,translateText,createDomTranslator}from"./i18n.js";
 
 const state={
  mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),diceRollAnimation:false,undoHistory:[],columns:["down","free","up"],
  currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false,hostId:null,turnHistory:[],
 };
 const app=document.getElementById("app");
+let language=detectLanguage(navigator.languages?.length?navigator.languages:[navigator.language]);
+try{const saved=localStorage.getItem(LANGUAGE_KEY);if(saved==="sr"||saved==="en")language=saved;}catch{}
+document.documentElement.lang=language;
+document.title=language==="en"?"jamb.arena — Time for Yamb":"jamb.arena — Vreme je za jamb";
+const domTranslator=createDomTranslator(app,language);
+const ask=message=>window.confirm(translateText(message,language));
+const inform=message=>window.alert(translateText(message,language));
+function changeLanguage(){
+ language=language==="sr"?"en":"sr";
+ try{localStorage.setItem(LANGUAGE_KEY,language);}catch{}
+ document.documentElement.lang=language;
+ document.title=language==="en"?"jamb.arena — Time for Yamb":"jamb.arena — Vreme je za jamb";
+ const button=app.querySelector('[data-nav="language"]');
+ if(button){button.innerHTML='<span aria-hidden="true">🌐</span> '+(language==="sr"?"English":"Srpski");button.setAttribute("aria-label",language==="sr"?"Promeni jezik na engleski":"Switch language to Serbian");}
+ domTranslator.setLanguage(language);
+}
 const DIE_PIPS={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
 let brandDieValue=5,brandClicks=0;
 const brandIsStar=()=>brandClicks>0&&brandClicks%10===0;
@@ -18,7 +35,7 @@ const brandDieLabel=()=>brandIsStar()?"Zvezdica! Klikni za novo bacanje.":`Kocki
 function appNavMarkup(mode){
  return `<header class="site-nav"><div class="site-nav-inner">
   <div class="site-brand"><button type="button" class="brand-mark" id="brandDie" aria-label="${brandDieLabel()}" title="Baci kockicu">${brandFaceMarkup()}</button><button type="button" class="brand-home" data-nav="play" aria-label="jamb.arena početna strana"><span class="brand-words"><strong>jamb<span>.arena</span></strong><small>JAMB STO</small></span></button></div>
-  <span class="nav-caption">IGRA</span><nav class="main-nav" aria-label="Glavna navigacija"><button type="button" data-nav="play" ${["POČETNA","SOLO","KOLONE"].includes(mode)?'aria-current="page"':""}><span aria-hidden="true">⚄</span> Igraj jamb</button><button type="button" data-nav="online" ${mode.startsWith("ONLINE")?'aria-current="page"':""}><span aria-hidden="true">◎</span> Online sto</button><button type="button" id="rulesHelp" data-nav="rules"><span aria-hidden="true">?</span> Pravila igre</button></nav>
+  <span class="nav-caption">IGRA</span><nav class="main-nav" aria-label="Glavna navigacija"><button type="button" data-nav="play" ${["POČETNA","SOLO","KOLONE"].includes(mode)?'aria-current="page"':""}><span aria-hidden="true">⚄</span> Igraj jamb</button><button type="button" data-nav="online" ${mode.startsWith("ONLINE")?'aria-current="page"':""}><span aria-hidden="true">◎</span> Online sto</button><button type="button" id="rulesHelp" data-nav="rules"><span aria-hidden="true">?</span> Pravila igre</button><button type="button" data-nav="language" aria-label="${language==="sr"?"Promeni jezik na engleski":"Switch language to Serbian"}"><span aria-hidden="true">🌐</span> ${language==="sr"?"English":"Srpski"}</button></nav>
   <div class="site-nav-tip"><span>SAVET ZA IGRU</span><strong>Igraj strateški.</strong><p>Sačuvaj jaka bacanja za najavu, a slobodnu kolonu koristi mudro.</p></div><span class="nav-context"><i aria-hidden="true"></i>${escapeHtml(mode)}</span>
  </div></header>`;
 }
@@ -39,6 +56,7 @@ app.addEventListener("click",event=>{
  }
  const button=event.target.closest("[data-nav]");
  if(!button)return;
+ if(button.dataset.nav==="language"){changeLanguage();return;}
  if(button.dataset.nav==="play"){
   if(state.mode==="online"&&net.roomCode){leaveOnlineRoom();return;}
   if(state.mode==="solo"&&state.soloActive&&!state.gameOver&&!confirmLeaveGame())return;
@@ -120,7 +138,7 @@ function gameInProgress(){
  return (state.mode==="solo"&&state.soloActive&&!state.gameOver)||(state.mode==="online"&&state.onlineStarted&&!state.gameOver);
 }
 function confirmLeaveGame(){
- return !gameInProgress()||window.confirm(state.mode==="solo"?"Solo partija još traje. Napredak će biti sačuvan. Da li želite da izađete?":"Online partija još traje. Možete se ponovo povezati nakon izlaska. Da li želite da izađete?");
+ return !gameInProgress()||ask(state.mode==="solo"?"Solo partija još traje. Napredak će biti sačuvan. Da li želite da izađete?":"Online partija još traje. Možete se ponovo povezati nakon izlaska. Da li želite da izađete?");
 }
 function resetOnlineSession(){
  try{localStorage.removeItem(SESSION_KEY);}catch{}
@@ -129,7 +147,7 @@ function resetOnlineSession(){
  setup();
 }
 function leaveOnlineRoom(){
- if(state.onlineStarted&&!window.confirm("Napuštanjem aktivne partije soba će se zatvoriti za sve igrače. Nastaviti?"))return;
+ if(state.onlineStarted&&!ask("Napuštanjem aktivne partije soba će se zatvoriti za sve igrače. Nastaviti?"))return;
  if(!net.roomCode){setup();return;}
  if(net.connected)socket?.emit("room:leave");
  else resetOnlineSession();
@@ -176,7 +194,7 @@ function columnSetup(buttonText,onStart,locked=false){
  bindColumnOptions();
  app.querySelector("#start").onclick=onStart;
  app.querySelector("#back").onclick=()=>{if(!locked||confirmLeaveGame())setup()};
- const newSolo=app.querySelector("#newSolo");if(newSolo)newSolo.onclick=()=>{if(!window.confirm("Nova partija će zameniti sačuvanu solo partiju. Nastaviti?"))return;state.soloActive=false;state.gameOver=false;state.undoHistory=[];state.columns=["down","free","up"];soloSetup()};
+ const newSolo=app.querySelector("#newSolo");if(newSolo)newSolo.onclick=()=>{if(!ask("Nova partija će zameniti sačuvanu solo partiju. Nastaviti?"))return;state.soloActive=false;state.gameOver=false;state.undoHistory=[];state.columns=["down","free","up"];soloSetup()};
 }
 
 function soloSetup(){
@@ -195,13 +213,13 @@ function onlineSetup(){
  app.innerHTML=`${appNavMarkup("ONLINE STO")}<section class="online-setup">
   <header class="online-setup-heading"><span class="eyebrow">IGRAJ SA DRUGIMA</span><h1>Online sto</h1><p>Napravi sobu ili se pridruži prijateljima pomoću koda.</p><div id="network" class="online-network" role="status">Povezivanje sa serverom…</div></header>
   <div class="online-setup-grid"><section class="online-setup-card create-room-card"><div class="online-card-heading"><span class="eyebrow">TVOJA PARTIJA</span><h2>Napravi sobu</h2><p>Izaberi kolone, pa podeli kod sa ostalim igračima.</p></div>
-   <label class="online-field" for="playerName">Tvoje ime<input id="playerName" placeholder="Ime igrača" value="Igrač 1" autocomplete="nickname"></label>
+   <label class="online-field" for="playerName">Tvoje ime<input id="playerName" placeholder="Ime igrača" value="${language==="en"?"Player 1":"Igrač 1"}" autocomplete="nickname"></label>
    <div class="online-column-heading"><div><span class="eyebrow">PODEŠAVANJA IGRE</span><h3>Kolone listića</h3></div><button class="btn" id="selectAll" type="button">Izaberi sve</button></div>
    <div class="setup-grid online-column-grid">${columnOptionsMarkup()}</div>
    <button class="btn primary online-submit" id="createRoom" type="button">Kreiraj sobu</button></section>
   <section class="online-setup-card join-room-card"><div class="online-card-heading"><span class="eyebrow">IMAŠ KOD?</span><h2>Pridruži se sobi</h2><p>Unesi kod koji ti je poslao domaćin.</p></div>
    <label class="online-field" for="roomCodeInput">Kod sobe<input id="roomCodeInput" placeholder="KOD SOBE" maxlength="8" autocomplete="off" autocapitalize="characters" value="${escapeHtml(invitedRoomCode())}"></label>
-   <label class="online-field" for="joinName">Tvoje ime<input id="joinName" placeholder="Ime igrača" value="Igrač 2" autocomplete="nickname"></label>
+   <label class="online-field" for="joinName">Tvoje ime<input id="joinName" placeholder="Ime igrača" value="${language==="en"?"Player 2":"Igrač 2"}" autocomplete="nickname"></label>
    <button class="btn online-submit" id="joinRoom" type="button">Pridruži se</button></section></div>
   <button class="btn online-back" id="back" type="button">← Nazad</button></section>`;
  bindColumnOptions();
@@ -231,7 +249,7 @@ function acceptRoomSession(data,message=""){
   url.searchParams.delete("room");
   window.history.replaceState(null,"",url.pathname+url.search+url.hash);
  }
- if(message)alert(message+data.roomCode);
+ if(message)inform(message+data.roomCode);
 }
 if(socket){
  socket.on("connect",()=>{net.connected=true;net.synced=false;updateNetworkStatus();const token=localStorage.getItem(SESSION_KEY);if(deploymentChecked&&token&&state.mode!=="solo"&&!invitedRoomCode())socket.emit("room:resume",{sessionToken:token});if(state.mode==="online")renderOnline()});
@@ -241,8 +259,8 @@ if(socket){
  socket.on("room:created",d=>acceptRoomSession(d,"Soba je kreirana: "));
  socket.on("room:joined",d=>acceptRoomSession(d,"Pridružen si sobi "));
  socket.on("room:left",resetOnlineSession);
- socket.on("room:closed",d=>{resetOnlineSession();alert(d?.message||"Soba je zatvorena.")});
- socket.on("game:error",e=>alert(e.message));
+ socket.on("room:closed",d=>{resetOnlineSession();inform(d?.message||"Soba je zatvorena.")});
+ socket.on("game:error",e=>inform(e.message));
  socket.on("state",s=>{net.server=s;net.synced=true;if(state.mode!=="solo")renderServerState(s);updateNetworkStatus()});
 }
 
@@ -374,9 +392,9 @@ function renderAnnouncementUi(){
  for(const row of rows){const button=document.createElement("button");button.className="option";button.dataset.announce=row;button.textContent="Najavi · "+row;button.onclick=()=>announceRow(row);box.append(button);}
 }
 function confirmShortSelection(candidate){
- if(candidate.crossOut||state.crossOutMode)return window.confirm("Precrtati polje "+candidate.row+" u koloni "+candidate.colName+"? U polje će biti upisana nula.");
+ if(candidate.crossOut||state.crossOutMode)return ask("Precrtati polje "+candidate.row+" u koloni "+candidate.colName+"? U polje će biti upisana nula.");
  const selectionNote=state.selected.size<5?" Izabrali ste "+state.selected.size+" od 5 kockica; rezultat se računa samo iz izabranih.":"";
- return window.confirm("Upisati "+candidate.value+" poena u "+candidate.colName+" · "+candidate.row+"?"+selectionNote);
+ return ask("Upisati "+candidate.value+" poena u "+candidate.colName+" · "+candidate.row+"?"+selectionNote);
 }
 function commitOnlineCandidate(candidate){
  if(!net.connected||!net.synced||!confirmShortSelection(candidate))return;
@@ -407,7 +425,7 @@ function captureSoloSnapshot(){
 }
 function undoSoloTurn(){
  const snapshot=state.undoHistory.pop();if(!snapshot)return;
- if(state.rolls>0&&!window.confirm("Vraćanjem poteza odbaciće se trenutno započeto bacanje. Nastaviti?")){state.undoHistory.push(snapshot);return;}
+ if(state.rolls>0&&!ask("Vraćanjem poteza odbaciće se trenutno započeto bacanje. Nastaviti?")){state.undoHistory.push(snapshot);return;}
  state.players[state.currentPlayer]=snapshot.player;state.rolls=snapshot.rolls;state.dice=snapshot.dice;state.selected=new Set(snapshot.selected);state.crossOutMode=snapshot.crossOutMode;state.announcedRow=snapshot.announcedRow;state.contraTargetRow=snapshot.contraTargetRow;state.gameOver=snapshot.gameOver;renderSolo();
 }
 function commitSolo(candidate){

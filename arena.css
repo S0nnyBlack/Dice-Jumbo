@@ -51,6 +51,7 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
 .main-nav button span { display: inline-grid; place-items: center; width: 21px; flex: 0 0 21px; color: #c8c5bc; font-size: 19px; font-weight: 800; }
 .main-nav button[aria-current="page"] { background: #3d4c2e; color: #e9f4d9; box-shadow: inset 3px 0 var(--green); }
 .main-nav button:hover { background: #33312d; color: #fff; }
+.main-nav button[data-nav="language"] span { filter: grayscale(1); }
 .site-nav-tip { display: grid; gap: 7px; margin: auto 4px 18px; padding: 17px; border: 1px solid #48543b; border-radius: 13px; background: linear-gradient(145deg,#38442e,#282b25); }
 .site-nav-tip span { color: #b3d98b; font-size: 10px; font-weight: 900; letter-spacing: 1.3px; }
 .site-nav-tip strong { color: var(--ink); font-size: 15px; }
