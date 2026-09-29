@@ -2,15 +2,15 @@ const socket=window.io ? window.io(window.location.origin) : null;
 const net={connected:false,synced:false,roomCode:null,playerId:null,sessionToken:null,server:null};
 import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,SCORE_ROWS as scoreRows,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums,summarizeFinalResults}from"./game.js";
 import{readInviteCode,buildInviteUrl}from"./invite.js";
-import{LANGUAGE_KEY,normalizeLanguage,translateText,createDomTranslator}from"./i18n.js";
+import{LANGUAGE_KEY,detectLanguage,translateText,createDomTranslator}from"./i18n.js";
 
 const state={
  mode:"setup",rolls:0,maxRolls:3,dice:[],selected:new Set(),diceRollAnimation:false,undoHistory:[],columns:["down","free","up"],
  currentPlayer:0,players:[{id:"local",name:"Igrač 1",cells:{},crossedCells:[]} ],activePlayers:1,viewPlayer:0,pending:null,gameOver:false,soloActive:false,crossOutMode:false,announcedRow:null,contraTargetRow:null,onlineStarted:false,hostId:null,turnHistory:[],
 };
 const app=document.getElementById("app");
-let language="sr";
-try{language=normalizeLanguage(localStorage.getItem(LANGUAGE_KEY));}catch{}
+let language=detectLanguage(navigator.languages?.length?navigator.languages:[navigator.language]);
+try{const saved=localStorage.getItem(LANGUAGE_KEY);if(saved==="sr"||saved==="en")language=saved;}catch{}
 document.documentElement.lang=language;
 document.title=language==="en"?"jamb.arena — Time for Yamb":"jamb.arena — Vreme je za jamb";
 const domTranslator=createDomTranslator(app,language);
