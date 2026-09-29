@@ -1,5 +1,13 @@
 export const LANGUAGE_KEY = "jumboDiceLanguageV1";
 export const normalizeLanguage = value => value === "en" ? "en" : "sr";
+export function detectLanguage(preferredLanguages = []) {
+  const locales = Array.isArray(preferredLanguages) ? preferredLanguages : [preferredLanguages];
+  for (const locale of locales) {
+    const code = String(locale || "").toLowerCase().split(/[-_]/, 1)[0];
+    if (code === "en" || code === "sr") return code;
+  }
+  return "sr";
+}
 
 // The game state and score keys stay language neutral. Only player-facing copy changes.
 const translations = [
@@ -39,6 +47,7 @@ const translations = [
   ["Tri osnovne kolone su već izabrane. Dodaj ostale po želji.", "The three basic columns are selected. Add others if you like."],
   ["PODEŠAVANJA IGRE", "GAME SETTINGS"],
   ["Kolone listića", "Score sheet columns"],
+  ["Kolone", "Columns"],
   ["Izaberi sve", "Select all"],
   ["Nova partija", "New game"],
   ["Nastavi partiju", "Continue game"],
@@ -100,6 +109,8 @@ const translations = [
   ["Tok poteza", "Turn flow"],
   ["Bodovanje", "Scoring"],
   ["Posebna pravila", "Special rules"],
+  ["Neke kolone i upisi imaju dodatne uslove.", "Some columns and entries have additional conditions."],
+  ["Ručna kolona", "Hand column"],
   ["POGLAVLJE", "CHAPTER"],
   ["Jamb se igra sa šest kockica. Za rezultat biraš od jedne do pet; cilj je da popuniš listić i osvojiš što više poena.", "Yamb is played with six dice. Select one to five for scoring; fill the score sheet and earn as many points as possible."],
   ["Igraš samostalno. Partija se čuva u ovom pregledaču.", "Play on your own. The game is saved in this browser."],
@@ -270,6 +281,11 @@ const translations = [
   ["Naniže–naviše", "Down–Up"],
   ["Obavezna", "Required"],
   ["Maksimalna", "Maximum"],
+  ["Dirigovano · prati polje koje je protivnik najavio", "Directed · follows the opponent's announced cell"],
+  ["Ručna · upis posle prvog bacanja", "Hand · score after the first roll"],
+  ["Naniže–naviše · od jedinica naniže i od Jamba naviše", "Down–Up · down from ones and up from Yamb"],
+  ["Obavezna · otključava se po završetku prethodnih kolona", "Required · unlocks when preceding columns are complete"],
+  ["Maksimalna · automatski najbolji rezultat iz prethodnih kolona", "Maximum · best result from preceding columns"],
   ["Maksimum", "Maximum"],
   ["Minimum", "Minimum"],
   ["KENTA", "STRAIGHT"],
