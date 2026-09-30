@@ -41,6 +41,7 @@ app.get("/jamb", (_, res) => res.sendFile(path.join(publicRoot, "index.html")));
 app.use("/hub/shared", express.static(path.join(publicRoot, "hub/shared"), { index: false }));
 app.get("/app.js", (_, res) => res.sendFile(path.join(publicRoot, "app.js")));
 app.get("/game.js", (_, res) => res.sendFile(path.join(publicRoot, "game.js")));
+app.get("/game-navigation.js", (_, res) => res.sendFile(path.join(publicRoot, "game-navigation.js")));
 app.get("/invite.js", (_, res) => res.sendFile(path.join(publicRoot, "invite.js")));
 app.get("/i18n.js", (_, res) => res.sendFile(path.join(publicRoot, "i18n.js")));
 app.get("/styles.css", (_, res) => res.sendFile(path.join(publicRoot, "styles.css")));

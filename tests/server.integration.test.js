@@ -419,7 +419,10 @@ test("Arena routes serve both games, preserve invites and load every browser dep
     const source = await response.text();
     if (url.endsWith(".js")) {
       assert.match(response.headers.get("content-type"), /javascript/);
-      for (const match of source.matchAll(/import\s+[^;]*?from\s+["']([^"']+)["']/g)) await visit(new URL(match[1], url).href);
+      // Socket.IO is a self-contained classic bundle; import examples in its comments are not dependencies.
+      if (!url.endsWith("/socket.io/socket.io.js")) {
+        for (const match of source.matchAll(/^import\s*[^;]*?\bfrom\s*["']([^"']+)["']/gm)) await visit(new URL(match[1], url).href);
+      }
     }
     if (url.endsWith(".css")) assert.match(response.headers.get("content-type"), /text\/css/);
   }
@@ -433,10 +436,12 @@ test("Arena routes serve both games, preserve invites and load every browser dep
     assert.match(html, /<base href="\/">/);
     assert.match(html, /type="module" src="app.js"/);
     const base = new URL("/", origin + route);
-    for (const name of ["app.js", "game.js", "invite.js", "i18n.js", "styles.css", "arena.css"]) {
+    for (const match of html.matchAll(/<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"/g)) await visit(new URL(match[1], base).href);
+    for (const name of ["app.js", "game.js", "invite.js", "i18n.js", "game-navigation.js", "styles.css", "arena.css"]) {
       assert.equal((await fetch(new URL(name, base))).status, 200, name);
     }
   }
+  for (const name of ["app.js", "game.js", "invite.js", "i18n.js", "game-navigation.js", "socket.io/socket.io.js"]) assert.ok(seen.has(origin + "/" + name), "browser import graph includes " + name);
   const invite = await fetch(origin + "/?room=AB123&lang=en", { redirect: "manual" });
   assert.equal(invite.status, 302);
   assert.equal(invite.headers.get("location"), "/jamb?room=AB123&lang=en");
