@@ -246,8 +246,10 @@ test("Socket.IO game flow enforces turns, preserves held dice, rejects duplicate
       assert.ok(nextCell, "active player has an unfilled score cell");
 
       const turnComplete = waitFor(actor, "state", state => state.gameOver || state.currentPlayerId !== actorId);
+      const peer = actor === host ? resumedSocket : host;
+      const peerComplete = waitFor(peer, "state", state => state.gameOver || state.currentPlayerId !== actorId);
       actor.emit("turn:commit", { ...nextCell, crossOut: true });
-      turnState = await turnComplete;
+      [turnState] = await Promise.all([turnComplete, peerComplete]);
     }
 
     assert.equal(turnState.gameOver, true, "the game ends after all required cells are filled");
