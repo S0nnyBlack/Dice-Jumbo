@@ -20,6 +20,7 @@ const translations = [
   ["Glavna navigacija", "Main navigation"],
   ["Igraj jamb", "Play Yamb"],
   ["Sve igre", "All games"],
+  ["Ne ljuti se", "Ludo"],
   ["Online sto", "Online table"],
   ["Pravila igre", "Game rules"],
   ["SAVET ZA IGRU", "GAME TIP"],

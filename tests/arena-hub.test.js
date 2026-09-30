@@ -108,7 +108,7 @@ test("page navigation links only to the two games and shared code makes no backg
     const links = [...html.matchAll(/href="(https:[^"]+)"/g)].map(match => match[1]);
     assert.equal(links.length, 2);
     assert.equal([...html.matchAll(/href="\/jamb"/g)].length, 2);
-    assert.ok(links.every(link => ["https://ne-ljuti-se-covece-2.onrender.com/"].includes(link)));
+    assert.ok(links.every(link => ["https://ne-ljuti-se-covece-2.onrender.com/covece"].includes(link)));
     assert.doesNotMatch(html, /<(?:script|img|link)\b[^>]*(?:src|href)="https?:/);
   }
   for (const name of ["arena-ui.js","brand-die.js","language.js","messages.js"]) {

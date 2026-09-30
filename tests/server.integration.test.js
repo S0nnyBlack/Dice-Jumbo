@@ -406,7 +406,7 @@ test("Arena routes serve both games, preserve invites and load every browser dep
     const html = await response.text();
     assert.match(html, /Arena Games/);
     assert.match(html, /href="\/jamb"/);
-    assert.match(html, /href="https:\/\/ne-ljuti-se-covece-2.onrender.com\/"/);
+    assert.match(html, /href="https:\/\/ne-ljuti-se-covece-2.onrender.com\/covece"/);
     assert.doesNotMatch(html, /socket.io|PROTOTIP|PROTOTYPE/);
     if (route === "/en.html") assert.match(html, /<html lang="en">/);
   }
