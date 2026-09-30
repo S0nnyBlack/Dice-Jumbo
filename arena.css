@@ -431,3 +431,9 @@ button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible {
 .end-recap summary { cursor: pointer; }
 .end-recap ul { margin: 6px 0 0 10px; }
 .end-recap ul li { padding: 2px 0; }
+
+/* Keep all game destinations reachable in the compact mobile navigation. */
+@media (max-width:640px) {
+ .main-nav { overflow-x:auto; scrollbar-width:thin; }
+ .main-nav button { flex:1 0 auto; }
+}

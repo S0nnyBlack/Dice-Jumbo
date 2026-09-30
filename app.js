@@ -5,6 +5,7 @@ function emitTurn(event, payload = {}) {
 const net={connected:false,synced:false,roomCode:null,playerId:null,sessionToken:null,server:null};
 import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,SCORE_ROWS as scoreRows,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums,summarizeFinalResults}from"./game.js";
 import{readInviteCode,parseRoomInput,buildInviteUrl}from"./invite.js";
+import{GAME_DESTINATIONS,navigateToGame}from"./game-navigation.js";
 import{LANGUAGE_KEY,detectLanguage,translateText,createDomTranslator}from"./i18n.js";
 
 const state={
@@ -39,7 +40,7 @@ const brandDieLabel=()=>brandIsStar()?"Zvezdica! Klikni za novo bacanje.":`Kocki
 function appNavMarkup(mode){
  return `<header class="site-nav"><div class="site-nav-inner">
   <div class="site-brand"><button type="button" class="brand-mark" id="brandDie" aria-label="${brandDieLabel()}" title="Baci kockicu">${brandFaceMarkup()}</button><button type="button" class="brand-home" data-nav="play" aria-label="jamb.arena početna strana"><span class="brand-words"><strong>jamb<span>.arena</span></strong><small>JAMB STO</small></span></button></div>
-  <span class="nav-caption">IGRA</span><nav class="main-nav" aria-label="Glavna navigacija"><button type="button" data-nav="hub"><span aria-hidden="true">▦</span> Sve igre</button><button type="button" data-nav="play" ${["POČETNA","SOLO","KOLONE"].includes(mode)?'aria-current="page"':""}><span aria-hidden="true">⚄</span> Igraj jamb</button><button type="button" data-nav="online" ${mode.startsWith("ONLINE")?'aria-current="page"':""}><span aria-hidden="true">◎</span> Online sto</button><button type="button" id="rulesHelp" data-nav="rules"><span aria-hidden="true">?</span> Pravila igre</button><button type="button" data-nav="language" aria-label="${language==="sr"?"Promeni jezik na engleski":"Switch language to Serbian"}"><span aria-hidden="true">🌐</span> ${language==="sr"?"English":"Srpski"}</button></nav>
+  <span class="nav-caption">IGRA</span><nav class="main-nav" aria-label="Glavna navigacija"><button type="button" data-nav="hub"><span aria-hidden="true">▦</span> Sve igre</button><button type="button" data-nav="play" ${["POČETNA","SOLO","KOLONE"].includes(mode)?'aria-current="page"':""}><span aria-hidden="true">⚄</span> Igraj jamb</button><button type="button" data-nav="ludo"><span aria-hidden="true">♟</span> Ne ljuti se</button><button type="button" data-nav="online" ${mode.startsWith("ONLINE")?'aria-current="page"':""}><span aria-hidden="true">◎</span> Online sto</button><button type="button" id="rulesHelp" data-nav="rules"><span aria-hidden="true">?</span> Pravila igre</button><button type="button" data-nav="language" aria-label="${language==="sr"?"Promeni jezik na engleski":"Switch language to Serbian"}"><span aria-hidden="true">🌐</span> ${language==="sr"?"English":"Srpski"}</button></nav>
   <div class="site-nav-tip"><span>SAVET ZA IGRU</span><strong>Igraj strateški.</strong><p>Sačuvaj jaka bacanja za najavu, a slobodnu kolonu koristi mudro.</p></div><span class="nav-context"><i aria-hidden="true"></i>${escapeHtml(mode)}</span>
  </div></header>`;
 }
@@ -61,11 +62,11 @@ app.addEventListener("click",event=>{
  const button=event.target.closest("[data-nav]");
  if(!button)return;
  if(button.dataset.nav==="language"){changeLanguage();return;}
- if(button.dataset.nav==="hub"){
-  if(!confirmLeaveGame())return;
-  saveSoloGame();
-  leavingForHub=true;
-  window.location.assign("/");
+ if(button.dataset.nav==="hub"||button.dataset.nav==="ludo"){
+  navigateToGame(GAME_DESTINATIONS[button.dataset.nav],{
+   confirmLeave:confirmLeaveGame,saveSolo:saveSoloGame,
+   navigate:destination=>{leavingForHub=true;window.location.assign(destination);}
+  });
   return;
  }
  if(button.dataset.nav==="play"){

@@ -121,3 +121,7 @@ Druga kartica vodi na [Ne ljuti se, čoveče](https://ne-ljuti-se-covece-2.onren
 - GitHub Actions proverava sintaksu modula, jezike, kockicu, rute, kompatibilnost poziva i stvarno HTTP učitavanje zavisnosti pre spajanja.
 
 Širi šablon i uputstvo za buduće sajtove sačuvani su na zasebnoj grani `template/arena-site-features`.
+
+### Direktno prebacivanje između igara
+
+Link „Ne ljuti se” u meniju Jamba i na obe verzije Arena stranice vodi direktno na https://ne-ljuti-se-covece-2.onrender.com/covece (Solo/Online ekran igre). Povratni Jamb link vodi na /jamb. „Sve igre” vodi na koren /, gde je izbor igara. Pre odlaska iz aktivne partije ostaje postojeća potvrda; solo napredak se čuva, a online sesija ostaje dostupna za ponovno povezivanje. `game-navigation.js` definiše dozvoljene adrese i testiran tok potvrde/čuvanja/prelaska.
