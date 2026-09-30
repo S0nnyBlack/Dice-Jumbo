@@ -1,4 +1,7 @@
 const socket=window.io ? window.io(window.location.origin) : null;
+function emitTurn(event, payload = {}) {
+  socket?.emit(event, { ...payload, turnId: net.server?.turnId, requestId: crypto.randomUUID() });
+}
 const net={connected:false,synced:false,roomCode:null,playerId:null,sessionToken:null,server:null};
 import{COLUMN_DEFS,VALUE_ROWS,COMBINATION_ROWS,SCORE_ROWS as scoreRows,rollDice,availableEntries,upperBonus,normalizeColumnIds,calculateColumnSums,summarizeFinalResults}from"./game.js";
 import{readInviteCode,parseRoomInput,buildInviteUrl}from"./invite.js";
@@ -375,7 +378,7 @@ function announceableRows(){
 }
 function announceRow(row){
  if(state.rolls!==1||state.announcedRow||state.contraTargetRow||!announceableRows().includes(row))return;
- if(state.mode==="online")socket?.emit("turn:announce",{row});
+ if(state.mode==="online")emitTurn("turn:announce",{row});
  else {state.announcedRow=row;renderSolo();}
 }
 function renderAnnouncementUi(){
@@ -406,7 +409,7 @@ function confirmShortSelection(candidate){
 }
 function commitOnlineCandidate(candidate){
  if(!net.connected||!net.synced||!confirmShortSelection(candidate))return;
- socket?.emit("turn:commit",{columnId:candidate.colId,row:candidate.row,crossOut:state.crossOutMode});
+ emitTurn("turn:commit",{columnId:candidate.colId,row:candidate.row,crossOut:state.crossOutMode});
 }
 
 
@@ -647,9 +650,9 @@ function game(){
  app.querySelector("#leaveRoom").onclick=leaveOnlineRoom;
  const reconnect=app.querySelector("#reconnect");if(reconnect)reconnect.onclick=()=>{reconnect.disabled=true;reconnect.textContent="Povezivanje…";socket?.connect()};
  updateNetworkStatus();
- app.querySelector("#roll").onclick=()=>{if(!net.connected||!net.synced)return;state.crossOutMode=false;socket?.emit("turn:roll")};
- app.querySelector("#clear").onclick=()=>{state.selected.clear();state.crossOutMode=false;socket?.emit("turn:select",{indices:[]})};
- app.querySelector("#crossout").onclick=()=>{state.crossOutMode=!state.crossOutMode;if(state.crossOutMode){state.selected.clear();socket?.emit("turn:select",{indices:[]})}renderOnline()};
+ app.querySelector("#roll").onclick=()=>{if(!net.connected||!net.synced)return;state.crossOutMode=false;emitTurn("turn:roll")};
+ app.querySelector("#clear").onclick=()=>{state.selected.clear();state.crossOutMode=false;emitTurn("turn:select",{indices:[]})};
+ app.querySelector("#crossout").onclick=()=>{state.crossOutMode=!state.crossOutMode;if(state.crossOutMode){state.selected.clear();emitTurn("turn:select",{indices:[]})}renderOnline()};
  renderOnline();
 }
 
@@ -669,7 +672,7 @@ function renderOnline(){
    state.crossOutMode=false;
    const i=+b.dataset.i;
    state.selected.has(i)?state.selected.delete(i):state.selected.size<5&&state.selected.add(i);
-   socket?.emit("turn:select",{indices:[...state.selected]});
+   emitTurn("turn:select",{indices:[...state.selected]});
  });
  const c=app.querySelector("#count");if(c)c.textContent=`${state.rolls} od ${state.maxRolls||3}`;
   renderDiceSummary(state.maxRolls||3);
