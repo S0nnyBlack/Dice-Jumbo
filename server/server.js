@@ -1,8 +1,8 @@
 import express from "express";
 import http from "http";
-import cors from "cors";
 import { Server } from "socket.io";
-import { randomInt } from "crypto";
+import { randomInt, randomBytes } from "crypto";
+import { makeRoomCode, makeSessionToken, tokenHash, RateLimiter, readLimit, allowedOrigin, securityHeaders } from "./security.js";
 import path from "path";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
@@ -17,8 +17,19 @@ try {
   if (typeof buildInfo.id === "string" && buildInfo.id) deploymentId = buildInfo.id;
 } catch {}
 
+const publicUrl = process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL;
+if (process.env.NODE_ENV === "production" && !publicUrl) throw new Error("PUBLIC_URL or RENDER_EXTERNAL_URL is required in production");
+const responseHeaders = securityHeaders(publicUrl);
+const rates = new RateLimiter();
+const limits = {
+  rooms: readLimit(process.env.SECURITY_MAX_ROOMS, 100),
+  connections: readLimit(process.env.SECURITY_MAX_CONNECTIONS, 256),
+  connectionsPerIp: readLimit(process.env.SECURITY_CONNECTIONS_PER_IP, 64),
+  events: readLimit(process.env.SECURITY_EVENTS_PER_MINUTE, 240)
+};
 const app = express();
-app.use(cors());
+app.disable("x-powered-by");
+app.use((req, res, next) => { res.set(responseHeaders); next(); });
 app.get("/health", (_, res) => res.json({ ok: true, service: "jumbo-dice-server", deploymentId }));
 // Preserve room invites shared before the Arena homepage was introduced.
 app.get("/", (req, res) => {
@@ -36,7 +47,13 @@ app.get("/styles.css", (_, res) => res.sendFile(path.join(publicRoot, "styles.cs
 app.get("/arena.css", (_, res) => res.sendFile(path.join(publicRoot, "arena.css")));
 
 const httpServer = http.createServer(app);
-const io = new Server(httpServer, { cors: { origin: "*", methods: ["GET", "POST"] } });
+const io = new Server(httpServer, {
+  maxHttpBufferSize: 8192,
+  allowRequest: (req, callback) => {
+    const key = req.socket.remoteAddress || "unknown";
+    callback(null, allowedOrigin(req, publicUrl) && rates.consume("connect:" + key, 60) && io.engine.clientsCount < limits.connections);
+  }
+});
 
 const rooms = new Map();
 const sessions = new Map();
@@ -52,7 +69,7 @@ const TOP_ROWS = VALUE_ROWS.map(String);
 
 function createCode() {
   let value;
-  do value = Math.random().toString(36).slice(2, 7).toUpperCase();
+  do value = makeRoomCode();
   while (rooms.has(value));
   return value;
 }
@@ -132,6 +149,7 @@ function publicState(room, viewerId) {
     maxRolls: activePlayer ? maxRollsForTurn(room, activePlayer) : 3,
     dice: [...room.dice],
     selection: [...room.selection],
+    turnId: room.turnId,
     turnHistory: room.turnHistory.map(entry => ({ ...entry })),
     announcedRow: viewer?.announcedRow || null,
     contraTargetRow: room.currentPlayerId === viewerId ? room.contraTargetRow : null,
@@ -158,19 +176,28 @@ function getRoomBySocket(socketId) {
   return null;
 }
 function getPlayer(room, socketId) { return room?.players.find(p => p.socketId === socketId) || null; }
-function sessionToken() { return randomInt(100000000, 999999999).toString(36) + Date.now().toString(36); }
 function fields(payload) { return payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {}; }
 function createPlayer(name, socketId) {
-  return {
-    id: randomInt(100000, 999999999).toString(),
+  const token = makeSessionToken();
+  const player = {
+    id: randomBytes(16).toString("hex"),
     name: name.slice(0, 24), socketId, connected: true, ready: true,
-    cells: {}, crossedCells: [], announcedRow: null, token: sessionToken()
+    processedCommands: new Set(), cells: {}, crossedCells: [], announcedRow: null, tokenHash: tokenHash(token)
   };
+  return { player, token };
+}
+function validateTurnCommand(room, player, payload) {
+  const { turnId, requestId } = fields(payload);
+  if (turnId !== room.turnId || typeof requestId !== "string" || !/^[a-f0-9-]{36}$/.test(requestId)) return "Zastarela ili neispravna komanda. Osveži stanje igre.";
+  if (player.processedCommands.has(requestId)) return "Komanda je već obrađena.";
+  player.processedCommands.add(requestId);
+  if (player.processedCommands.size > 128) player.processedCommands.delete(player.processedCommands.values().next().value);
+  return null;
 }
 function disposeRoom(room) {
   if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
   room.cleanupTimer = null;
-  for (const player of room.players) sessions.delete(player.token);
+  for (const player of room.players) sessions.delete(player.tokenHash);
   rooms.delete(room.code);
 }
 function scheduleRoomCleanup(room) {
@@ -192,15 +219,34 @@ function closeStartedRoom(room) {
   disposeRoom(room);
 }
 
+io.use((socket, next) => {
+  const key = socket.conn.remoteAddress || "unknown";
+  const peers = [...io.sockets.sockets.values()].filter(peer => peer.conn.remoteAddress === socket.conn.remoteAddress);
+  if (io.sockets.sockets.size >= limits.connections || peers.length >= limits.connectionsPerIp) return next(new Error("Previše otvorenih veza."));
+  next();
+});
 io.on("connection", socket => {
+  const ip = socket.conn.remoteAddress || "unknown";
+  socket.use((packet, next) => {
+    if (!rates.consume("event:" + socket.id, limits.events) || !rates.consume("ip-events:" + ip, 1200)) {
+      emitError(socket, "Previše zahteva. Pokušaj kasnije.");
+      return;
+    }
+    next();
+  });
+  socket.once("disconnect", () => rates.buckets.delete("event:" + socket.id));
   socket.on("room:create", payload => {
+    if (!rates.consume("create:" + ip, 10)) return emitError(socket, "Previše zahteva. Pokušaj kasnije.");
+    if (rooms.size >= limits.rooms) return emitError(socket, "Sve sobe su zauzete. Pokušaj kasnije.");
     if (getRoomBySocket(socket.id)) return emitError(socket, "Već ste u sobi.");
     const { name = "Igrač 1", config = {} } = fields(payload);
     if (typeof name !== "string") return emitError(socket, "Ime igrača mora biti tekst.");
     const columns = normalizeColumnIds(config?.columns);
-    const player = createPlayer(name, socket.id);
+    const { player, token } = createPlayer(name, socket.id);
     const room = {
       code: createCode(),
+      createdAt: Date.now(),
+      turnId: randomBytes(16).toString("hex"),
       hostId: player.id,
       started: false,
       config: { columns },
@@ -214,9 +260,9 @@ io.on("connection", socket => {
       cleanupTimer: null
     };
     rooms.set(room.code, room);
-    sessions.set(player.token, { roomCode: room.code, playerId: player.id });
+    sessions.set(player.tokenHash, { roomCode: room.code, playerId: player.id });
     socket.join(room.code);
-    socket.emit("room:created", { roomCode: room.code, playerId: player.id, sessionToken: player.token });
+    socket.emit("room:created", { roomCode: room.code, playerId: player.id, sessionToken: token });
     broadcast(room);
   });
 
@@ -230,11 +276,11 @@ io.on("connection", socket => {
     if (room.started) return emitError(socket, "Partija je već počela.");
     if (room.players.length >= MAX_PLAYERS) return emitError(socket, "Soba je puna.");
 
-    const player = createPlayer(name || `Igrač ${room.players.length + 1}`, socket.id);
+    const { player, token } = createPlayer(name || `Igrač ${room.players.length + 1}`, socket.id);
     room.players.push(player);
-    sessions.set(player.token, { roomCode: room.code, playerId: player.id });
+    sessions.set(player.tokenHash, { roomCode: room.code, playerId: player.id });
     socket.join(room.code);
-    socket.emit("room:joined", { roomCode: room.code, playerId: player.id, sessionToken: player.token });
+    socket.emit("room:joined", { roomCode: room.code, playerId: player.id, sessionToken: token });
     broadcast(room);
   });
 
@@ -243,7 +289,7 @@ io.on("connection", socket => {
     const player = getPlayer(room, socket.id);
     if (!room || !player) return socket.emit("room:left");
     if (room.started) return closeStartedRoom(room);
-    sessions.delete(player.token);
+    sessions.delete(player.tokenHash);
     room.players = room.players.filter(member => member.id !== player.id);
     socket.leave(room.code);
     socket.emit("room:left");
@@ -262,6 +308,7 @@ io.on("connection", socket => {
     if (room.players.some(p => !p.connected)) return emitError(socket, "Svi igrači moraju biti povezani pre početka partije.");
     if (room.started) return;
     room.started = true;
+    room.turnId = randomBytes(16).toString("hex");
     room.currentPlayerId = room.players[0].id;
     room.rolls = 0;
     room.dice = [];
@@ -272,13 +319,15 @@ io.on("connection", socket => {
     broadcast(room);
   });
 
-  socket.on("turn:roll", () => {
+  socket.on("turn:roll", payload => {
     const room = getRoomBySocket(socket.id);
     const player = getPlayer(room, socket.id);
     if (!room || !player || !room.started) return;
     if (isGameOver(room)) return emitError(socket, "Partija je završena.");
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
     if (room.rolls >= maxRollsForTurn(room, player)) return emitError(socket, "Dostignut je maksimalan broj bacanja za ovaj potez.");
+    const invalid = validateTurnCommand(room, player, payload);
+    if (invalid) return emitError(socket, invalid);
 
     const fresh = makeDice();
     if (room.rolls === 0) room.dice = fresh;
@@ -293,6 +342,8 @@ io.on("connection", socket => {
     const player = getPlayer(room, socket.id);
     if (!room || !player || room.currentPlayerId !== player.id) return;
     if (room.rolls === 0) return emitError(socket, "Prvo bacite kockice.");
+    const invalid = validateTurnCommand(room, player, payload);
+    if (invalid) return emitError(socket, invalid);
     const indices = payload?.indices === undefined ? [] : payload.indices;
     if (!Array.isArray(indices)) return emitError(socket, "Izbor kockica mora biti lista indeksa.");
     const clean = [...new Set(indices)].filter(i => Number.isInteger(i) && i >= 0 && i < 6);
@@ -311,6 +362,8 @@ io.on("connection", socket => {
     if (room.contraTargetRow && room.config.columns.includes("contra")) return emitError(socket, "Morate odigrati polje u koloni Dirigovano.");
     if (room.rolls !== 1) return emitError(socket, "Najavu možete postaviti samo posle prvog bacanja.");
     if (player.announcedRow) return emitError(socket, "Najava za ovaj potez je već postavljena.");
+    const invalid = validateTurnCommand(room, player, payload);
+    if (invalid) return emitError(socket, invalid);
     if (!SCORE_ROWS.includes(row) || !emptyCell(player, "announced", row)) return emitError(socket, "Izabrano polje za Najavu nije dostupno.");
     if (room.config.columns.includes("contra")) {
       const idx = room.players.findIndex(p => p.id === player.id);
@@ -329,6 +382,8 @@ io.on("connection", socket => {
     if (isGameOver(room)) return emitError(socket, "Partija je završena.");
     if (room.currentPlayerId !== player.id) return emitError(socket, "Nije vaš potez.");
     if (room.rolls === 0) return emitError(socket, "Potez još nije bačen.");
+    const invalid = validateTurnCommand(room, player, payload);
+    if (invalid) return emitError(socket, invalid);
     const isCrossOut = crossOut === true;
     if (room.contraTargetRow && room.config.columns.includes("contra") && (columnId !== "contra" || row !== room.contraTargetRow)) return emitError(socket, "Morate odigrati protivnikovo najavljeno polje u koloni Dirigovano.");
     const announcedFull = room.config.columns.includes("announced") && SCORE_ROWS.every(scoreRow => !emptyCell(player, "announced", scoreRow));
@@ -360,6 +415,7 @@ io.on("connection", socket => {
     player.announcedRow = null;
     const idx = room.players.findIndex(p => p.id === player.id);
     room.currentPlayerId = room.players[(idx + 1) % room.players.length].id;
+    room.turnId = randomBytes(16).toString("hex");
     room.rolls = 0;
     room.dice = [];
     room.selection = [];
@@ -375,7 +431,8 @@ io.on("connection", socket => {
 
   socket.on("room:resume", payload => {
     const { sessionToken: token } = fields(payload);
-    const session = sessions.get(token);
+    const hash = tokenHash(token);
+    const session = hash && sessions.get(hash);
     const currentRoom = getRoomBySocket(socket.id);
     if (currentRoom) {
       const currentPlayer = getPlayer(currentRoom, socket.id);
@@ -388,8 +445,10 @@ io.on("connection", socket => {
     if (!room) return emitError(socket, "Sesija nije pronađena.");
     const player = room.players.find(p => p.id === session.playerId);
     if (!player) return emitError(socket, "Igrač nije pronađen.");
+    const previousSocket = player.socketId && io.sockets.sockets.get(player.socketId);
     player.socketId = socket.id;
     player.connected = true;
+    if (previousSocket && previousSocket.id !== socket.id) previousSocket.disconnect(true);
     if (room.cleanupTimer) clearTimeout(room.cleanupTimer);
     room.cleanupTimer = null;
     socket.join(room.code);
@@ -409,6 +468,20 @@ io.on("connection", socket => {
   });
 });
 
+const sweep = setInterval(() => {
+  rates.sweep();
+  for (const room of rooms.values()) if (Date.now() - room.createdAt >= 24 * 60 * 60 * 1000) {
+    for (const player of room.players) {
+      const participant = player.socketId && io.sockets.sockets.get(player.socketId);
+      participant?.emit("room:closed", { message: "Soba je zatvorena." });
+      participant?.leave(room.code);
+    }
+    disposeRoom(room);
+  }
+}, 60000);
+sweep.unref();
+httpServer.requestTimeout = 15000;
+httpServer.headersTimeout = 10000;
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, "0.0.0.0", () => console.log(`Jumbo Dice server listening on ${PORT}`));
 
@@ -416,6 +489,7 @@ let shuttingDown = false;
 function shutdownAndWipe(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
+  clearInterval(sweep);
   console.log(`${signal}: brisanje aktivnih soba i sesija.`);
   wipeVolatileGameState();
   const forceExit = setTimeout(() => process.exit(1), 10_000);

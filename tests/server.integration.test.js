@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import net from "node:net";
+import { randomUUID } from "node:crypto";
 import { io as createClient } from "socket.io-client";
 
 const timeoutMs = 15000;
@@ -47,6 +48,12 @@ async function waitForHealth(url, child) {
 
 function connect(url) {
   const socket = createClient(url, { reconnection: false, timeout: timeoutMs });
+  let turnId;
+  socket.on("state", value => { turnId = value.turnId; });
+  const rawEmit = socket.emit.bind(socket);
+  socket.emit = (event, payload, ...args) => event.startsWith("turn:")
+    ? rawEmit(event, { ...payload, turnId: payload?.turnId ?? turnId, requestId: payload?.requestId ?? randomUUID() }, ...args)
+    : rawEmit(event, payload, ...args);
   return new Promise((resolve, reject) => {
     socket.once("connect", () => resolve(socket));
     socket.once("connect_error", reject);
@@ -433,4 +440,88 @@ test("Arena routes serve both games, preserve invites and load every browser dep
   assert.equal(invite.headers.get("location"), "/jamb?room=AB123&lang=en");
   assert.equal((await fetch(origin + "/hub/shared/missing.js")).status, 404);
   assert.equal((await fetch(origin + "/package.json")).status, 404);
+});
+
+test("security rejects foreign browser origins, weak tokens, duplicate/stale commands and room exhaustion", async t => {
+  const port = await freePort();
+  const base = "http://127.0.0.1:" + port;
+  const child = spawn(process.execPath, ["server/server.js"], {
+    env: { ...process.env, PORT: String(port), PUBLIC_URL: "https://dice-jumbo-2.onrender.com", SECURITY_MAX_ROOMS: "1" }, stdio: "ignore"
+  });
+  const sockets = [];
+  t.after(() => { sockets.forEach(socket => socket.disconnect()); child.kill(); });
+  await waitForHealth(base + "/health", child);
+  const page = await fetch(base + "/jamb");
+  assert.match(page.headers.get("content-security-policy"), /script-src 'self'/);
+  assert.match(page.headers.get("content-security-policy"), /frame-ancestors 'none'/);
+  assert.equal(page.headers.get("x-frame-options"), "DENY");
+  assert.equal(page.headers.get("x-powered-by"), null);
+  assert.match(await page.text(), /src="\/socket.io\/socket.io.js"/);
+  assert.equal((await fetch(base + "/socket.io/socket.io.js")).status, 200);
+  for (const transport of ["polling", "websocket"]) {
+    const rejected = createClient(base, { transports: [transport], reconnection: false, timeout: 3000, extraHeaders: { Origin: "https://evil.example" } });
+    sockets.push(rejected);
+    const error = await new Promise(resolve => rejected.once("connect_error", resolve));
+    assert.ok(error);
+    assert.equal(rejected.connected, false);
+  }
+  assert.equal((await fetch(base + "/socket.io/?EIO=4&transport=polling", { headers: { Origin: "null" } })).status, 403);
+  const host = await connect(base); sockets.push(host);
+  const createdWait = waitFor(host, "room:created");
+  const firstState = waitFor(host, "state");
+  host.emit("room:create", { name: '<img src=x onerror=alert(1)>' });
+  const room = await createdWait;
+  const publicRoom = await firstState;
+  assert.match(room.roomCode, /^[A-HJ-NP-Z2-9]{5}$/);
+  assert.match(room.sessionToken, /^[a-f0-9]{64}$/);
+  assert.doesNotMatch(JSON.stringify(publicRoom), /sessionToken|tokenHash|processedCommands/);
+  const second = await connect(base); sockets.push(second);
+  const capacity = waitFor(second, "game:error");
+  second.emit("room:create", { name: "Overflow" });
+  assert.match((await capacity).message, /zauzete/);
+  const weakToken = waitFor(second, "game:error");
+  second.emit("room:resume", { sessionToken: "predictable-timestamp" });
+  assert.match((await weakToken).message, /Sesija/);
+  const joinedWait = waitFor(second, "room:joined");
+  second.emit("room:join", { roomCode: room.roomCode, name: "Guest" });
+  await joinedWait;
+  const startedWait = waitFor(host, "state", state => state.started);
+  host.emit("room:start");
+  const started = await startedWait;
+  const oldTurn = waitFor(host, "game:error");
+  host.emit("turn:roll", { turnId: "0".repeat(32), requestId: randomUUID() });
+  assert.match((await oldTurn).message, /Zastarela/);
+  const commandId = randomUUID();
+  const rolledWait = waitFor(host, "state", state => state.rolls === 1);
+  host.emit("turn:roll", { turnId: started.turnId, requestId: commandId });
+  await rolledWait;
+  const duplicate = waitFor(host, "game:error");
+  host.emit("turn:roll", { turnId: started.turnId, requestId: commandId });
+  assert.match((await duplicate).message, /već obrađena/);
+  const reconnect = await connect(base); sockets.push(reconnect);
+  const disconnected = new Promise(resolve => host.once("disconnect", resolve));
+  const resumed = waitFor(reconnect, "room:resumed");
+  const restored = waitFor(reconnect, "state");
+  reconnect.emit("room:resume", { sessionToken: room.sessionToken });
+  await resumed; await disconnected;
+  assert.equal((await restored).rolls, 1, "replayed roll never changed the dice count");
+  assert.equal(host.connected, false);
+});
+
+test("event flooding is bounded without mutating room state", async t => {
+  const port = await freePort(), base = "http://127.0.0.1:" + port;
+  const child = spawn(process.execPath, ["server/server.js"], {
+    env: { ...process.env, PORT: String(port), SECURITY_EVENTS_PER_MINUTE: "2" }, stdio: "ignore"
+  });
+  const sockets = [];
+  t.after(() => { sockets.forEach(socket => socket.disconnect()); child.kill(); });
+  await waitForHealth(base + "/health", child);
+  const socket = await connect(base); sockets.push(socket);
+  const created = waitFor(socket, "room:created");
+  socket.emit("room:create", { name: "Host" }); await created;
+  const left = waitFor(socket, "room:left");
+  socket.emit("room:leave"); await left;
+  const limited = waitFor(socket, "game:error");
+  socket.emit("room:create", { name: "Flood" });
+  assert.match((await limited).message, /Previše zahteva/);
 });
