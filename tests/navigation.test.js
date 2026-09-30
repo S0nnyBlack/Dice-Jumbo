@@ -30,3 +30,8 @@ test("both game menu and Serbian/English hub entries wire direct destinations", 
     assert.equal([...page.matchAll(/href="\/jamb"/g)].length,2);
   }
 });
+
+test("mobile navigation buttons use their content width instead of full rail width", async () => {
+  const css=await readFile(new URL("../arena.css",import.meta.url),"utf8");
+  assert.match(css,/\.main-nav button \{ flex:1 0 auto; width:auto; \}/);
+});
