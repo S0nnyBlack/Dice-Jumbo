@@ -1,0 +1,25 @@
+name: Arena site template
+on:
+  push:
+    branches: [template/arena-site-features]
+    paths: ['templates/arena-site/**', '.github/workflows/arena-site-template.yml']
+  pull_request:
+    paths: ['templates/arena-site/**', '.github/workflows/arena-site-template.yml']
+permissions:
+  contents: read
+jobs:
+  template:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          for file in templates/arena-site/shared/*.js; do
+            node --check "$file"
+          done
+      - name: Test reusable UI and browser module availability
+        run: node --test templates/arena-site/tests/template.test.js

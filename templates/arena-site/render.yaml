@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: arena-games-hub
+    runtime: static
+    branch: template/arena-site-features
+    rootDir: templates/arena-site
+    buildCommand: "echo 'Static files ready'"
+    staticPublishPath: .
+    autoDeployTrigger: off
+    envVars:
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
