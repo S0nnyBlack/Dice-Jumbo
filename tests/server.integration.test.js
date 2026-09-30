@@ -419,7 +419,10 @@ test("Arena routes serve both games, preserve invites and load every browser dep
     const source = await response.text();
     if (url.endsWith(".js")) {
       assert.match(response.headers.get("content-type"), /javascript/);
-      for (const match of source.matchAll(/\bimport\s*[^;]*?\bfrom\s*["']([^"']+)["']/g)) await visit(new URL(match[1], url).href);
+      // Socket.IO is a self-contained classic bundle; import examples in its comments are not dependencies.
+      if (!url.endsWith("/socket.io/socket.io.js")) {
+        for (const match of source.matchAll(/^import\s*[^;]*?\bfrom\s*["']([^"']+)["']/gm)) await visit(new URL(match[1], url).href);
+      }
     }
     if (url.endsWith(".css")) assert.match(response.headers.get("content-type"), /text\/css/);
   }
