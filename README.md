@@ -1,6 +1,6 @@
 # jamb.arena
 
-jamb.arena je veb aplikacija za Jamb sa lokalnom solo partijom i online partijama za 2–4 igrača. Interfejs je na srpskom, prilagođen je telefonu, tabletu i desktopu, a rezultat se unosi direktno u tabelu. Tamni izgled i raspored oslanjaju se na brif Jamb Arena; postojeća pravila, šest kockica i online režim ostaju dostupni.
+jamb.arena je veb aplikacija za Jamb sa lokalnom solo partijom i online partijama za 2–4 igrača. Interfejs je na srpskom i engleskom, prilagođen je telefonu, tabletu i desktopu, a rezultat se unosi direktno u tabelu. Tamni izgled i raspored oslanjaju se na brif Jamb Arena; postojeća pravila, šest kockica i online režim ostaju dostupni.
 
 ## Mogućnosti
 
@@ -97,3 +97,27 @@ npm test
 
 Online sobe i njihove partije čuvaju se samo u memoriji servera. Pri gašenju server briše sve sobe i sesije, a novi Render build dobija jedinstven identifikator koji pregledač koristi da obriše sačuvane partije i nevažeće online tokene. Partije se ne obnavljaju posle deploya.
 
+
+## Arena Games početna stranica
+
+Početna stranica koristi odobreni Arena dizajn, dinamičnu kockicu i izbor jezika. Srpski i engleski dele zapamćeni izbor jezika sa Jambom; prethodne jezičke postavke se zadržavaju. Pregled igre otvara se u dijalogu.
+
+| Adresa | Sadržaj |
+| --- | --- |
+| `/` | Izbor igara Arena Games |
+| `/en.html` | Početna stranica na engleskom |
+| `/jamb` | Postojeća Jamb igra |
+| `/jamb?room=ABCDE` | Poziv u Jamb sobu |
+| `/?room=ABCDE` | Prethodni pozivi; preusmeravaju na Jamb i čuvaju parametre |
+
+Druga kartica vodi na [Ne ljuti se, čoveče](https://ne-ljuti-se-covece-2.onrender.com/). Dugme **Sve igre / All games** u Jambu vraća na izbor igara, uz potvrdu tokom aktivne partije. Solo napredak se čuva; online povratak ne šalje komandu za zatvaranje sobe, a postojeće ponovno povezivanje ostaje dostupno.
+
+### Fajlovi i hosting
+
+- `hub/index.html` i `hub/en.html`: odobrene stranice.
+- `hub/shared/arena.css`: zajednički izgled; `brand-die.js`: ukrasna kockica; `language.js` i `messages.js`: jezici; `arena-ui.js`: kontrole početne stranice.
+- `server/server.js`: javne rute. Fajlovi ostatka repozitorijuma nisu javno izloženi.
+- Postojeći Render Node servis služi i početnu stranicu. Nisu potrebni dodatni servis, baza, biblioteke ili plaćeni plan. Stranica ne pokreće vezu sa serverima igara u pozadini. Uspavan besplatni servis ipak može usporiti prvi ulazak.
+- GitHub Actions proverava sintaksu modula, jezike, kockicu, rute, kompatibilnost poziva i stvarno HTTP učitavanje zavisnosti pre spajanja.
+
+Širi šablon i uputstvo za buduće sajtove sačuvani su na zasebnoj grani `template/arena-site-features`.

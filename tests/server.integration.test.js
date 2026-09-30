@@ -384,3 +384,53 @@ test("online M requires a maximum score and remains manually playable", async ()
     });
   }
 });
+
+test("Arena routes serve both games, preserve invites and load every browser dependency", async t => {
+  const port = await freePort();
+  const origin = "http://127.0.0.1:" + port;
+  const child = spawn(process.execPath, ["server/server.js"], { env: { ...process.env, PORT: String(port) }, stdio: "ignore" });
+  t.after(() => child.kill());
+  await waitForHealth(origin + "/health", child);
+  for (const route of ["/", "/en.html"]) {
+    const response = await fetch(origin + route);
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /Arena Games/);
+    assert.match(html, /href="\/jamb"/);
+    assert.match(html, /href="https:\/\/ne-ljuti-se-covece-2.onrender.com\/"/);
+    assert.doesNotMatch(html, /socket.io|PROTOTIP|PROTOTYPE/);
+    if (route === "/en.html") assert.match(html, /<html lang="en">/);
+  }
+  const seen = new Set();
+  async function visit(url) {
+    if (seen.has(url)) return;
+    seen.add(url);
+    const response = await fetch(url);
+    assert.equal(response.status, 200, url);
+    const source = await response.text();
+    if (url.endsWith(".js")) {
+      assert.match(response.headers.get("content-type"), /javascript/);
+      for (const match of source.matchAll(/import\s+[^;]*?from\s+["']([^"']+)["']/g)) await visit(new URL(match[1], url).href);
+    }
+    if (url.endsWith(".css")) assert.match(response.headers.get("content-type"), /text\/css/);
+  }
+  const home = await (await fetch(origin + "/")).text();
+  for (const match of home.matchAll(/<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"/g)) await visit(new URL(match[1], origin).href);
+  assert.equal(seen.size, 5);
+  for (const route of ["/jamb", "/jamb/", "/jamb?room=AB123"]) {
+    const response = await fetch(origin + route);
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /<base href="\/">/);
+    assert.match(html, /type="module" src="app.js"/);
+    const base = new URL("/", origin + route);
+    for (const name of ["app.js", "game.js", "invite.js", "i18n.js", "styles.css", "arena.css"]) {
+      assert.equal((await fetch(new URL(name, base))).status, 200, name);
+    }
+  }
+  const invite = await fetch(origin + "/?room=AB123&lang=en", { redirect: "manual" });
+  assert.equal(invite.status, 302);
+  assert.equal(invite.headers.get("location"), "/jamb?room=AB123&lang=en");
+  assert.equal((await fetch(origin + "/hub/shared/missing.js")).status, 404);
+  assert.equal((await fetch(origin + "/package.json")).status, 404);
+});

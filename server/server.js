@@ -20,7 +20,14 @@ try {
 const app = express();
 app.use(cors());
 app.get("/health", (_, res) => res.json({ ok: true, service: "jumbo-dice-server", deploymentId }));
-app.get("/", (_, res) => res.sendFile(path.join(publicRoot, "index.html")));
+// Preserve room invites shared before the Arena homepage was introduced.
+app.get("/", (req, res) => {
+  if (req.query.room !== undefined) return res.redirect(302, "/jamb" + req.originalUrl.slice(1));
+  res.sendFile(path.join(publicRoot, "hub/index.html"));
+});
+app.get("/en.html", (_, res) => res.sendFile(path.join(publicRoot, "hub/en.html")));
+app.get("/jamb", (_, res) => res.sendFile(path.join(publicRoot, "index.html")));
+app.use("/hub/shared", express.static(path.join(publicRoot, "hub/shared"), { index: false }));
 app.get("/app.js", (_, res) => res.sendFile(path.join(publicRoot, "app.js")));
 app.get("/game.js", (_, res) => res.sendFile(path.join(publicRoot, "game.js")));
 app.get("/invite.js", (_, res) => res.sendFile(path.join(publicRoot, "invite.js")));

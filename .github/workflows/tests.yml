@@ -22,4 +22,6 @@ jobs:
       - run: node --check i18n.js
       - run: node --check game.js
       - run: node --check server/server.js
+      - name: Check Arena browser modules
+        run: for file in hub/shared/*.js; do node --check "$file"; done
       - run: npm test
