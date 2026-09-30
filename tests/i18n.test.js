@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { detectLanguage, normalizeLanguage, translateText } from "../i18n.js";
+import { LANGUAGE_KEY, detectLanguage, normalizeLanguage, translateText } from "../i18n.js";
 
 test("language defaults to Serbian and preserves Serbian copy", () => {
   assert.equal(normalizeLanguage(null), "sr");
@@ -26,3 +26,8 @@ test("English covers navigation, rules, score sheet and dynamic turns", () => {
   assert.equal(translateText("Precrtati polje 1 u koloni Dole? U polje će biti upisana nula.", "en"), "Cross out cell 1 in column Down? The cell will score zero.");
 });
 
+
+test("game and Arena share language preferences and translate the return action", () => {
+  assert.equal(LANGUAGE_KEY, "arena.ui.language.v1");
+  assert.equal(translateText("Sve igre", "en"), "All games");
+});

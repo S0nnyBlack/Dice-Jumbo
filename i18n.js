@@ -1,4 +1,4 @@
-export const LANGUAGE_KEY = "jumboDiceLanguageV1";
+export const LANGUAGE_KEY = "arena.ui.language.v1";
 export const normalizeLanguage = value => value === "en" ? "en" : "sr";
 export function detectLanguage(preferredLanguages = []) {
   const locales = Array.isArray(preferredLanguages) ? preferredLanguages : [preferredLanguages];
@@ -19,6 +19,7 @@ const translations = [
   ["JAMB STO", "YAMB TABLE"],
   ["Glavna navigacija", "Main navigation"],
   ["Igraj jamb", "Play Yamb"],
+  ["Sve igre", "All games"],
   ["Online sto", "Online table"],
   ["Pravila igre", "Game rules"],
   ["SAVET ZA IGRU", "GAME TIP"],
