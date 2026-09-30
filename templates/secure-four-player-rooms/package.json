@@ -1,0 +1,11 @@
+{
+  "name": "secure-four-player-rooms-template",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node demo-server.js", "test": "node --test" },
+  "dependencies": { "socket.io": "^4.8.1" },
+  "devDependencies": { "socket.io-client": "^4.8.1" }
+}
+

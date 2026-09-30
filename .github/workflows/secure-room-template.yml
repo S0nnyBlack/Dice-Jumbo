@@ -1,0 +1,30 @@
+name: Secure room template tests
+on:
+  push:
+    branches:
+      - template/secure-four-player-rooms
+    paths:
+      - templates/secure-four-player-rooms/**
+      - .github/workflows/secure-room-template.yml
+  pull_request:
+    paths:
+      - templates/secure-four-player-rooms/**
+      - .github/workflows/secure-room-template.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: templates/secure-four-player-rooms
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: templates/secure-four-player-rooms/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
